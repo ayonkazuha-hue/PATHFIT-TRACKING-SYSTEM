@@ -33,6 +33,16 @@ module.exports = function(supabaseAdmin) {
     return data || [];
   }
 
+  // Helper: fetch pending password reset requests for the nav bell
+  async function getPendingPasswordResets() {
+    const { data } = await supabaseAdmin
+      .from('password_reset_requests')
+      .select('*, users(name, email, student_id, section, course)')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false });
+    return data || [];
+  }
+
   // GET /instructor/dashboard
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
@@ -56,9 +66,10 @@ module.exports = function(supabaseAdmin) {
       const sections = [...new Set((sectionsRes.data || []).map(s => s.section).filter(Boolean))].sort();
       const pendingScreenings = (pendingRes.data || []).length;
       const pendingRegistrations = pendingRegistrationsRes.data || [];
+      const pendingPasswordResets = await getPendingPasswordResets();
 
       res.render('instructor/dashboard', {
-        students, sections, pendingScreenings, pendingRegistrations,
+        students, sections, pendingScreenings, pendingRegistrations, pendingPasswordResets,
         filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
@@ -124,9 +135,10 @@ module.exports = function(supabaseAdmin) {
       }
 
       const pendingRegistrations = await getPendingRegistrations();
+      const pendingPasswordResets = await getPendingPasswordResets();
       res.render('instructor/fitness_tests', {
         students: students2, tests, selectedStudentId, selectedStudent,
-        pendingRegistrations,
+        pendingRegistrations, pendingPasswordResets,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -181,11 +193,12 @@ module.exports = function(supabaseAdmin) {
       });
 
       const pendingRegistrations = await getPendingRegistrations();
+      const pendingPasswordResets = await getPendingPasswordResets();
       res.render('instructor/attendance', {
         students: students || [], attByStudent, sections,
         filters: { section, student_id },
         attendance: attendance || [],
-        pendingRegistrations,
+        pendingRegistrations, pendingPasswordResets,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -216,9 +229,10 @@ module.exports = function(supabaseAdmin) {
       const { data: plans } = await supabaseAdmin
         .from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number');
       const pendingRegistrations = await getPendingRegistrations();
+      const pendingPasswordResets = await getPendingPasswordResets();
       res.render('instructor/lesson_plans', {
         plans: plans || [], level,
-        pendingRegistrations,
+        pendingRegistrations, pendingPasswordResets,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -273,10 +287,11 @@ module.exports = function(supabaseAdmin) {
       tests.forEach(t => { if (t.rating) dist[t.rating]++; });
 
       const pendingRegistrations = await getPendingRegistrations();
+      const pendingPasswordResets = await getPendingPasswordResets();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, dist, totalTests: tests.length,
-        pendingRegistrations,
+        pendingRegistrations, pendingPasswordResets,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -292,7 +307,8 @@ module.exports = function(supabaseAdmin) {
         .order('screened_at', { ascending: false });
 
       const pendingRegistrations = await getPendingRegistrations();
-      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations });
+      const pendingPasswordResets = await getPendingPasswordResets();
+      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations, pendingPasswordResets });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
@@ -308,6 +324,59 @@ module.exports = function(supabaseAdmin) {
       res.redirect('/instructor/health-screening');
     } catch (err) {
       res.redirect('/instructor/health-screening');
+    }
+  });
+
+  // ── Password Reset Approval ──────────────────────────────
+
+  // POST /instructor/reset-password
+  router.post('/reset-password', async (req, res) => {
+    const { request_id, action } = req.body;
+    if (!request_id || !['approve', 'decline'].includes(action)) {
+      return res.redirect('/instructor/dashboard?approveError=Invalid password reset request.');
+    }
+
+    try {
+      // Fetch the request
+      const { data: request, error: fetchErr } = await supabaseAdmin
+        .from('password_reset_requests')
+        .select('*, users(email)')
+        .eq('request_id', request_id)
+        .eq('status', 'pending')
+        .single();
+
+      if (fetchErr || !request) {
+        return res.redirect('/instructor/dashboard?approveError=Password reset request not found or already processed.');
+      }
+
+      if (action === 'approve') {
+        // Actually reset the password via Supabase Admin
+        const { error: resetErr } = await supabaseAdmin.auth.admin.updateUserById(
+          request.user_id,
+          { password: request.new_password }
+        );
+
+        if (resetErr) throw resetErr;
+
+        // Mark as approved and clear the password
+        await supabaseAdmin
+          .from('password_reset_requests')
+          .update({ status: 'approved', resolved_at: new Date().toISOString(), new_password: '' })
+          .eq('request_id', request_id);
+
+        return res.redirect('/instructor/dashboard?approveSuccess=Password reset approved. Student can now log in with the new password.');
+      } else {
+        // Decline — mark as declined and clear the password
+        await supabaseAdmin
+          .from('password_reset_requests')
+          .update({ status: 'declined', resolved_at: new Date().toISOString(), new_password: '' })
+          .eq('request_id', request_id);
+
+        return res.redirect('/instructor/dashboard?approveSuccess=Password reset request declined.');
+      }
+    } catch (err) {
+      console.error(err);
+      return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
     }
   });
 

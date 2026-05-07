@@ -214,5 +214,111 @@ module.exports = function(supabase, supabaseAdmin) {
     req.session.destroy(() => res.redirect('/login'));
   });
 
+  // ── Forgot Password ──────────────────────────────────────
+
+  // GET /forgot-password
+  router.get('/forgot-password', (req, res) => {
+    if (req.session.user) return res.redirect('/');
+    res.render('forgot_password', { error: null, success: null, old: {} });
+  });
+
+  // POST /forgot-password
+  router.post('/forgot-password', async (req, res) => {
+    const { email, new_password, confirm_password } = req.body;
+    const old = { email };
+
+    if (!email || !new_password || !confirm_password) {
+      return res.render('forgot_password', { error: 'Please fill in all fields.', success: null, old });
+    }
+    if (new_password !== confirm_password) {
+      return res.render('forgot_password', { error: 'Passwords do not match.', success: null, old });
+    }
+    if (new_password.length < 8) {
+      return res.render('forgot_password', { error: 'Password must be at least 8 characters.', success: null, old });
+    }
+
+    try {
+      // Find the student by email
+      const { data: profile, error: profileErr } = await supabaseAdmin
+        .from('users')
+        .select('user_id, name, role, status')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (profileErr || !profile) {
+        // Don't reveal whether email exists — show generic success
+        return res.render('forgot_password', {
+          error: null,
+          success: 'If that email is registered, your reset request has been submitted. Please wait for instructor approval.',
+          old: {},
+        });
+      }
+
+      if (profile.role !== 'student') {
+        return res.render('forgot_password', {
+          error: 'Password reset requests are only available for student accounts.',
+          success: null, old,
+        });
+      }
+
+      if (profile.status !== 'approved') {
+        return res.render('forgot_password', {
+          error: 'Your account is not yet active. Contact your instructor.',
+          success: null, old,
+        });
+      }
+
+      // Cancel any existing pending request for this user
+      const { error: deleteErr } = await supabaseAdmin
+        .from('password_reset_requests')
+        .delete()
+        .eq('user_id', profile.user_id)
+        .eq('status', 'pending');
+
+      if (deleteErr) {
+        console.error('[forgot-password] delete error:', deleteErr);
+        // If table doesn't exist, give a clear message
+        if (deleteErr.message && deleteErr.message.includes('does not exist')) {
+          return res.render('forgot_password', {
+            error: 'The password reset feature is not set up yet. Please ask your instructor to run the database setup script (add_password_reset_table.sql).',
+            success: null, old,
+          });
+        }
+      }
+
+      // Insert new request — store password temporarily
+      const { error: insertErr } = await supabaseAdmin
+        .from('password_reset_requests')
+        .insert({
+          user_id:      profile.user_id,
+          new_password: new_password,
+          status:       'pending',
+        });
+
+      if (insertErr) {
+        console.error('[forgot-password] insert error:', insertErr);
+        if (insertErr.message && insertErr.message.includes('does not exist')) {
+          return res.render('forgot_password', {
+            error: 'The password reset feature is not set up yet. Please ask your instructor to run the database setup script (add_password_reset_table.sql).',
+            success: null, old,
+          });
+        }
+        throw insertErr;
+      }
+
+      return res.render('forgot_password', {
+        error: null,
+        success: 'Your password reset request has been submitted! Your instructor will review it shortly. You will be able to log in with your new password once approved.',
+        old: {},
+      });
+    } catch (err) {
+      console.error('[forgot-password] catch block error:', err);
+      return res.render('forgot_password', {
+        error: 'Server error: ' + (err.message || 'Please try again.'),
+        success: null, old,
+      });
+    }
+  });
+
   return router;
 };

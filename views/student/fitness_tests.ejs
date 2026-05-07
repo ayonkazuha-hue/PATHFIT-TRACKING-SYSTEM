@@ -1,29 +1,99 @@
 <%- include('../partials/header', { title: 'My Fitness Tests' }) %>
+
+<style>
+/* ── PDF button ── */
+.pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: .92rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .2s, opacity .2s;
+}
+.pdf-btn:hover    { background: #b71c1c; }
+.pdf-btn:disabled { opacity: .6; cursor: not-allowed; }
+.pdf-btn svg      { flex-shrink: 0; }
+</style>
+
+<!-- jsPDF + AutoTable (CDN — no install needed) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
 <div class="container">
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
   <div class="page-title">My Fitness Tests</div>
   <div class="page-sub">View all your recorded fitness test results.</div>
 
   <div class="card">
-    <h3>Test History</h3>
+    <!-- Card header row: title + download button -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid #e8ecf0;">
+      <h3 style="margin:0; border:none; padding:0;">Test History</h3>
+      <% if (tests.length > 0) { %>
+      <button class="pdf-btn" id="pdfBtn" onclick="downloadPDF()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download as PDF
+      </button>
+      <% } %>
+    </div>
+
     <% if (tests.length > 0) { %>
     <div class="table-wrap">
-      <table>
-        <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr></thead>
+      <table id="tests-table">
+        <thead>
+          <tr><th>#</th><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr>
+        </thead>
         <tbody>
-          <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach (cm)',step_test:'Step Test (bpm)',shuttle_run:'Shuttle Run (sec)'}; %>
-          <% tests.forEach(t => { %>
+          <% const labels = {
+               push_ups:    'Push-Ups',
+               sit_ups:     'Sit-Ups',
+               sit_reach:   'Sit & Reach (cm)',
+               step_test:   'Step Test (bpm)',
+               shuttle_run: 'Shuttle Run (sec)'
+             }; %>
+          <% tests.forEach((t, i) => { %>
           <tr>
-            <td><strong><%= labels[t.test_type]||t.test_type %></strong></td>
-            <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+            <td style="color:#999;font-size:.82rem;"><%= i + 1 %></td>
+            <td><strong><%= labels[t.test_type] || t.test_type %></strong></td>
+            <td>
+              <span class="badge badge-<%= t.test_period %>">
+                <%= t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1) %>
+              </span>
+            </td>
             <td><%= t.reps_or_cm %></td>
-            <td><% if(t.rating){ %><span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td>
+              <% if (t.rating) { %>
+                <span class="badge badge-<%= t.rating %>">
+                  <%= t.rating.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) %>
+                </span>
+              <% } else { %>—<% } %>
+            </td>
             <td><%= new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
           </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
+
+    <!-- Summary -->
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid #e8ecf0;">
+      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Total Records:</strong> <%= tests.length %></div>
+      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Pre-Tests:</strong> <%= tests.filter(t=>t.test_period==='pre').length %></div>
+      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Post-Tests:</strong> <%= tests.filter(t=>t.test_period==='post').length %></div>
+    </div>
+
     <% } else { %>
       <div class="empty-state">No fitness tests recorded yet. Your instructor will record your tests.</div>
     <% } %>
@@ -33,4 +103,206 @@
     <a href="/student/report" class="btn">View Pre/Post Comparison →</a>
   </div>
 </div>
+
+<!-- Embed test data for JS -->
+<script>
+const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
+  num:    i + 1,
+  type:   { push_ups:'Push-Ups', sit_ups:'Sit-Ups', sit_reach:'Sit & Reach (cm)', step_test:'Step Test (bpm)', shuttle_run:'Shuttle Run (sec)' }[t.test_type] || t.test_type,
+  period: t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1),
+  score:  String(t.reps_or_cm),
+  rating: t.rating ? t.rating.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) : '—',
+  date:   new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+  ratingKey: t.rating || '',
+  periodKey: t.test_period || ''
+}))) %>;
+
+/* Rating → RGB colour map */
+const RATING_COLORS = {
+  excellent:        [46, 125, 50],
+  good:             [21, 101, 192],
+  fair:             [230, 81, 0],
+  needs_improvement:[198, 40, 40],
+};
+const PERIOD_COLORS = {
+  pre:  [106, 27, 154],
+  post: [0,   105, 92],
+};
+
+function downloadPDF() {
+  const btn = document.getElementById('pdfBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Generating…';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const pageW  = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const now    = new Date();
+
+    /* ── Header bar ── */
+    doc.setFillColor(4, 44, 83);
+    doc.rect(0, 0, pageW, 28, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PATHFIT Tracking System', margin, 11);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Physical Activity Towards Health and Fitness — NBSC', margin, 17);
+
+    /* Generated date — right-aligned */
+    const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    doc.setFontSize(7.5);
+    doc.text('Generated: ' + dateStr, pageW - margin, 17, { align: 'right' });
+
+    /* ── Section title ── */
+    doc.setTextColor(4, 44, 83);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('My Fitness Test Results', margin, 38);
+
+    /* Accent line under title */
+    doc.setDrawColor(24, 95, 165);
+    doc.setLineWidth(0.8);
+    doc.line(margin, 41, margin + 70, 41);
+
+    /* ── Summary chips ── */
+    const preCount  = TEST_DATA.filter(r => r.periodKey === 'pre').length;
+    const postCount = TEST_DATA.filter(r => r.periodKey === 'post').length;
+    const chips = [
+      { label: 'Total Records', value: String(TEST_DATA.length) },
+      { label: 'Pre-Tests',     value: String(preCount)  },
+      { label: 'Post-Tests',    value: String(postCount) },
+    ];
+    let cx = margin;
+    chips.forEach(chip => {
+      doc.setFillColor(240, 244, 248);
+      doc.roundedRect(cx, 44, 42, 12, 2, 2, 'F');
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text(chip.label, cx + 21, 49, { align: 'center' });
+      doc.setTextColor(4, 44, 83);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(chip.value, cx + 21, 54, { align: 'center' });
+      cx += 46;
+    });
+
+    /* ── Table ── */
+    doc.autoTable({
+      startY: 60,
+      margin: { left: margin, right: margin },
+      head: [['#', 'Test', 'Period', 'Score', 'Rating', 'Date']],
+      body: TEST_DATA.map(r => [r.num, r.type, r.period, r.score, r.rating, r.date]),
+      headStyles: {
+        fillColor: [4, 44, 83],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+        cellPadding: 4,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        cellPadding: 3.5,
+        textColor: [20, 20, 20],
+      },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center', textColor: [160,160,160] },
+        2: { cellWidth: 22, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 36, halign: 'center' },
+        5: { cellWidth: 32 },
+      },
+      /* Colour the Period and Rating cells */
+      didDrawCell(data) {
+        if (data.section !== 'body') return;
+        const row = TEST_DATA[data.row.index];
+        if (!row) return;
+
+        /* Period badge */
+        if (data.column.index === 2) {
+          const col = PERIOD_COLORS[row.periodKey] || [100,100,100];
+          const { x, y, width, height } = data.cell;
+          const text = row.period;
+          const tw   = doc.getTextWidth(text);
+          const bw   = tw + 6;
+          const bh   = 5;
+          const bx   = x + (width - bw) / 2;
+          const by   = y + (height - bh) / 2;
+          doc.setFillColor(...col);
+          doc.roundedRect(bx, by, bw, bh, 1.5, 1.5, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text(text, bx + bw / 2, by + 3.5, { align: 'center' });
+        }
+
+        /* Rating badge */
+        if (data.column.index === 4 && row.ratingKey) {
+          const col = RATING_COLORS[row.ratingKey] || [100,100,100];
+          const { x, y, width, height } = data.cell;
+          const text = row.rating;
+          const tw   = doc.getTextWidth(text);
+          const bw   = Math.max(tw + 8, 28);
+          const bh   = 5;
+          const bx   = x + (width - bw) / 2;
+          const by   = y + (height - bh) / 2;
+          doc.setFillColor(...col);
+          doc.roundedRect(bx, by, bw, bh, 1.5, 1.5, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'bold');
+          doc.text(text, bx + bw / 2, by + 3.5, { align: 'center' });
+        }
+      },
+      /* Clear the raw text in badge cells so only the drawn badge shows */
+      didParseCell(data) {
+        if (data.section === 'body' && (data.column.index === 2 || data.column.index === 4)) {
+          data.cell.text = [];
+        }
+      },
+    });
+
+    /* ── Footer on every page ── */
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      const footerY = doc.internal.pageSize.getHeight() - 8;
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(margin, footerY - 3, pageW - margin, footerY - 3);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(160, 160, 160);
+      doc.text('PATHFIT Tracking System — NBSC  |  Confidential', margin, footerY);
+      doc.text('Page ' + p + ' of ' + pageCount, pageW - margin, footerY, { align: 'right' });
+    }
+
+    /* ── Save ── */
+    const filename = 'Fitness_Test_Results_' + now.toISOString().slice(0, 10) + '.pdf';
+    doc.save(filename);
+
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('Could not generate PDF. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg> Download as PDF`;
+  }
+}
+</script>
+
 <%- include('../partials/footer') %>
+

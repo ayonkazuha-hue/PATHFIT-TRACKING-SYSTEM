@@ -27,26 +27,37 @@
 
       <!-- Notification Bell -->
       <% if (typeof pendingRegistrations !== 'undefined') { %>
+      <%
+        const _resets = (typeof pendingPasswordResets !== 'undefined') ? pendingPasswordResets : [];
+        const _totalNotif = pendingRegistrations.length + _resets.length;
+      %>
       <div class="notif-wrap">
         <button class="notif-btn" id="notifBtn" aria-label="Notifications">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-          <% if (pendingRegistrations.length > 0) { %>
-            <span class="notif-badge"><%= pendingRegistrations.length %></span>
+          <% if (_totalNotif > 0) { %>
+            <span class="notif-badge"><%= _totalNotif %></span>
           <% } %>
         </button>
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
             Notifications
-            <% if (pendingRegistrations.length > 0) { %>
-              <span class="notif-count"><%= pendingRegistrations.length %> pending</span>
+            <% if (_totalNotif > 0) { %>
+              <span class="notif-count"><%= _totalNotif %> pending</span>
             <% } %>
           </div>
-          <% if (pendingRegistrations.length === 0) { %>
+
+          <% if (_totalNotif === 0) { %>
             <div class="notif-empty">No new notifications</div>
-          <% } else { %>
+          <% } %>
+
+          <!-- Registration requests -->
+          <% if (pendingRegistrations.length > 0) { %>
+            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
+              New Registrations
+            </div>
             <% pendingRegistrations.forEach(function(s) { %>
             <button type="button" class="notif-item"
               onclick="openStudentModal({
@@ -70,6 +81,33 @@
             </button>
             <% }) %>
           <% } %>
+
+          <!-- Password reset requests -->
+          <% if (_resets.length > 0) { %>
+            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
+              Password Reset Requests
+            </div>
+            <% _resets.forEach(function(r) { %>
+            <button type="button" class="notif-item"
+              onclick="openResetModal({
+                request_id:  '<%= r.request_id %>',
+                name:        '<%= r.users.name.replace(/'/g, "\\'") %>',
+                email:       '<%= r.users.email %>',
+                student_id:  '<%= r.users.student_id || "" %>',
+                section:     '<%= r.users.section || "—" %>',
+                course:      '<%= r.users.course || "—" %>',
+                requested_at:'<%= new Date(r.requested_at).toLocaleDateString("en-PH", { month:"short", day:"numeric", year:"numeric" }) %>'
+              })">
+              <div class="notif-icon">🔑</div>
+              <div class="notif-body">
+                <div class="notif-name"><%= r.users.name %></div>
+                <div class="notif-meta">Password reset · awaiting approval</div>
+                <div class="notif-time"><%= new Date(r.requested_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+              </div>
+            </button>
+            <% }) %>
+          <% } %>
+
         </div>
       </div>
 
@@ -113,6 +151,47 @@
           </div>
         </div>
       </div>
+
+      <!-- Password Reset Approval Modal -->
+      <div class="modal-overlay" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+        <div class="modal-box">
+          <div class="modal-header">
+            <div>
+              <div class="modal-title" id="resetModalTitle">Password Reset Request</div>
+              <div class="modal-sub">A student is requesting a password change. Approve to apply it immediately.</div>
+            </div>
+            <button class="modal-close" onclick="closeResetModal()" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="modal-avatar" style="background:linear-gradient(135deg,#b71c1c,#e53935);">🔑</div>
+            <div class="modal-name" id="resetModalName"></div>
+            <div class="modal-email" id="resetModalEmail"></div>
+            <div class="modal-grid">
+              <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="resetModalStudentId"></span></div>
+              <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="resetModalSection"></span></div>
+              <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="resetModalCourse"></span></div>
+              <div class="modal-field"><span class="modal-label">Requested</span><span class="modal-val" id="resetModalDate"></span></div>
+            </div>
+            <div style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:.83rem;color:#7b5800;">
+              ⚠️ Approving will immediately change this student's password to the one they submitted.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <form method="POST" action="/instructor/reset-password" style="display:contents;">
+              <input type="hidden" name="request_id" id="resetModalRequestId">
+              <input type="hidden" name="action" value="approve">
+              <button type="submit" class="btn modal-approve-btn">✓ Approve Reset</button>
+            </form>
+            <form method="POST" action="/instructor/reset-password" style="display:contents;">
+              <input type="hidden" name="request_id" id="resetModalRequestIdDecline">
+              <input type="hidden" name="action" value="decline">
+              <button type="submit" class="btn modal-reject-btn">✕ Decline</button>
+            </form>
+            <button type="button" class="btn modal-cancel-btn" onclick="closeResetModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <% } %>
 
     <% } else { %>
@@ -170,6 +249,29 @@
     document.body.style.overflow = '';
   }
 
+  // ── Password Reset Modal ──────────────────────────────────
+  function openResetModal(r) {
+    const dd = document.getElementById('notifDropdown');
+    if (dd) dd.classList.remove('open');
+
+    document.getElementById('resetModalName').textContent       = r.name;
+    document.getElementById('resetModalEmail').textContent      = r.email;
+    document.getElementById('resetModalStudentId').textContent  = r.student_id || '—';
+    document.getElementById('resetModalSection').textContent    = r.section;
+    document.getElementById('resetModalCourse').textContent     = r.course;
+    document.getElementById('resetModalDate').textContent       = r.requested_at;
+    document.getElementById('resetModalRequestId').value        = r.request_id;
+    document.getElementById('resetModalRequestIdDecline').value = r.request_id;
+
+    document.getElementById('resetModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeResetModal() {
+    document.getElementById('resetModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
   // Close modal on overlay click
   document.addEventListener('DOMContentLoaded', function () {
     const overlay = document.getElementById('studentModal');
@@ -178,9 +280,15 @@
         if (e.target === overlay) closeStudentModal();
       });
     }
+    const resetOverlay = document.getElementById('resetModal');
+    if (resetOverlay) {
+      resetOverlay.addEventListener('click', function (e) {
+        if (e.target === resetOverlay) closeResetModal();
+      });
+    }
     // Close on Escape key
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeStudentModal();
+      if (e.key === 'Escape') { closeStudentModal(); closeResetModal(); }
     });
   });
 </script>
