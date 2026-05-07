@@ -1,11 +1,82 @@
 <%- include('../partials/header', { title: 'Attendance Tracker' }) %>
+
+<style>
+/* ── Student search autocomplete ── */
+.student-search-wrap {
+  position: relative;
+}
+.student-search-wrap input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cdd5e0;
+  border-radius: 6px;
+  font-size: .9rem;
+  box-sizing: border-box;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+  padding-right: 32px;
+}
+.student-search-wrap input[type="text"]:focus {
+  outline: none;
+  border-color: #1a3a5c;
+  box-shadow: 0 0 0 2px rgba(26,58,92,.15);
+}
+.student-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #cdd5e0;
+  border-radius: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  display: none;
+}
+.student-dropdown .sd-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: .88rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.student-dropdown .sd-item:last-child { border-bottom: none; }
+.student-dropdown .sd-item:hover,
+.student-dropdown .sd-item.active { background: #eef3fb; }
+.student-dropdown .sd-item .sd-section {
+  font-size: .75rem;
+  color: #888;
+  background: #f0f4fa;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.student-dropdown .sd-empty {
+  padding: 10px 14px;
+  color: #999;
+  font-size: .85rem;
+  font-style: italic;
+}
+</style>
+
+<!-- Embed student data for JS -->
+<script>
+  const ALL_STUDENTS = <%- JSON.stringify(students.map(s => ({
+    id: s.user_id,
+    name: s.name,
+    section: s.section || ''
+  }))) %>;
+</script>
+
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
   <div class="page-title">Attendance Tracker</div>
   <div class="page-sub">Record weekly attendance and monitor students below the 75% threshold.</div>
 
   <!-- Filter -->
-  <form method="GET" action="/instructor/attendance">
+  <form method="GET" action="/instructor/attendance" id="filterForm">
     <div class="filter-bar">
       <div class="fg">
         <label>Section</label>
@@ -18,12 +89,16 @@
       </div>
       <div class="fg">
         <label>Student</label>
-        <select name="student_id">
-          <option value="">All Students</option>
-          <% students.forEach(s => { %>
-            <option value="<%= s.user_id %>" <%= filters.student_id===s.user_id?'selected':'' %>><%= s.name %></option>
-          <% }) %>
-        </select>
+        <!-- hidden field carries the actual ID -->
+        <input type="hidden" name="student_id" id="filterStudentId" value="<%= filters.student_id || '' %>">
+        <div class="student-search-wrap">
+          <input type="text"
+                 id="filterStudentSearch"
+                 placeholder="Search student…"
+                 autocomplete="off"
+                 value="<% if(filters.student_id){ const fs=students.find(s=>s.user_id===filters.student_id); if(fs) { %><%= fs.name %><% } } %>">
+          <div class="student-dropdown" id="filterDropdown"></div>
+        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:flex-end;">
         <button type="submit" class="btn">Filter</button>
@@ -42,12 +117,15 @@
       <form method="POST" action="/instructor/attendance">
         <div class="form-group">
           <label>Student *</label>
-          <select name="student_id" required>
-            <option value="">— Select Student —</option>
-            <% students.forEach(s => { %>
-              <option value="<%= s.user_id %>"><%= s.name %> (<%= s.section||'' %>)</option>
-            <% }) %>
-          </select>
+          <!-- hidden field carries the actual ID -->
+          <input type="hidden" name="student_id" id="markStudentId" required>
+          <div class="student-search-wrap">
+            <input type="text"
+                   id="markStudentSearch"
+                   placeholder="Search student…"
+                   autocomplete="off">
+            <div class="student-dropdown" id="markDropdown"></div>
+          </div>
         </div>
         <div class="form-group">
           <label>Week Number *</label>
@@ -133,4 +211,114 @@
   </div>
   <% } %>
 </div>
+<script>
+/**
+ * Generic student search-bar builder.
+ * @param {string} inputId   – text input element id
+ * @param {string} dropId    – dropdown div element id
+ * @param {string} hiddenId  – hidden input element id (receives the selected user_id)
+ * @param {boolean} required – whether the hidden field must be filled before form submit
+ */
+function buildStudentSearch(inputId, dropId, hiddenId, required) {
+  const input   = document.getElementById(inputId);
+  const drop    = document.getElementById(dropId);
+  const hidden  = document.getElementById(hiddenId);
+  if (!input || !drop || !hidden) return;
+
+  let activeIdx = -1;
+
+  function renderItems(list) {
+    drop.innerHTML = '';
+    activeIdx = -1;
+    if (list.length === 0) {
+      drop.innerHTML = '<div class="sd-empty">No students found</div>';
+    } else {
+      list.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'sd-item';
+        div.dataset.id   = s.id;
+        div.dataset.name = s.name;
+        div.innerHTML = `<span>${s.name}</span>${s.section ? `<span class="sd-section">${s.section}</span>` : ''}`;
+        div.addEventListener('mousedown', e => {
+          e.preventDefault(); // keep focus on input briefly
+          selectStudent(s);
+        });
+        drop.appendChild(div);
+      });
+    }
+    drop.style.display = 'block';
+  }
+
+  function selectStudent(s) {
+    input.value  = s.name;
+    hidden.value = s.id;
+    drop.style.display = 'none';
+    activeIdx = -1;
+  }
+
+  function filterStudents(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return ALL_STUDENTS;
+    return ALL_STUDENTS.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.section.toLowerCase().includes(q)
+    );
+  }
+
+  input.addEventListener('input', () => {
+    hidden.value = ''; // clear selection when user types
+    renderItems(filterStudents(input.value));
+  });
+
+  input.addEventListener('focus', () => {
+    renderItems(filterStudents(input.value));
+  });
+
+  input.addEventListener('blur', () => {
+    // small delay so mousedown on item fires first
+    setTimeout(() => { drop.style.display = 'none'; }, 150);
+  });
+
+  // Keyboard navigation
+  input.addEventListener('keydown', e => {
+    const items = drop.querySelectorAll('.sd-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+    } else if (e.key === 'Enter' && activeIdx >= 0) {
+      e.preventDefault();
+      const item = items[activeIdx];
+      selectStudent({ id: item.dataset.id, name: item.dataset.name });
+      return;
+    } else if (e.key === 'Escape') {
+      drop.style.display = 'none';
+      return;
+    }
+    items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+    if (activeIdx >= 0) items[activeIdx].scrollIntoView({ block: 'nearest' });
+  });
+
+  // Validate on form submit if required
+  if (required) {
+    input.closest('form').addEventListener('submit', function(e) {
+      if (!hidden.value) {
+        e.preventDefault();
+        input.style.borderColor = '#c0392b';
+        input.focus();
+        renderItems(filterStudents(input.value));
+        input.placeholder = 'Please select a student from the list';
+      }
+    });
+  }
+}
+
+// Initialise both search bars
+buildStudentSearch('filterStudentSearch', 'filterDropdown', 'filterStudentId', false);
+buildStudentSearch('markStudentSearch',   'markDropdown',   'markStudentId',   true);
+</script>
+
 <%- include('../partials/footer') %>

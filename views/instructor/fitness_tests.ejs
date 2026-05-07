@@ -14,19 +14,35 @@
       <form method="POST" action="/instructor/fitness-tests">
         <div class="form-group">
           <label>Student *</label>
-          <select name="target_student_id" required onchange="updateGender(this)">
-            <option value="">— Select Student —</option>
-            <% students.forEach(s => { %>
-              <option value="<%= s.user_id %>"
-                      data-gender="<%= s.gender %>"
-                      <%= selectedStudentId===s.user_id?'selected':'' %>>
-                <%= s.name %> (<%= s.section||'' %>)
-              </option>
-            <% }) %>
-          </select>
+
+          <!-- Search input -->
+          <div class="student-search-wrap">
+            <input
+              type="text"
+              id="studentSearchInput"
+              class="student-search-input"
+              placeholder="Type a name to search…"
+              autocomplete="off"
+              value="<%= selectedStudent ? selectedStudent.name + ' (' + (selectedStudent.section||'') + ')' : '' %>"
+            >
+            <ul class="student-suggestions" id="studentSuggestions"></ul>
+          </div>
+
+          <!-- Hidden fields submitted with the form -->
+          <input type="hidden" name="target_student_id" id="target_student_id"
+                 value="<%= selectedStudentId %>">
+          <input type="hidden" name="student_gender"    id="student_gender"
+                 value="<%= selectedStudent ? selectedStudent.gender : '' %>">
+
+          <!-- Selected student chip -->
+          <div class="student-chip" id="studentChip" style="<%= selectedStudent ? '' : 'display:none' %>">
+            <span id="chipName"><%= selectedStudent ? selectedStudent.name : '' %></span>
+            <span id="chipMeta" style="opacity:.7;font-size:.78rem;margin-left:6px;">
+              <%= selectedStudent ? '· ' + (selectedStudent.section||'') + ' · ' + (selectedStudent.gender||'') : '' %>
+            </span>
+            <button type="button" class="chip-clear" onclick="clearStudent()" aria-label="Clear">×</button>
+          </div>
         </div>
-        <input type="hidden" name="student_gender" id="student_gender"
-               value="<%= selectedStudent ? selectedStudent.gender : '' %>">
 
         <div class="form-group">
           <label>Test Type *</label>
@@ -97,9 +113,79 @@
 </div>
 
 <script>
-function updateGender(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  document.getElementById('student_gender').value = opt.dataset.gender || '';
+// Build student list from server data
+const STUDENTS = [
+  <% students.forEach(function(s, i) { %>
+  {
+    id:      '<%= s.user_id %>',
+    name:    '<%= s.name.replace(/'/g, "\\'") %>',
+    section: '<%= (s.section||'').replace(/'/g, "\\'") %>',
+    gender:  '<%= s.gender || '' %>'
+  }<%= i < students.length - 1 ? ',' : '' %>
+  <% }) %>
+];
+
+const searchInput   = document.getElementById('studentSearchInput');
+const suggestions   = document.getElementById('studentSuggestions');
+const hiddenId      = document.getElementById('target_student_id');
+const hiddenGender  = document.getElementById('student_gender');
+const chip          = document.getElementById('studentChip');
+const chipName      = document.getElementById('chipName');
+const chipMeta      = document.getElementById('chipMeta');
+
+// If a student is already selected, hide the input
+if (hiddenId.value) {
+  searchInput.style.display = 'none';
+}
+
+searchInput.addEventListener('input', function () {
+  const q = this.value.trim().toLowerCase();
+  suggestions.innerHTML = '';
+  if (!q) { suggestions.style.display = 'none'; return; }
+
+  const matches = STUDENTS.filter(s => s.name.toLowerCase().includes(q)).slice(0, 8);
+  if (matches.length === 0) {
+    suggestions.style.display = 'none';
+    return;
+  }
+
+  matches.forEach(function (s) {
+    const li = document.createElement('li');
+    // Highlight matching part
+    const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    const highlighted = s.name.replace(regex, '<mark>$1</mark>');
+    li.innerHTML = highlighted + '<span class="sug-meta"> · ' + (s.section||'—') + ' · ' + (s.gender||'—') + '</span>';
+    li.addEventListener('mousedown', function (e) {
+      e.preventDefault(); // prevent blur before click
+      selectStudent(s);
+    });
+    suggestions.appendChild(li);
+  });
+  suggestions.style.display = 'block';
+});
+
+searchInput.addEventListener('blur', function () {
+  setTimeout(function () { suggestions.style.display = 'none'; }, 150);
+});
+
+function selectStudent(s) {
+  hiddenId.value     = s.id;
+  hiddenGender.value = s.gender;
+  chipName.textContent = s.name;
+  chipMeta.textContent = '· ' + (s.section||'—') + ' · ' + (s.gender||'—');
+  chip.style.display   = 'flex';
+  searchInput.style.display = 'none';
+  searchInput.value    = '';
+  suggestions.style.display = 'none';
+}
+
+function clearStudent() {
+  hiddenId.value     = '';
+  hiddenGender.value = '';
+  chip.style.display = 'none';
+  searchInput.style.display = '';
+  searchInput.value  = '';
+  searchInput.focus();
 }
 </script>
 <%- include('../partials/footer') %>
