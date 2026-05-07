@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= title %> — PATHFIT Tracking System</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="/images/nbsc_logo.png" alt="NBSC Logo" class="brand-logo">
+    <div class="brand-text">
+      <h1>PATHFIT Tracking System</h1>
+      <span>Physical Activity Towards Health and Fitness</span>
+    </div>
+  </div>
+  <% if (user) { %>
+  <nav>
+    <% if (user.role === 'instructor') { %>
+      <a href="/instructor/dashboard">Dashboard</a>
+      <a href="/instructor/fitness-tests">Fitness Tests</a>
+      <a href="/instructor/attendance">Attendance</a>
+      <a href="/instructor/lesson-plans">Lesson Plans</a>
+      <a href="/instructor/report">Reports</a>
+      <a href="/instructor/health-screening">Screening</a>
+    <% } else { %>
+      <a href="/student/dashboard">Dashboard</a>
+      <a href="/student/fitness-tests">My Tests</a>
+      <a href="/student/lesson-plans">Lesson Plans</a>
+      <a href="/student/report">My Report</a>
+    <% } %>
+    <a href="/logout">Logout</a>
+  </nav>
+  <% } %>
+</header>

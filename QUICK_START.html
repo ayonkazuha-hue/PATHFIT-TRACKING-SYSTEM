@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATHFIT Quick Start Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #042C53 0%, #185FA5 100%); min-height: 100vh; padding: 40px 20px; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .header { text-align: center; color: #fff; margin-bottom: 40px; }
+  .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+  .header p { font-size: 1.1rem; opacity: .9; }
+  .card { background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 8px 32px rgba(0,0,0,.2); margin-bottom: 24px; }
+  .step { margin-bottom: 40px; }
+  .step:last-child { margin-bottom: 0; }
+  .step-number { display: inline-block; width: 40px; height: 40px; background: #185FA5; color: #fff; border-radius: 50%; text-align: center; line-height: 40px; font-weight: 700; font-size: 1.2rem; margin-bottom: 12px; }
+  .step h2 { color: #042C53; font-size: 1.4rem; margin-bottom: 12px; }
+  .step p { color: #555; line-height: 1.7; margin-bottom: 16px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
+  .option { background: #f5f8fc; border: 2px solid #e0e8f0; border-radius: 12px; padding: 20px; transition: all .2s; cursor: pointer; }
+  .option:hover { border-color: #185FA5; box-shadow: 0 4px 16px rgba(24,95,165,.15); }
+  .option h3 { color: #042C53; font-size: 1.1rem; margin-bottom: 8px; }
+  .option p { font-size: .9rem; color: #666; margin-bottom: 12px; }
+  .option .badge { display: inline-block; padding: 4px 10px; background: #185FA5; color: #fff; border-radius: 20px; font-size: .75rem; font-weight: 600; margin-bottom: 12px; }
+  .btn { display: inline-block; padding: 10px 20px; background: #185FA5; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: .9rem; transition: background .2s; }
+  .btn:hover { background: #042C53; }
+  .btn-outline { background: transparent; border: 2px solid #185FA5; color: #185FA5; }
+  .btn-outline:hover { background: #185FA5; color: #fff; }
+  .code-box { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: .85rem; margin: 12px 0; overflow-x: auto; }
+  .highlight { background: #fff8e1; padding: 16px; border-left: 4px solid #f57f17; border-radius: 6px; margin: 16px 0; }
+  .highlight strong { color: #f57f17; }
+  .checklist { list-style: none; }
+  .checklist li { padding: 8px 0; padding-left: 28px; position: relative; color: #555; }
+  .checklist li:before { content: '✓'; position: absolute; left: 0; color: #2e7d32; font-weight: 700; font-size: 1.1rem; }
+  .footer { text-align: center; color: #fff; margin-top: 40px; opacity: .8; font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🏃‍♂️ PATHFIT Tracking System</h1>
+    <p>Quick Start Guide — Get Running in 10 Minutes</p>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h2>Install PHP Server</h2>
+      <p>Choose the option that works best for you:</p>
+      
+      <div class="options">
+        <div class="option">
+          <div class="badge">RECOMMENDED</div>
+          <h3>XAMPP</h3>
+          <p>All-in-one package with Apache, PHP, and MySQL. Perfect for beginners.</p>
+          <a href="https://www.apachefriends.org/download.html" class="btn" target="_blank">Download XAMPP</a>
+        </div>
+        
+        <div class="option">
+          <div class="badge">LIGHTWEIGHT</div>
+          <h3>PHP Built-in</h3>
+          <p>Just PHP, no extras. Use the included START_SERVER.bat to run.</p>
+          <a href="https://windows.php.net/download/" class="btn" target="_blank">Download PHP</a>
+        </div>
+        
+        <div class="option">
+          <div class="badge">MODERN</div>
+          <h3>Laragon</h3>
+          <p>Modern development environment with automatic virtual hosts.</p>
+          <a href="https://laragon.org/download/" class="btn" target="_blank">Download Laragon</a>
+        </div>
+      </div>
+
+      <div class="highlight">
+        <strong>After installing XAMPP:</strong> Copy all files to <code>C:\xampp\htdocs\pathfit\</code> and start Apache from XAMPP Control Panel.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">2</div>
+      <h2>Setup Supabase Database</h2>
+      <p>Supabase is a free PostgreSQL database service. No credit card required.</p>
+      
+      <ul class="checklist">
+        <li>Go to <a href="https://supabase.com" target="_blank" style="color:#185FA5; font-weight:600;">supabase.com</a> and create a free account</li>
+        <li>Click "New Project" and wait 2-3 minutes for initialization</li>
+        <li>Go to SQL Editor → New Query</li>
+        <li>Open <strong>schema.sql</strong> from this folder and copy ALL contents</li>
+        <li>Paste into Supabase and click "Run"</li>
+        <li>Go to Project Settings → API and copy your credentials</li>
+      </ul>
+
+      <div class="code-box">
+Project URL: https://xxxxxxxxxxxxx.supabase.co
+anon public: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+service_role: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      </div>
+
+      <a href="https://supabase.com" class="btn" target="_blank">Open Supabase</a>
+    </div>
+
+    <div class="step">
+      <div class="step-number">3</div>
+      <h2>Configure config.php</h2>
+      <p>Open <strong>config.php</strong> in Notepad and replace the placeholder values:</p>
+      
+      <div class="code-box">
+define('SUPABASE_URL', 'https://YOUR_PROJECT_ID.supabase.co');
+define('SUPABASE_ANON_KEY', 'YOUR_ANON_KEY_HERE');
+define('SUPABASE_SERVICE_KEY', 'YOUR_SERVICE_ROLE_KEY_HERE');
+      </div>
+
+      <p style="margin-top:16px;">Paste your actual Supabase credentials from Step 2 and save the file.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">4</div>
+      <h2>Start the Server</h2>
+      <p>Choose based on what you installed in Step 1:</p>
+      
+      <div class="options">
+        <div class="option">
+          <h3>XAMPP</h3>
+          <p>Open XAMPP Control Panel → Start Apache</p>
+          <div class="code-box" style="margin-top:12px;">http://localhost/pathfit/login.php</div>
+        </div>
+        
+        <div class="option">
+          <h3>PHP Built-in</h3>
+          <p>Double-click <strong>START_SERVER.bat</strong> in this folder</p>
+          <div class="code-box" style="margin-top:12px;">http://localhost:8000/login.php</div>
+        </div>
+        
+        <div class="option">
+          <h3>Laragon</h3>
+          <p>Start Laragon → Right-click tray icon → www → pathfit</p>
+          <div class="code-box" style="margin-top:12px;">http://pathfit.test/login.php</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">5</div>
+      <h2>Verify Setup</h2>
+      <p>Before logging in, run the setup checker to verify everything is configured correctly:</p>
+      
+      <div style="margin-top:16px;">
+        <a href="check_setup.php" class="btn" target="_blank">Run Setup Checker</a>
+        <span style="margin:0 12px; color:#999;">or</span>
+        <a href="login.php" class="btn btn-outline" target="_blank">Go Directly to Login</a>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">6</div>
+      <h2>Create First Instructor</h2>
+      <p>Since there are no users yet, you need to create an instructor account:</p>
+      
+      <ul class="checklist">
+        <li>Click "Register here" on the login page</li>
+        <li>Fill in all required fields (use any student ID like INST-001)</li>
+        <li>After registration, go to Supabase Dashboard → Table Editor → users</li>
+        <li>Find your user and change <strong>role</strong> from "student" to "instructor"</li>
+        <li>Log in again — you'll now see the Instructor Dashboard!</li>
+      </ul>
+
+      <div class="highlight">
+        <strong>Important:</strong> Students can self-register normally. Only the first instructor needs manual role change.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:#f5f8fc; border:2px solid #e0e8f0;">
+    <h2 style="color:#042C53; margin-bottom:16px;">📚 Additional Resources</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <a href="INSTALLATION_GUIDE.txt" class="btn btn-outline" style="text-align:center;">Installation Guide</a>
+      <a href="README.md" class="btn btn-outline" style="text-align:center;">Full Documentation</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>PATHFIT Tracking System — Built for CHED Compliance</p>
+    <p style="margin-top:8px;">Need help? Check INSTALLATION_GUIDE.txt for troubleshooting</p>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+-- ============================================================
+-- USE supabase_quick_setup.sql INSTEAD — this file is outdated
+-- ============================================================
+-- The auth.create_user() function does not exist in Supabase.
+-- Use supabase_quick_setup.sql which uses direct INSERT into auth.users
+-- ============================================================

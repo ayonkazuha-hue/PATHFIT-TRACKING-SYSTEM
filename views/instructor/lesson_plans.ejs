@@ -1,0 +1,54 @@
+<%- include('../partials/header', { title: 'Lesson Plans' }) %>
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">16-Week Lesson Plans</div>
+  <div class="page-sub">CHED-aligned PATHFit curriculum. Click "Edit" on any card to update.</div>
+
+  <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
+  <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <div class="level-tabs">
+    <a href="/instructor/lesson-plans?level=1" class="level-tab <%= level===1?'active':'' %>">PATHFit 1</a>
+    <a href="/instructor/lesson-plans?level=2" class="level-tab <%= level===2?'active':'' %>">PATHFit 2</a>
+  </div>
+
+  <div class="week-grid">
+    <% plans.forEach((plan, i) => { %>
+    <div class="week-card <%= i===0?'current':'' %>" id="card-<%= plan.plan_id %>">
+      <div class="week-tag">Week <%= plan.week_number %><% if(i===0){ %><span class="current-badge">Current</span><% } %></div>
+      <h4><%= plan.topic %></h4>
+      <p>📋 <%= plan.activity %></p>
+      <p style="font-style:italic;color:#777;font-size:.8rem;">🎯 <%= plan.objectives %></p>
+      <button class="btn btn-sm btn-outline" style="margin-top:10px;" onclick="toggleEdit('<%= plan.plan_id %>')">✏ Edit</button>
+
+      <div id="edit-<%= plan.plan_id %>" style="display:none;margin-top:12px;border-top:1px solid #e8ecf0;padding-top:12px;">
+        <form method="POST" action="/instructor/lesson-plans">
+          <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
+          <input type="hidden" name="level" value="<%= level %>">
+          <div class="form-group">
+            <label style="font-size:.78rem;">Topic</label>
+            <input type="text" name="topic" value="<%= plan.topic %>" required style="font-size:.82rem;padding:7px 10px;">
+          </div>
+          <div class="form-group">
+            <label style="font-size:.78rem;">Activity</label>
+            <textarea name="activity" style="min-height:55px;font-size:.82rem;padding:7px 10px;"><%= plan.activity %></textarea>
+          </div>
+          <div class="form-group">
+            <label style="font-size:.78rem;">Objectives</label>
+            <textarea name="objectives" style="min-height:55px;font-size:.82rem;padding:7px 10px;"><%= plan.objectives %></textarea>
+          </div>
+          <button type="submit" class="btn btn-sm">Save Changes</button>
+        </form>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+</div>
+
+<script>
+function toggleEdit(id) {
+  const el = document.getElementById('edit-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+<%- include('../partials/footer') %>

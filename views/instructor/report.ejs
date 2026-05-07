@@ -1,0 +1,99 @@
+<%- include('../partials/header', { title: 'Pre/Post Report' }) %>
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Pre vs. Post Fitness Report</div>
+  <div class="page-sub">Compare baseline and end-of-semester fitness test results to measure student progress.</div>
+
+  <!-- Student Selector -->
+  <form method="GET" action="/instructor/report">
+    <div class="filter-bar">
+      <div class="fg">
+        <label>Select Student</label>
+        <select name="student_id" style="min-width:280px;">
+          <option value="">— Class-Wide Summary —</option>
+          <% studentsList.forEach(s => { %>
+            <option value="<%= s.user_id %>" <%= targetId===s.user_id?'selected':'' %>>
+              <%= s.name %> (<%= s.section||'' %>)
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div style="align-self:flex-end;">
+        <button type="submit" class="btn">View Report</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Student Info Bar -->
+  <% if (studentInfo) { %>
+  <div style="background:linear-gradient(135deg,#042C53,#185FA5);color:#fff;border-radius:10px;padding:16px 22px;margin-bottom:24px;display:flex;gap:30px;flex-wrap:wrap;">
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Name</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.name %></div></div>
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Student ID</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.student_id||'—' %></div></div>
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Section</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.section||'—' %></div></div>
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Gender</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= (studentInfo.gender||'').charAt(0).toUpperCase()+(studentInfo.gender||'').slice(1) %></div></div>
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">PATHFit</div><div style="font-size:1rem;font-weight:600;margin-top:2px;">PATHFit <%= studentInfo.pathfit_level %></div></div>
+  </div>
+  <% } %>
+
+  <!-- Comparison Table -->
+  <div class="card">
+    <h3>Fitness Test Comparison</h3>
+    <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach (cm)',step_test:'Step Test (bpm)',shuttle_run:'Shuttle Run (sec)'}; %>
+    <% const ratingOrder = {needs_improvement:1,fair:2,good:3,excellent:4}; %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Test</th><th>Pre Score</th><th>Pre Rating</th><th>Post Score</th><th>Post Rating</th><th>Change</th><th>Progress</th></tr>
+        </thead>
+        <tbody>
+          <% testTypes.forEach(type => { %>
+          <% const pre = grouped[type].pre; const post = grouped[type].post; %>
+          <tr>
+            <td><strong><%= labels[type] %></strong></td>
+            <td><%= pre  ? pre.reps_or_cm  : '—' %></td>
+            <td><% if(pre&&pre.rating){ %><span class="badge badge-<%= pre.rating %>"><%= pre.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td><%= post ? post.reps_or_cm : '—' %></td>
+            <td><% if(post&&post.rating){ %><span class="badge badge-<%= post.rating %>"><%= post.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td>
+              <% if(pre&&post){ %>
+                <% const diff = (post.reps_or_cm - pre.reps_or_cm).toFixed(2); %>
+                <span class="<%= diff>0?'score-up':diff<0?'score-down':'' %>"><%= diff>0?'+':'' %><%= diff %></span>
+              <% }else{ %>—<% } %>
+            </td>
+            <td>
+              <% if(pre&&post&&pre.rating&&post.rating){ %>
+                <% const p=ratingOrder[pre.rating]||0; const q=ratingOrder[post.rating]||0; %>
+                <% if(q>p){ %><span class="score-up">▲ Improved</span>
+                <% }else if(q<p){ %><span class="score-down">▼ Declined</span>
+                <% }else{ %><span style="color:#888;">— Same</span><% } %>
+              <% }else{ %>—<% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Class-wide distribution -->
+  <% if (!targetId && totalTests > 0) { %>
+  <div class="card">
+    <h3>Class-Wide Rating Distribution</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rating</th><th>Count</th><th>Percentage</th></tr></thead>
+        <tbody>
+          <% Object.entries(dist).forEach(([r, cnt]) => { %>
+          <tr>
+            <td><span class="badge badge-<%= r %>"><%= r.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span></td>
+            <td><%= cnt %></td>
+            <td><%= totalTests > 0 ? Math.round((cnt/totalTests)*100) : 0 %>%</td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

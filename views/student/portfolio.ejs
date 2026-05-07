@@ -1,0 +1,77 @@
+<%- include('../partials/header', { title: 'Fitness Portfolio' }) %>
+<div class="container">
+  <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Fitness Portfolio</div>
+  <div class="page-sub">CHED-aligned semester portfolio with completion checklist.</div>
+
+  <% const qError   = new URLSearchParams(typeof window!=='undefined'?window.location.search:'').get?.('error'); %>
+  <% const qSuccess = new URLSearchParams(typeof window!=='undefined'?window.location.search:'').get?.('success'); %>
+
+  <div class="grid-2">
+    <!-- Submit Form -->
+    <div class="card">
+      <h3>Submit Portfolio</h3>
+      <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
+      <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+      <form method="POST" action="/student/portfolio">
+        <div class="form-group">
+          <label>Semester *</label>
+          <select name="semester" required>
+            <option value="">— Select Semester —</option>
+            <% semesters.forEach(s => { %>
+              <option value="<%= s %>"><%= s %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Reflection Notes *</label>
+          <textarea name="reflection_notes" placeholder="Reflect on your fitness journey this semester. What improvements did you notice? What challenges did you face? What are your goals for next semester?" required style="min-height:160px;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-full">Submit Portfolio</button>
+      </form>
+    </div>
+
+    <!-- Checklist -->
+    <div class="card">
+      <h3>CHED Completion Checklist</h3>
+      <% const done = checklist.filter(c=>c.done).length; %>
+      <div class="bar-bg" style="margin-bottom:6px;">
+        <div class="bar-fill" style="width:<%= Math.round((done/checklist.length)*100) %>%"></div>
+      </div>
+      <div class="bar-label"><span><%= done %> / <%= checklist.length %> completed</span></div>
+      <ul class="checklist" style="margin-top:16px;">
+        <% checklist.forEach(item => { %>
+        <li>
+          <div class="check-icon <%= item.done?'done':'pending' %>"><%= item.done?'✓':'○' %></div>
+          <span style="color:<%= item.done?'#2e7d32':'#555' %>;"><%= item.label %></span>
+        </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Submitted Portfolios -->
+  <div class="card">
+    <h3>Submitted Portfolios</h3>
+    <% if (portfolios.length > 0) { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Semester</th><th>Submitted</th><th>Reflection Preview</th></tr></thead>
+        <tbody>
+          <% portfolios.forEach(p => { %>
+          <tr>
+            <td><strong><%= p.semester %></strong></td>
+            <td><%= new Date(p.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) %></td>
+            <td style="max-width:400px;font-size:.85rem;color:#444;"><%= (p.reflection_notes||'').substring(0,200) %><%= (p.reflection_notes||'').length>200?'...':'' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="empty-state">No portfolio submitted yet.</div>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

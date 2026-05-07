@@ -1,0 +1,105 @@
+<%- include('../partials/header', { title: 'Record Fitness Tests' }) %>
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Fitness Test Entry</div>
+  <div class="page-sub">Record pre-test and post-test results. Ratings are auto-calculated based on gender-specific rubrics.</div>
+
+  <div class="grid-2">
+    <!-- Form -->
+    <div class="card">
+      <h3>Record New Test</h3>
+      <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
+      <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+      <form method="POST" action="/instructor/fitness-tests">
+        <div class="form-group">
+          <label>Student *</label>
+          <select name="target_student_id" required onchange="updateGender(this)">
+            <option value="">— Select Student —</option>
+            <% students.forEach(s => { %>
+              <option value="<%= s.user_id %>"
+                      data-gender="<%= s.gender %>"
+                      <%= selectedStudentId===s.user_id?'selected':'' %>>
+                <%= s.name %> (<%= s.section||'' %>)
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <input type="hidden" name="student_gender" id="student_gender"
+               value="<%= selectedStudent ? selectedStudent.gender : '' %>">
+
+        <div class="form-group">
+          <label>Test Type *</label>
+          <select name="test_type" required>
+            <option value="">— Select Test —</option>
+            <option value="push_ups">Push-Ups (reps)</option>
+            <option value="sit_ups">Sit-Ups (reps)</option>
+            <option value="sit_reach">Sit & Reach (cm)</option>
+            <option value="step_test">Step Test (bpm)</option>
+            <option value="shuttle_run">Shuttle Run (seconds)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Test Period *</label>
+          <select name="test_period" required>
+            <option value="">— Select Period —</option>
+            <option value="pre">Pre-Test</option>
+            <option value="post">Post-Test</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Score *</label>
+          <input type="number" name="reps_or_cm" step="0.01" min="0" placeholder="e.g. 25" required>
+        </div>
+        <button type="submit" class="btn btn-full">Save Test Result</button>
+      </form>
+
+      <!-- Rubric Reference -->
+      <div style="background:#f5f8fc;border-radius:8px;padding:14px;margin-top:16px;font-size:.82rem;">
+        <strong style="color:#042C53;display:block;margin-bottom:8px;">Push-Up Rubric Reference</strong>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Excellent</span><span>≥ 36 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Good</span><span>29–35 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Fair</span><span>22–28 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Needs Improvement</span><span>&lt; 22 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;margin-top:6px;"><span>Female — Excellent</span><span>≥ 20 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Female — Good</span><span>15–19 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Female — Fair</span><span>10–14 reps</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Female — Needs Improvement</span><span>&lt; 10 reps</span></div>
+      </div>
+    </div>
+
+    <!-- Existing Tests -->
+    <div class="card">
+      <h3>Recorded Tests</h3>
+      <% if (tests.length > 0) { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr></thead>
+          <tbody>
+            <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach',step_test:'Step Test',shuttle_run:'Shuttle Run'}; %>
+            <% tests.forEach(t => { %>
+            <tr>
+              <td><%= labels[t.test_type]||t.test_type %></td>
+              <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+              <td><%= t.reps_or_cm %></td>
+              <td><% if(t.rating){ %><span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+              <td><%= new Date(t.created_at).toLocaleDateString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+        <div class="empty-state"><%= selectedStudentId ? 'No tests recorded for this student yet.' : 'Select a student to view their test history.' %></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateGender(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('student_gender').value = opt.dataset.gender || '';
+}
+</script>
+<%- include('../partials/footer') %>

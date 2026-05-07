@@ -1,0 +1,9 @@
+<%- include('partials/header', { title: title || 'Error' }) %>
+<main>
+  <div class="card" style="max-width:480px;width:100%;text-align:center;">
+    <h2 style="color:#c62828;"><%= title %></h2>
+    <p style="color:#555;margin:16px 0;"><%= message %></p>
+    <a href="/" class="btn">Go Home</a>
+  </div>
+</main>
+<%- include('partials/footer') %>

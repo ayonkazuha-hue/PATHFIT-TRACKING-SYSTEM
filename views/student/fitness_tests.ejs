@@ -1,0 +1,36 @@
+<%- include('../partials/header', { title: 'My Fitness Tests' }) %>
+<div class="container">
+  <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">My Fitness Tests</div>
+  <div class="page-sub">View all your recorded fitness test results.</div>
+
+  <div class="card">
+    <h3>Test History</h3>
+    <% if (tests.length > 0) { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr></thead>
+        <tbody>
+          <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach (cm)',step_test:'Step Test (bpm)',shuttle_run:'Shuttle Run (sec)'}; %>
+          <% tests.forEach(t => { %>
+          <tr>
+            <td><strong><%= labels[t.test_type]||t.test_type %></strong></td>
+            <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+            <td><%= t.reps_or_cm %></td>
+            <td><% if(t.rating){ %><span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td><%= new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="empty-state">No fitness tests recorded yet. Your instructor will record your tests.</div>
+    <% } %>
+  </div>
+
+  <div style="margin-top:8px;">
+    <a href="/student/report" class="btn">View Pre/Post Comparison →</a>
+  </div>
+</div>
+<%- include('../partials/footer') %>

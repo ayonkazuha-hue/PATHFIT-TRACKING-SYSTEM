@@ -1,0 +1,41 @@
+<%- include('partials/header', { title: 'Health Screening' }) %>
+<div class="container-md" style="padding-top:40px;">
+  <div class="card">
+    <h2>Pre-Participation Health Screening</h2>
+    <p class="sub">Welcome, <strong><%= user.name %></strong>! Complete this one-time health screening before your PATHFit activities.</p>
+
+    <div class="alert alert-warn">
+      ⚠️ This form must be completed honestly. Your information is confidential and reviewed only by your instructor.
+    </div>
+
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+    <form method="POST" action="/health-screening">
+      <div class="section-title">Injury History</div>
+      <div class="form-group">
+        <label>Describe any past injuries, surgeries, or physical limitations (write "None" if not applicable):</label>
+        <textarea name="injury_history" placeholder="e.g., Sprained left ankle in 2023, fully recovered..."></textarea>
+      </div>
+
+      <div class="section-title">Current Health Conditions</div>
+      <label style="margin-bottom:10px;">Select all conditions that apply:</label>
+      <div class="checkbox-grid">
+        <% const conditions = [
+          'Asthma or respiratory condition','Heart disease or hypertension',
+          'Diabetes','Epilepsy or seizure disorder','Musculoskeletal disorder',
+          'Recent surgery (within 6 months)','Pregnancy','Severe allergies',
+          'Visual or hearing impairment','None of the above'
+        ]; %>
+        <% conditions.forEach(c => { %>
+        <label class="checkbox-item">
+          <input type="checkbox" name="health_conditions" value="<%= c %>">
+          <%= c %>
+        </label>
+        <% }) %>
+      </div>
+
+      <button type="submit" class="btn btn-full">Submit Health Screening</button>
+    </form>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,51 @@
+<%- include('../partials/header', { title: 'My Fitness Report' }) %>
+<div class="container">
+  <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Pre vs. Post Fitness Report</div>
+  <div class="page-sub">Compare your baseline and end-of-semester fitness test results.</div>
+
+  <div class="card">
+    <h3>Fitness Test Comparison</h3>
+    <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach (cm)',step_test:'Step Test (bpm)',shuttle_run:'Shuttle Run (sec)'}; %>
+    <% const ratingOrder = {needs_improvement:1,fair:2,good:3,excellent:4}; %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Pre Score</th><th>Pre Rating</th>
+            <th>Post Score</th><th>Post Rating</th>
+            <th>Change</th><th>Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% testTypes.forEach(type => { %>
+          <% const pre = grouped[type].pre; const post = grouped[type].post; %>
+          <tr>
+            <td><strong><%= labels[type] %></strong></td>
+            <td><%= pre  ? pre.reps_or_cm  : '<span style="color:#bbb;">—</span>' %></td>
+            <td><% if(pre&&pre.rating){ %><span class="badge badge-<%= pre.rating %>"><%= pre.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td><%= post ? post.reps_or_cm : '<span style="color:#bbb;">—</span>' %></td>
+            <td><% if(post&&post.rating){ %><span class="badge badge-<%= post.rating %>"><%= post.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            <td>
+              <% if(pre&&post){ %>
+                <% const diff = (post.reps_or_cm - pre.reps_or_cm).toFixed(2); %>
+                <span class="<%= diff>0?'score-up':diff<0?'score-down':'' %>"><%= diff>0?'+':'' %><%= diff %></span>
+              <% }else{ %>—<% } %>
+            </td>
+            <td>
+              <% if(pre&&post&&pre.rating&&post.rating){ %>
+                <% const p=ratingOrder[pre.rating]||0; const q=ratingOrder[post.rating]||0; %>
+                <% if(q>p){ %><span class="score-up">▲ Improved</span>
+                <% }else if(q<p){ %><span class="score-down">▼ Declined</span>
+                <% }else{ %><span style="color:#888;">— Same</span><% } %>
+              <% }else{ %>—<% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

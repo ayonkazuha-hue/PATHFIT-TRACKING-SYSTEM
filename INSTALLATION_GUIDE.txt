@@ -1,0 +1,204 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    PATHFIT TRACKING SYSTEM                                   ║
+║                     Quick Installation Guide                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+STEP 1: INSTALL PHP SERVER
+═══════════════════════════════════════════════════════════════════════════════
+
+Choose ONE option:
+
+┌─ OPTION A: XAMPP (Easiest for beginners) ─────────────────────────────────┐
+│                                                                             │
+│  1. Download XAMPP from: https://www.apachefriends.org/download.html       │
+│  2. Run installer (choose default options)                                 │
+│  3. Install to: C:\xampp                                                    │
+│  4. Open XAMPP Control Panel                                               │
+│  5. Click "Start" next to Apache                                           │
+│  6. Copy all PHP files to: C:\xampp\htdocs\pathfit\                        │
+│  7. Open browser: http://localhost/pathfit/login.php                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ OPTION B: PHP Built-in Server (Lightweight) ─────────────────────────────┐
+│                                                                             │
+│  1. Download PHP 8.x from: https://windows.php.net/download/               │
+│  2. Choose "Thread Safe" ZIP file                                          │
+│  3. Extract to: C:\php                                                      │
+│  4. Add C:\php to Windows PATH:                                            │
+│     - Search "Environment Variables" in Windows                            │
+│     - Edit "Path" variable                                                 │
+│     - Add new entry: C:\php                                                │
+│  5. Restart Command Prompt                                                 │
+│  6. Double-click START_SERVER.bat in this folder                           │
+│  7. Open browser: http://localhost:8000/login.php                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ OPTION C: Laragon (Modern, all-in-one) ──────────────────────────────────┐
+│                                                                             │
+│  1. Download Laragon from: https://laragon.org/download/                   │
+│  2. Install (choose "Full" version)                                        │
+│  3. Copy this folder to: C:\laragon\www\pathfit\                           │
+│  4. Start Laragon                                                          │
+│  5. Right-click Laragon tray icon → www → pathfit                          │
+│  6. Browser opens automatically                                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+STEP 2: SETUP SUPABASE DATABASE
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://supabase.com
+2. Click "Start your project" (free account)
+3. Create new project:
+   - Name: pathfit-tracking
+   - Database Password: (choose a strong password)
+   - Region: (choose closest to you)
+   - Wait 2-3 minutes for project to initialize
+
+4. Run the database schema:
+   - Click "SQL Editor" in left sidebar
+   - Click "New query"
+   - Open schema.sql file from this folder
+   - Copy ALL contents and paste into Supabase SQL Editor
+   - Click "Run" button
+   - You should see "Success. No rows returned"
+
+5. Get your API credentials:
+   - Click "Project Settings" (gear icon at bottom left)
+   - Click "API" tab
+   - Copy these THREE values:
+     
+     ┌─────────────────────────────────────────────────────────────┐
+     │ Project URL:                                                │
+     │ https://xxxxxxxxxxxxx.supabase.co                           │
+     │                                                             │
+     │ anon public key:                                            │
+     │ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh...   │
+     │                                                             │
+     │ service_role secret key:                                    │
+     │ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh...   │
+     └─────────────────────────────────────────────────────────────┘
+
+
+STEP 3: CONFIGURE config.php
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Open config.php in Notepad or any text editor
+2. Find these three lines at the top:
+
+   define('SUPABASE_URL', 'https://YOUR_PROJECT_ID.supabase.co');
+   define('SUPABASE_ANON_KEY', 'YOUR_ANON_KEY_HERE');
+   define('SUPABASE_SERVICE_KEY', 'YOUR_SERVICE_ROLE_KEY_HERE');
+
+3. Replace with your actual values from Step 2
+4. Save the file
+
+
+STEP 4: START THE APPLICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+If using XAMPP:
+  → Open browser: http://localhost/pathfit/login.php
+
+If using PHP built-in server:
+  → Double-click START_SERVER.bat
+  → Open browser: http://localhost:8000/login.php
+
+If using Laragon:
+  → Open browser: http://pathfit.test/login.php
+
+
+STEP 5: CREATE FIRST INSTRUCTOR ACCOUNT
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Click "Register here" on login page
+2. Fill in the registration form:
+   - Full Name: Your Name
+   - Student ID: INST-001
+   - Email: instructor@school.edu.ph
+   - Password: (choose a strong password)
+   - Fill other required fields
+3. Click "Create Account"
+
+4. Change role to instructor in Supabase:
+   - Go to Supabase Dashboard
+   - Click "Table Editor" in left sidebar
+   - Click "users" table
+   - Find your newly created user
+   - Click the "role" cell
+   - Change from "student" to "instructor"
+   - Press Enter to save
+
+5. Go back to login page and log in with your credentials
+6. You should now see the Instructor Dashboard!
+
+
+STEP 6: CREATE TEST STUDENT ACCOUNTS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Log out from instructor account
+2. Click "Register here"
+3. Create student accounts with different details
+4. Students will be prompted to complete health screening on first login
+
+
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════════
+
+Problem: "PHP is not recognized"
+Solution: Make sure PHP is installed and added to PATH (see Step 1)
+
+Problem: "Call to undefined function curl_init"
+Solution: 
+  - Find php.ini file (in C:\php or C:\xampp\php)
+  - Open in Notepad
+  - Find line: ;extension=curl
+  - Remove semicolon: extension=curl
+  - Save and restart server
+
+Problem: "Could not connect to Supabase"
+Solution:
+  - Check config.php has correct credentials
+  - Verify Supabase project is active
+  - Make sure schema.sql was executed successfully
+
+Problem: "Session could not be started"
+Solution:
+  - Check that C:\Windows\Temp exists and is writable
+  - Or add to config.php: ini_set('session.save_path', sys_get_temp_dir());
+
+Problem: Page shows PHP code instead of running
+Solution:
+  - Make sure Apache is running (XAMPP)
+  - Or use START_SERVER.bat (PHP built-in)
+  - Files must have .php extension
+
+
+SYSTEM REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Windows 10/11
+✓ PHP 7.4 or higher (8.x recommended)
+✓ cURL extension enabled
+✓ Internet connection (for Supabase)
+✓ Modern web browser (Chrome, Firefox, Edge)
+
+
+SUPPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+For detailed documentation, see README.md in this folder.
+
+Common URLs:
+  - XAMPP Download: https://www.apachefriends.org/
+  - PHP Download: https://windows.php.net/download/
+  - Supabase: https://supabase.com
+  - Laragon: https://laragon.org/
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                    You're all set! Happy tracking! 🏃‍♂️
+═══════════════════════════════════════════════════════════════════════════════

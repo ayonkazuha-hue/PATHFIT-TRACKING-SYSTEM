@@ -1,0 +1,156 @@
+<%- include('partials/header', { title: 'Register' }) %>
+<div class="container-md" style="padding-top:40px;">
+  <div class="card">
+    <h2>Create Account</h2>
+    <p class="sub">Register as a student to access your fitness tracking portal.</p>
+
+    <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
+    <% if (success) { %>
+      <div class="alert alert-success" style="text-align:center;padding:20px;">
+        <div style="font-size:2rem;margin-bottom:8px;">⏳</div>
+        <strong>Registration Submitted!</strong><br>
+        <span style="font-size:.92rem;"><%= success %></span>
+      </div>
+    <% } %>
+
+    <% if (!success) { %>
+    <form method="POST" action="/register">
+      <div class="section-title">Personal Information</div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" name="name" placeholder="Juan Dela Cruz" value="<%= old.name||'' %>" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Student ID *</label>
+          <input type="text" name="student_id" placeholder="2024-00001" value="<%= old.student_id||'' %>" required>
+        </div>
+        <div class="form-group">
+          <label>Gender *</label>
+          <select name="gender" required>
+            <option value="">— Select —</option>
+            <option value="male"   <%= old.gender==='male'   ?'selected':'' %>>Male</option>
+            <option value="female" <%= old.gender==='female' ?'selected':'' %>>Female</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Academic Information</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Institute / Course *</label>
+          <select name="course" required>
+            <option value="">— Select —</option>
+            <option value="IBM" <%= old.course==='IBM'?'selected':'' %>>IBM (Institute For Business Management)</option>
+            <option value="ICS" <%= old.course==='ICS'?'selected':'' %>>ICS (Institute For Computer Studies)</option>
+            <option value="ITE" <%= old.course==='ITE'?'selected':'' %>>ITE (Institute For Teacher Education)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Section *</label>
+          <select name="section" required>
+            <option value="">— Select —</option>
+            <option value="A" <%= old.section==='A'?'selected':'' %>>A</option>
+            <option value="B" <%= old.section==='B'?'selected':'' %>>B</option>
+            <option value="C" <%= old.section==='C'?'selected':'' %>>C</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Year Level *</label>
+          <select name="year_level" required>
+            <option value="">— Select —</option>
+            <option value="1" <%= old.year_level==1?'selected':'' %>>1st Year</option>
+            <option value="2" <%= old.year_level==2?'selected':'' %>>2nd Year</option>
+            <option value="3" <%= old.year_level==3?'selected':'' %>>3rd Year</option>
+            <option value="4" <%= old.year_level==4?'selected':'' %>>4th Year</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PATHFit Level *</label>
+          <select name="pathfit_level" required>
+            <option value="">— Select —</option>
+            <option value="1" <%= old.pathfit_level=='1'?'selected':'' %>>PATHFit 1</option>
+            <option value="2" <%= old.pathfit_level=='2'?'selected':'' %>>PATHFit 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Account Credentials</div>
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" name="email" placeholder="you@school.edu.ph" value="<%= old.email||'' %>" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Password *</label>
+          <div class="pw-wrap">
+            <input type="password" id="reg_password" name="password" placeholder="Min. 8 characters" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('reg_password', this)" aria-label="Show password">
+              <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password *</label>
+          <div class="pw-wrap">
+            <input type="password" id="reg_confirm" name="confirm_pass" placeholder="Repeat password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('reg_confirm', this)" aria-label="Show password">
+              <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-full">Create Account</button>
+    </form>
+    <% } %>
+
+    <p style="text-align:center;margin-top:20px;font-size:.88rem;color:#555;">
+      Already have an account? <a href="/login" style="color:#185FA5;font-weight:600;">Sign in</a>
+    </p>
+  </div>
+</div>
+
+<style>
+.pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pw-wrap input {
+  width: 100%;
+  padding-right: 42px;
+}
+.pw-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .2s;
+}
+.pw-toggle:hover { color: #185FA5; }
+.pw-toggle svg { width: 18px; height: 18px; }
+</style>
+
+<script>
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.querySelector('.eye-icon').style.display     = isHidden ? 'none'  : '';
+  btn.querySelector('.eye-off-icon').style.display = isHidden ? ''      : 'none';
+  btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+}
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,154 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                  ⚠️  YOU DON'T NEED NPM FOR THIS PROJECT! ⚠️                 ║
+║                                                                              ║
+║                    This is a PHP application, not Node.js                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+🚫 WRONG COMMAND:
+═══════════════════════════════════════════════════════════════════════════════
+  npm install  ← This is for Node.js projects (not needed here!)
+
+
+✅ CORRECT STEPS FOR PHP:
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 1: INSTALL XAMPP
+──────────────────────────────────────────────────────────────────────────────
+
+1. Open your browser and go to:
+   https://www.apachefriends.org/download.html
+
+2. Click "Download" for Windows (any version 7.4+ or 8.x)
+
+3. Run the installer:
+   - Accept all defaults
+   - Install to: C:\xampp
+   - Wait for installation to complete
+
+4. Open XAMPP Control Panel (it should auto-start)
+   - If not, go to: C:\xampp\xampp-control.exe
+
+
+STEP 2: START APACHE
+──────────────────────────────────────────────────────────────────────────────
+
+1. In XAMPP Control Panel, find "Apache"
+2. Click the "Start" button next to Apache
+3. Wait for it to turn green
+4. You should see "Apache started" in the log
+
+
+STEP 3: COPY YOUR FILES
+──────────────────────────────────────────────────────────────────────────────
+
+1. Open File Explorer
+2. Navigate to: C:\xampp\htdocs\
+3. Create a new folder called: pathfit
+4. Copy ALL files from this folder:
+   C:\Users\NBSC\Documents\PATHFIT TRACKING SYSTEM\
+   
+   To this folder:
+   C:\xampp\htdocs\pathfit\
+
+   (You should have 20 files in C:\xampp\htdocs\pathfit\)
+
+
+STEP 4: SETUP SUPABASE
+──────────────────────────────────────────────────────────────────────────────
+
+1. Open browser: https://supabase.com
+2. Click "Start your project" (free, no credit card)
+3. Create new project (wait 2-3 minutes)
+4. Click "SQL Editor" in left sidebar
+5. Click "New query"
+6. Open schema.sql from your files
+7. Copy ALL contents
+8. Paste into Supabase SQL Editor
+9. Click "Run" button
+10. Go to "Project Settings" → "API"
+11. Copy these 3 values:
+    - Project URL
+    - anon public key
+    - service_role secret key
+
+
+STEP 5: CONFIGURE config.php
+──────────────────────────────────────────────────────────────────────────────
+
+1. Open: C:\xampp\htdocs\pathfit\config.php in Notepad
+2. Find these 3 lines:
+
+   define('SUPABASE_URL', 'https://YOUR_PROJECT_ID.supabase.co');
+   define('SUPABASE_ANON_KEY', 'YOUR_ANON_KEY_HERE');
+   define('SUPABASE_SERVICE_KEY', 'YOUR_SERVICE_ROLE_KEY_HERE');
+
+3. Replace with your actual Supabase values from Step 4
+4. Save the file
+
+
+STEP 6: TEST YOUR INSTALLATION
+──────────────────────────────────────────────────────────────────────────────
+
+1. Make sure Apache is running in XAMPP Control Panel
+2. Open browser and go to:
+   http://localhost/pathfit/check_setup.php
+
+3. You should see a green "All checks passed!" message
+4. If you see errors, read the error messages and fix them
+
+
+STEP 7: OPEN THE APPLICATION
+──────────────────────────────────────────────────────────────────────────────
+
+1. Open browser: http://localhost/pathfit/login.php
+2. Click "Register here"
+3. Fill in the registration form
+4. After registration, go to Supabase Dashboard
+5. Click "Table Editor" → "users" table
+6. Find your user and change role from "student" to "instructor"
+7. Log in again — you'll see the Instructor Dashboard!
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK TROUBLESHOOTING:
+═══════════════════════════════════════════════════════════════════════════════
+
+Problem: "Apache won't start in XAMPP"
+Solution: Port 80 might be in use. Click "Config" → "httpd.conf"
+          Change "Listen 80" to "Listen 8080"
+          Then access: http://localhost:8080/pathfit/login.php
+
+Problem: "Page shows PHP code instead of running"
+Solution: Make sure Apache is started (green in XAMPP Control Panel)
+
+Problem: "Could not connect to Supabase"
+Solution: Check config.php has correct credentials from Supabase
+
+Problem: "Call to undefined function curl_init"
+Solution: In XAMPP Control Panel, click "Config" → "PHP (php.ini)"
+          Find: ;extension=curl
+          Change to: extension=curl
+          Save and restart Apache
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SUMMARY:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ This is a PHP project (not Node.js)
+✓ You need XAMPP (not npm)
+✓ Download XAMPP from: https://www.apachefriends.org/
+✓ Copy files to: C:\xampp\htdocs\pathfit\
+✓ Setup Supabase database
+✓ Configure config.php
+✓ Open: http://localhost/pathfit/login.php
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                    Start with Step 1 above! 🚀
+═══════════════════════════════════════════════════════════════════════════════

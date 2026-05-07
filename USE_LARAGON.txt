@@ -1,0 +1,72 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                  🚀 EASIEST WAY: USE LARAGON (NOT NPM!)                      ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+WHY LARAGON IS BETTER THAN XAMPP:
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Lighter (smaller download)
+✓ Faster startup
+✓ Modern interface
+✓ Auto-creates virtual hosts
+✓ Just drag & drop folders
+✓ One-click start/stop
+
+
+INSTALL LARAGON (5 MINUTES):
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Download Laragon Full from:
+   https://laragon.org/download/
+
+2. Run the installer
+   - Choose "Full" version (includes PHP, Apache, MySQL)
+   - Accept all defaults
+   - Install to: C:\laragon
+
+3. Launch Laragon (it will auto-start)
+
+
+SETUP YOUR PROJECT (2 MINUTES):
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Copy this entire folder:
+   C:\Users\NBSC\Documents\PATHFIT TRACKING SYSTEM\
+
+2. Paste it into:
+   C:\laragon\www\
+
+3. Rename the folder to just: pathfit
+   (Remove "PATHFIT TRACKING SYSTEM", keep just "pathfit")
+
+4. In Laragon, click "Start All"
+
+5. Right-click Laragon tray icon → www → pathfit
+
+6. Browser opens automatically at: http://pathfit.test/login.php
+
+
+THAT'S IT! 🎉
+═══════════════════════════════════════════════════════════════════════════════
+
+No npm needed!
+No complex setup!
+Just install, copy, and run!
+
+
+NEXT STEPS:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Setup Supabase database (run schema.sql)
+2. Update config.php with Supabase credentials
+3. Run: http://pathfit.test/check_setup.php
+4. Open: http://pathfit.test/login.php
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                    Download Laragon now! 🚀
+                    https://laragon.org/download/
+═══════════════════════════════════════════════════════════════════════════════

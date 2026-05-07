@@ -1,0 +1,198 @@
+<%- include('../partials/header', { title: 'Instructor Dashboard' }) %>
+<div class="container">
+  <div class="page-title">Instructor Dashboard</div>
+  <div class="page-sub">Manage students, track fitness progress, and monitor attendance.</div>
+
+  <!-- Approve/Reject feedback -->
+  <% if (approveSuccess) { %>
+    <div class="alert alert-success" style="margin-bottom:16px;"><%= approveSuccess %></div>
+  <% } %>
+  <% if (approveError) { %>
+    <div class="alert alert-error" style="margin-bottom:16px;"><%= approveError %></div>
+  <% } %>
+
+  <!-- Pending Registrations Notification -->
+  <% if (pendingRegistrations.length > 0) { %>
+  <div class="card" style="border-left:4px solid #e67e22;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:1.4rem;">🔔</span>
+      <h3 style="margin:0;color:#e67e22;">
+        Pending Registrations
+        <span style="background:#e67e22;color:#fff;border-radius:50%;padding:2px 8px;font-size:.8rem;margin-left:6px;"><%= pendingRegistrations.length %></span>
+      </h3>
+    </div>
+    <p style="margin:0 0 14px;color:#555;font-size:.9rem;">
+      The following students have registered and are waiting for your approval before they can log in.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Student ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Course</th>
+            <th>Section</th>
+            <th>Year</th>
+            <th>PATHFit</th>
+            <th>Registered</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pendingRegistrations.forEach(s => { %>
+          <tr>
+            <td><%= s.student_id || '—' %></td>
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.email %></td>
+            <td><%= s.course || '—' %></td>
+            <td><%= s.section || '—' %></td>
+            <td><%= s.year_level || '—' %></td>
+            <td>PF<%= s.pathfit_level %></td>
+            <td style="white-space:nowrap;font-size:.82rem;color:#777;">
+              <%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>
+            </td>
+            <td style="white-space:nowrap;">
+              <form method="POST" action="/instructor/approve-student" style="display:inline;">
+                <input type="hidden" name="user_id" value="<%= s.user_id %>">
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="btn" style="padding:4px 12px;font-size:.82rem;background:#27ae60;">Approve</button>
+              </form>
+              <form method="POST" action="/instructor/approve-student" style="display:inline;margin-left:6px;"
+                    onsubmit="return confirm('Reject and delete this registration for <%= s.name %>?')">
+                <input type="hidden" name="user_id" value="<%= s.user_id %>">
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn" style="padding:4px 12px;font-size:.82rem;background:#e74c3c;">Reject</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Students</div>
+      <div class="value"><%= stats.total %></div>
+      <div class="sub"><%= stats.male %> male · <%= stats.female %> female</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">PATHFit 1</div>
+      <div class="value"><%= stats.pf1 %></div>
+      <div class="sub">enrolled students</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">PATHFit 2</div>
+      <div class="value"><%= stats.pf2 %></div>
+      <div class="sub">enrolled students</div>
+    </div>
+    <div class="stat-card <%= pendingScreenings > 0 ? 'warn' : '' %>">
+      <div class="label">Pending Screenings</div>
+      <div class="value"><%= pendingScreenings %></div>
+      <div class="sub">awaiting clearance</div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+    <a href="/instructor/fitness-tests" class="btn">+ Record Fitness Test</a>
+    <a href="/instructor/attendance" class="btn">+ Mark Attendance</a>
+    <a href="/instructor/lesson-plans" class="btn">Lesson Plans</a>
+    <a href="/instructor/report" class="btn">Pre/Post Report</a>
+    <a href="/instructor/health-screening" class="btn">Health Screenings</a>
+  </div>
+
+  <!-- Filter -->
+  <form method="GET" action="/instructor/dashboard">
+    <div class="filter-bar">
+      <div class="fg">
+        <label>Institute / Course</label>
+        <select name="course">
+          <option value="">All Institutes</option>
+          <option value="IBM" <%= filters.course==='IBM'?'selected':'' %>>IBM (Institute For Business Management)</option>
+          <option value="ICS" <%= filters.course==='ICS'?'selected':'' %>>ICS (Institute For Computer Studies)</option>
+          <option value="ITE" <%= filters.course==='ITE'?'selected':'' %>>ITE (Institute For Teacher Education)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Section</label>
+        <select name="section">
+          <option value="">All Section</option>
+          <option value="A" <%= filters.section==='A'?'selected':'' %>>A</option>
+          <option value="B" <%= filters.section==='B'?'selected':'' %>>B</option>
+          <option value="C" <%= filters.section==='C'?'selected':'' %>>C</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Year Level</label>
+        <select name="year_level">
+          <option value="">All Year</option>
+          <option value="1" <%= filters.year_level==='1'?'selected':'' %>>1st Year</option>
+          <option value="2" <%= filters.year_level==='2'?'selected':'' %>>2nd Year</option>
+          <option value="3" <%= filters.year_level==='3'?'selected':'' %>>3rd Year</option>
+          <option value="4" <%= filters.year_level==='4'?'selected':'' %>>4th Year</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>PATHFit Level</label>
+        <select name="pathfit_level">
+          <option value="">All Levels</option>
+          <option value="1" <%= filters.pathfit_level==='1'?'selected':'' %>>PATHFit 1</option>
+          <option value="2" <%= filters.pathfit_level==='2'?'selected':'' %>>PATHFit 2</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Gender</label>
+        <select name="gender">
+          <option value="">All Genders</option>
+          <option value="male"   <%= filters.gender==='male'  ?'selected':'' %>>Male</option>
+          <option value="female" <%= filters.gender==='female'?'selected':'' %>>Female</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <button type="submit" class="btn">Filter</button>
+        <a href="/instructor/dashboard" class="btn btn-outline">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Students Table -->
+  <div class="card">
+    <h3>Student List <span style="font-size:.82rem;font-weight:400;color:#555;"><%= students.length %> student(s)</span></h3>
+    <% if (students.length > 0) { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year</th><th>Gender</th><th>PATHFit</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <% students.forEach(s => { %>
+          <tr>
+            <td><%= s.student_id||'—' %></td>
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.email %></td>
+            <td><%= s.section||'—' %></td>
+            <td><%= s.course||'—' %></td>
+            <td><%= s.year_level||'—' %></td>
+            <td><span class="badge badge-<%= s.gender %>"><%= (s.gender||'').charAt(0).toUpperCase()+(s.gender||'').slice(1) %></span></td>
+            <td><span class="badge badge-<%= s.pathfit_level %>">PF<%= s.pathfit_level %></span></td>
+            <td class="action-links">
+              <a href="/instructor/fitness-tests?student_id=<%= s.user_id %>">Tests</a>
+              <a href="/instructor/attendance?student_id=<%= s.user_id %>">Attendance</a>
+              <a href="/instructor/report?student_id=<%= s.user_id %>">Report</a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="empty-state">No students found matching the selected filters.</div>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

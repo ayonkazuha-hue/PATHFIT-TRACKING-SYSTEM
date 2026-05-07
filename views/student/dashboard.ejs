@@ -1,0 +1,102 @@
+<%- include('../partials/header', { title: 'Student Dashboard' }) %>
+<div class="container">
+  <div style="margin-bottom:24px;">
+    <h2 class="page-title">Hello, <%= user.name %> 👋</h2>
+    <p class="page-sub">Your fitness progress overview for PATHFit <%= level %>.</p>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stats-grid">
+    <div class="stat-card <%= attendancePct < 75 ? 'warn' : '' %>">
+      <div class="label">Attendance Rate</div>
+      <div class="value"><%= attendancePct %>%</div>
+      <div class="sub"><%= attendedCount %> / 16 weeks attended</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Fitness Tests</div>
+      <div class="value"><%= tests.length %></div>
+      <div class="sub"><%= preTests.length %> pre · <%= postTests.length %> post</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Health Screening</div>
+      <div class="value" style="font-size:1rem;margin-top:6px;">
+        <% if (screening) { %>
+          <span class="badge" style="background:<%= screening.cleared ? '#2e7d32' : '#f57f17' %>;">
+            <%= screening.cleared ? '✔ Cleared' : '⏳ Pending' %>
+          </span>
+        <% } else { %>
+          <a href="/health-screening" class="btn btn-sm">Complete Now</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Current Lesson Plan -->
+  <% if (currentPlan) { %>
+  <div class="lesson-banner">
+    <div class="week-tag">Week <%= currentPlan.week_number %> · PATHFit <%= level %></div>
+    <h3><%= currentPlan.topic %></h3>
+    <p><%= currentPlan.objectives %></p>
+    <p style="margin-top:8px;opacity:.8;">📋 <%= currentPlan.activity %></p>
+  </div>
+  <% } %>
+
+  <div class="grid-2">
+    <!-- Attendance -->
+    <div class="card">
+      <h3>Attendance Overview</h3>
+      <div class="bar-bg">
+        <div class="bar-fill <%= attendancePct < 75 ? 'danger' : '' %>" style="width:<%= attendancePct %>%"></div>
+      </div>
+      <div class="bar-label"><span><%= attendancePct %>% attended</span><span>75% required</span></div>
+      <% if (attendancePct < 75) { %>
+        <div class="alert alert-error" style="margin-top:10px;">⚠️ Below 75% threshold. Please consult your instructor.</div>
+      <% } %>
+      <% if (attendance.length > 0) { %>
+      <div class="table-wrap" style="margin-top:14px;">
+        <table>
+          <thead><tr><th>Week</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            <% attendance.slice(0,8).forEach(r => { %>
+            <tr>
+              <td>Week <%= r.week_number %></td>
+              <td><%= new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+              <td><span class="badge badge-<%= r.status %>"><%= r.status.charAt(0).toUpperCase()+r.status.slice(1) %></span></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+        <div class="empty-state">No attendance records yet.</div>
+      <% } %>
+    </div>
+
+    <!-- Fitness Tests -->
+    <div class="card">
+      <h3>Recent Fitness Tests <a href="/student/fitness-tests" class="btn btn-sm" style="font-size:.78rem;">View All</a></h3>
+      <% if (tests.length > 0) { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th></tr></thead>
+          <tbody>
+            <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach',step_test:'Step Test',shuttle_run:'Shuttle Run'}; %>
+            <% tests.slice(0,8).forEach(t => { %>
+            <tr>
+              <td><%= labels[t.test_type]||t.test_type %></td>
+              <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+              <td><%= t.reps_or_cm %></td>
+              <td><% if(t.rating){ %><span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+        <div class="empty-state">No fitness tests recorded yet.</div>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+<%- include('../partials/footer') %>

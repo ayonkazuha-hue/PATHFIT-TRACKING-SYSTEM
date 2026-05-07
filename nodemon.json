@@ -1,0 +1,6 @@
+{
+  "delay": 1000,
+  "watch": ["server.js", "routes/", "views/"],
+  "ext": "js,ejs",
+  "ignore": ["public/", "*.sql", "*.md", "*.txt", "*.php"]
+}

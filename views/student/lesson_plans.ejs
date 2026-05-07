@@ -1,0 +1,26 @@
+<%- include('../partials/header', { title: 'Lesson Plans' }) %>
+<div class="container">
+  <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">16-Week Lesson Plans</div>
+  <div class="page-sub">CHED-aligned PATHFit curriculum for the full semester.</div>
+
+  <div class="level-tabs">
+    <a href="/student/lesson-plans?level=1" class="level-tab <%= level===1?'active':'' %>">PATHFit 1</a>
+    <a href="/student/lesson-plans?level=2" class="level-tab <%= level===2?'active':'' %>">PATHFit 2</a>
+  </div>
+
+  <div class="week-grid">
+    <% plans.forEach((plan, i) => { %>
+    <div class="week-card <%= i===0?'current':'' %>">
+      <div class="week-tag">
+        Week <%= plan.week_number %>
+        <% if(i===0){ %><span class="current-badge">Current</span><% } %>
+      </div>
+      <h4><%= plan.topic %></h4>
+      <p>📋 <%= plan.activity %></p>
+      <p class="objectives" style="font-style:italic;color:#777;">🎯 <%= plan.objectives %></p>
+    </div>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

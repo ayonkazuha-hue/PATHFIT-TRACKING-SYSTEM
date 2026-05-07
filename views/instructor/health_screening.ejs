@@ -1,0 +1,48 @@
+<%- include('../partials/header', { title: 'Health Screenings' }) %>
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Health Screening Records</div>
+  <div class="page-sub">Review student health screenings and grant or revoke clearance.</div>
+
+  <div class="card">
+    <h3>All Screenings <span style="font-size:.82rem;font-weight:400;color:#555;"><%= screenings.length %> record(s)</span></h3>
+    <% if (screenings.length > 0) { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Student</th><th>Student ID</th><th>Section</th><th>Injury History</th><th>Health Conditions</th><th>Screened</th><th>Cleared</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <% screenings.forEach(s => { %>
+          <tr>
+            <td><strong><%= s.users?.name || '—' %></strong></td>
+            <td><%= s.users?.student_id || '—' %></td>
+            <td><%= s.users?.section || '—' %></td>
+            <td style="max-width:180px;font-size:.82rem;"><%= (s.injury_history||'None').substring(0,80) %></td>
+            <td style="max-width:180px;font-size:.82rem;"><%= (s.health_conditions||'None').substring(0,80) %></td>
+            <td><%= new Date(s.screened_at).toLocaleDateString() %></td>
+            <td>
+              <span class="badge" style="background:<%= s.cleared?'#2e7d32':'#f57f17' %>;">
+                <%= s.cleared ? '✔ Cleared' : '⏳ Pending' %>
+              </span>
+            </td>
+            <td>
+              <form method="POST" action="/instructor/health-screening/clear" style="display:inline;">
+                <input type="hidden" name="screen_id" value="<%= s.screen_id %>">
+                <input type="hidden" name="cleared" value="<%= !s.cleared %>">
+                <button type="submit" class="btn btn-sm <%= s.cleared ? 'btn-danger' : '' %>">
+                  <%= s.cleared ? 'Revoke' : 'Clear' %>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="empty-state">No health screening records yet.</div>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>
