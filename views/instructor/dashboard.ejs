@@ -97,18 +97,13 @@
     </div>
   </div>
 
-  <!-- Quick Actions -->
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
-    <a href="/instructor/fitness-tests" class="btn">+ Record Fitness Test</a>
-    <a href="/instructor/attendance" class="btn">+ Mark Attendance</a>
-    <a href="/instructor/lesson-plans" class="btn">Lesson Plans</a>
-    <a href="/instructor/report" class="btn">Pre/Post Report</a>
-    <a href="/instructor/health-screening" class="btn">Health Screenings</a>
-  </div>
-
   <!-- Filter -->
   <form method="GET" action="/instructor/dashboard">
     <div class="filter-bar">
+      <div class="fg" style="flex:1 1 200px;">
+        <label>Search by Name</label>
+        <input type="text" name="search" value="<%= filters.search %>" placeholder="e.g. Juan dela Cruz" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:.9rem;">
+      </div>
       <div class="fg">
         <label>Institute / Course</label>
         <select name="course">

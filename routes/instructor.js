@@ -28,7 +28,7 @@ module.exports = function(supabaseAdmin) {
 
   // GET /instructor/dashboard
   router.get('/dashboard', async (req, res) => {
-    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '' } = req.query;
+    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
     try {
       let query = supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'approved').order('name');
       if (section)       query = query.eq('section', section);
@@ -36,6 +36,7 @@ module.exports = function(supabaseAdmin) {
       if (gender)        query = query.eq('gender', gender);
       if (course)        query = query.eq('course', course);
       if (year_level)    query = query.eq('year_level', parseInt(year_level));
+      if (search)        query = query.ilike('name', `%${search}%`);
 
       const [studentsRes, sectionsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
         query,
@@ -51,7 +52,7 @@ module.exports = function(supabaseAdmin) {
 
       res.render('instructor/dashboard', {
         students, sections, pendingScreenings, pendingRegistrations,
-        filters: { section, pathfit_level, gender, course, year_level },
+        filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
           male:    students.filter(s => s.gender === 'male').length,
