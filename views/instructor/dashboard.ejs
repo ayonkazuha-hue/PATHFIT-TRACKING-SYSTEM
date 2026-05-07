@@ -11,68 +11,6 @@
     <div class="alert alert-error" style="margin-bottom:16px;"><%= approveError %></div>
   <% } %>
 
-  <!-- Pending Registrations Notification -->
-  <% if (pendingRegistrations.length > 0) { %>
-  <div class="card" style="border-left:4px solid #e67e22;margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-size:1.4rem;">🔔</span>
-      <h3 style="margin:0;color:#e67e22;">
-        Pending Registrations
-        <span style="background:#e67e22;color:#fff;border-radius:50%;padding:2px 8px;font-size:.8rem;margin-left:6px;"><%= pendingRegistrations.length %></span>
-      </h3>
-    </div>
-    <p style="margin:0 0 14px;color:#555;font-size:.9rem;">
-      The following students have registered and are waiting for your approval before they can log in.
-    </p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Student ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Course</th>
-            <th>Section</th>
-            <th>Year</th>
-            <th>PATHFit</th>
-            <th>Registered</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% pendingRegistrations.forEach(s => { %>
-          <tr>
-            <td><%= s.student_id || '—' %></td>
-            <td><strong><%= s.name %></strong></td>
-            <td><%= s.email %></td>
-            <td><%= s.course || '—' %></td>
-            <td><%= s.section || '—' %></td>
-            <td><%= s.year_level || '—' %></td>
-            <td>PF<%= s.pathfit_level %></td>
-            <td style="white-space:nowrap;font-size:.82rem;color:#777;">
-              <%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>
-            </td>
-            <td style="white-space:nowrap;">
-              <form method="POST" action="/instructor/approve-student" style="display:inline;">
-                <input type="hidden" name="user_id" value="<%= s.user_id %>">
-                <input type="hidden" name="action" value="approve">
-                <button type="submit" class="btn" style="padding:4px 12px;font-size:.82rem;background:#27ae60;">Approve</button>
-              </form>
-              <form method="POST" action="/instructor/approve-student" style="display:inline;margin-left:6px;"
-                    onsubmit="return confirm('Reject and delete this registration for <%= s.name %>?')">
-                <input type="hidden" name="user_id" value="<%= s.user_id %>">
-                <input type="hidden" name="action" value="reject">
-                <button type="submit" class="btn" style="padding:4px 12px;font-size:.82rem;background:#e74c3c;">Reject</button>
-              </form>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <% } %>
-
   <!-- Stats -->
   <div class="stats-grid">
     <div class="stat-card">

@@ -102,6 +102,34 @@ module.exports = function(supabase, supabaseAdmin) {
     }
 
     try {
+      // Check for duplicate student_id before creating auth user
+      const { data: existingStudent } = await supabaseAdmin
+        .from('users')
+        .select('student_id')
+        .eq('student_id', student_id)
+        .maybeSingle();
+
+      if (existingStudent) {
+        return res.render('register', {
+          error: `Student ID "${student_id}" is already registered. If this is your ID, please contact your instructor.`,
+          success: null, old,
+        });
+      }
+
+      // Check for duplicate email
+      const { data: existingEmail } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingEmail) {
+        return res.render('register', {
+          error: 'This email address is already registered. Try logging in instead.',
+          success: null, old,
+        });
+      }
+
       // Create auth user
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email, password, email_confirm: true
@@ -131,7 +159,12 @@ module.exports = function(supabase, supabaseAdmin) {
       if (profileErr) {
         // Clean up the auth user if profile insert fails
         await supabaseAdmin.auth.admin.deleteUser(uid);
-        return res.render('register', { error: 'Profile creation failed: ' + profileErr.message, success: null, old });
+        const msg = profileErr.message.includes('student_id')
+          ? `Student ID "${student_id}" is already registered. If this is your ID, contact your instructor.`
+          : profileErr.message.includes('email')
+          ? 'This email address is already registered.'
+          : 'Could not save your profile. Please try again.';
+        return res.render('register', { error: msg, success: null, old });
       }
 
       res.render('register', {

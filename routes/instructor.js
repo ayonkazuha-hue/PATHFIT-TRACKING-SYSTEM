@@ -26,6 +26,13 @@ function getRating(testType, gender, value) {
 module.exports = function(supabaseAdmin) {
   const router = express.Router();
 
+  // Helper: fetch pending registrations count for the nav bell
+  async function getPendingRegistrations() {
+    const { data } = await supabaseAdmin
+      .from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false });
+    return data || [];
+  }
+
   // GET /instructor/dashboard
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
@@ -97,22 +104,29 @@ module.exports = function(supabaseAdmin) {
   router.get('/fitness-tests', async (req, res) => {
     const selectedStudentId = req.query.student_id || '';
     try {
-      const { data: students } = await supabaseAdmin
-        .from('users').select('user_id,name,gender,section').eq('role','student').order('name');
+      const [studentsRes, studentRes] = await Promise.all([
+        supabaseAdmin.from('users').select('user_id,name,gender,section').eq('role','student').order('name'),
+        selectedStudentId
+          ? supabaseAdmin.from('users').select('*').eq('user_id', selectedStudentId).single()
+          : Promise.resolve({ data: null }),
+      ]);
 
+      const students2 = studentsRes.data || [];
+      const selectedStudent = studentRes.data || null;
       let tests = [];
-      let selectedStudent = null;
+
       if (selectedStudentId) {
-        const [testsRes, studentRes] = await Promise.all([
-          supabaseAdmin.from('fitness_tests').select('*').eq('student_id', selectedStudentId).order('created_at', { ascending: false }),
-          supabaseAdmin.from('users').select('*').eq('user_id', selectedStudentId).single(),
-        ]);
+        const testsRes = await supabaseAdmin
+          .from('fitness_tests').select('*')
+          .eq('student_id', selectedStudentId)
+          .order('created_at', { ascending: false });
         tests = testsRes.data || [];
-        selectedStudent = studentRes.data;
       }
 
+      const pendingRegistrations = await getPendingRegistrations();
       res.render('instructor/fitness_tests', {
-        students: students || [], tests, selectedStudentId, selectedStudent,
+        students: students2, tests, selectedStudentId, selectedStudent,
+        pendingRegistrations,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -166,10 +180,12 @@ module.exports = function(supabaseAdmin) {
         attByStudent[r.student_id].push(r);
       });
 
+      const pendingRegistrations = await getPendingRegistrations();
       res.render('instructor/attendance', {
         students: students || [], attByStudent, sections,
         filters: { section, student_id },
         attendance: attendance || [],
+        pendingRegistrations,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -199,8 +215,10 @@ module.exports = function(supabaseAdmin) {
     try {
       const { data: plans } = await supabaseAdmin
         .from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number');
+      const pendingRegistrations = await getPendingRegistrations();
       res.render('instructor/lesson_plans', {
         plans: plans || [], level,
+        pendingRegistrations,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -254,9 +272,11 @@ module.exports = function(supabaseAdmin) {
       const dist = { excellent: 0, good: 0, fair: 0, needs_improvement: 0 };
       tests.forEach(t => { if (t.rating) dist[t.rating]++; });
 
+      const pendingRegistrations = await getPendingRegistrations();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, dist, totalTests: tests.length,
+        pendingRegistrations,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -271,7 +291,8 @@ module.exports = function(supabaseAdmin) {
         .select('*, users(name, student_id, section)')
         .order('screened_at', { ascending: false });
 
-      res.render('instructor/health_screening', { screenings: screenings || [] });
+      const pendingRegistrations = await getPendingRegistrations();
+      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
