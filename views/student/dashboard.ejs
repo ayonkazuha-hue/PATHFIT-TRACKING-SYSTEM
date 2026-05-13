@@ -7,11 +7,6 @@
 
   <!-- Stat Cards -->
   <div class="stats-grid">
-    <div class="stat-card <%= attendancePct < 75 ? 'warn' : '' %>">
-      <div class="label">Attendance Rate</div>
-      <div class="value"><%= attendancePct %>%</div>
-      <div class="sub"><%= attendedCount %> / 16 weeks attended</div>
-    </div>
     <div class="stat-card">
       <div class="label">Fitness Tests</div>
       <div class="value"><%= tests.length %></div>
@@ -41,40 +36,10 @@
   </div>
   <% } %>
 
-  <div class="grid-2">
-    <!-- Attendance -->
+  <div style="margin-bottom:24px;">
+    <!-- Fitness Tests summary → now links to My Report -->
     <div class="card">
-      <h3>Attendance Overview</h3>
-      <div class="bar-bg">
-        <div class="bar-fill <%= attendancePct < 75 ? 'danger' : '' %>" style="width:<%= attendancePct %>%"></div>
-      </div>
-      <div class="bar-label"><span><%= attendancePct %>% attended</span><span>75% required</span></div>
-      <% if (attendancePct < 75) { %>
-        <div class="alert alert-error" style="margin-top:10px;">⚠️ Below 75% threshold. Please consult your instructor.</div>
-      <% } %>
-      <% if (attendance.length > 0) { %>
-      <div class="table-wrap" style="margin-top:14px;">
-        <table>
-          <thead><tr><th>Week</th><th>Date</th><th>Status</th></tr></thead>
-          <tbody>
-            <% attendance.slice(0,8).forEach(r => { %>
-            <tr>
-              <td>Week <%= r.week_number %></td>
-              <td><%= new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
-              <td><span class="badge badge-<%= r.status %>"><%= r.status.charAt(0).toUpperCase()+r.status.slice(1) %></span></td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-      <% } else { %>
-        <div class="empty-state">No attendance records yet.</div>
-      <% } %>
-    </div>
-
-    <!-- Fitness Tests -->
-    <div class="card">
-      <h3>Recent Fitness Tests <a href="/student/fitness-tests" class="btn btn-sm" style="font-size:.78rem;">View All</a></h3>
+      <h3>Fitness Tests <a href="/student/report" class="btn btn-sm" style="font-size:.78rem;">View Report</a></h3>
       <% if (tests.length > 0) { %>
       <div class="table-wrap">
         <table>
@@ -93,7 +58,7 @@
         </table>
       </div>
       <% } else { %>
-        <div class="empty-state">No fitness tests recorded yet.</div>
+        <div class="empty-state">No fitness tests recorded yet. Go to <a href="/student/report" style="color:#185FA5;">My Report</a> to add your results.</div>
       <% } %>
     </div>
   </div>

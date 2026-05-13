@@ -95,12 +95,27 @@
 
   <!-- Students Table -->
   <div class="card">
-    <h3>Student List <span style="font-size:.82rem;font-weight:400;color:#555;"><%= students.length %> student(s)</span></h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e8ecf0;">
+      <h3 style="margin:0;border:none;padding:0;">
+        Student List
+        <span style="font-size:.82rem;font-weight:400;color:#555;margin-left:8px;"><%= students.length %> student(s)</span>
+      </h3>
+      <% if (students.length > 0) { %>
+      <button onclick="exportToExcel()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;background:#1e7e34;color:#fff;border:none;border-radius:7px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#155724'" onmouseout="this.style.background='#1e7e34'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        Export to Excel
+      </button>
+      <% } %>
+    </div>
+
     <% if (students.length > 0) { %>
     <div class="table-wrap">
-      <table>
+      <table id="studentTable">
         <thead>
-          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year</th><th>Gender</th><th>PATHFit</th><th>Actions</th></tr>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>PATHFit</th><th>Actions</th></tr>
         </thead>
         <tbody>
           <% students.forEach(s => { %>
@@ -110,9 +125,9 @@
             <td><%= s.email %></td>
             <td><%= s.section||'—' %></td>
             <td><%= s.course||'—' %></td>
-            <td><%= s.year_level||'—' %></td>
+            <td><%= s.year_level ? s.year_level + (s.year_level==1?'st':s.year_level==2?'nd':s.year_level==3?'rd':'th') + ' Year' : '—' %></td>
             <td><span class="badge badge-<%= s.gender %>"><%= (s.gender||'').charAt(0).toUpperCase()+(s.gender||'').slice(1) %></span></td>
-            <td><span class="badge badge-<%= s.pathfit_level %>">PF<%= s.pathfit_level %></span></td>
+            <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
             <td class="action-links">
               <a href="/instructor/fitness-tests?student_id=<%= s.user_id %>">Tests</a>
               <a href="/instructor/attendance?student_id=<%= s.user_id %>">Attendance</a>
@@ -128,4 +143,68 @@
     <% } %>
   </div>
 </div>
+
+<!-- SheetJS CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const EXPORT_STUDENTS = <%- JSON.stringify(students.map((s, i) => ({
+  no:         i + 1,
+  student_id: s.student_id || '—',
+  name:       s.name,
+  email:      s.email,
+  section:    s.section || '—',
+  course:     s.course  || '—',
+  year_level: s.year_level
+    ? s.year_level + (s.year_level==1?'st':s.year_level==2?'nd':s.year_level==3?'rd':'th') + ' Year'
+    : '—',
+  year_sort:  s.year_level || 99,
+  gender:     s.gender ? s.gender.charAt(0).toUpperCase() + s.gender.slice(1) : '—',
+  pathfit:    s.pathfit_level ? 'PATHFit ' + s.pathfit_level : '—',
+}))) %>;
+
+function exportToExcel() {
+  const sorted = [...EXPORT_STUDENTS].sort((a, b) => {
+    if (a.section   < b.section)   return -1;
+    if (a.section   > b.section)   return  1;
+    if (a.year_sort < b.year_sort) return -1;
+    if (a.year_sort > b.year_sort) return  1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const wsData = [
+    ['PATHFIT TRACKING SYSTEM — Student List'],
+    ['NBSC · Generated: ' + new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })],
+    [],
+    ['No.', 'Student ID', 'Full Name', 'Email', 'Section', 'Course', 'Year Level', 'Gender', 'PATHFit Level'],
+    ...sorted.map(s => [s.no, s.student_id, s.name, s.email, s.section, s.course, s.year_level, s.gender, s.pathfit]),
+    [],
+    ['Total Students: ' + sorted.length],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [
+    { wch: 5  }, { wch: 14 }, { wch: 30 }, { wch: 28 },
+    { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 14 },
+  ];
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Student List');
+
+  const now    = new Date().toISOString().slice(0, 10);
+  const suffix = [
+    '<%= filters.section    ? "Sec-" + filters.section    : "" %>',
+    '<%= filters.year_level ? "Yr"   + filters.year_level : "" %>',
+    '<%= filters.course     ? filters.course              : "" %>',
+    '<%= filters.gender     ? filters.gender              : "" %>',
+  ].filter(Boolean).join('_');
+
+  XLSX.writeFile(wb, 'StudentList_' + now + (suffix ? '_' + suffix : '') + '.xlsx');
+}
+</script>
+
 <%- include('../partials/footer') %>

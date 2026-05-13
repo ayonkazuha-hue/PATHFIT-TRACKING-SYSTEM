@@ -9,54 +9,33 @@ body {
   display: flex;
   flex-direction: column;
 
-  /* Deep navy-to-blue gradient base */
-  background-color: #0b2545;
-  background-image:
-    /* Subtle diagonal light rays */
-    linear-gradient(
-      135deg,
-      rgba(255,255,255,.03) 25%,
-      transparent 25%,
-      transparent 50%,
-      rgba(255,255,255,.03) 50%,
-      rgba(255,255,255,.03) 75%,
-      transparent 75%,
-      transparent
-    ),
-    /* Animated mesh gradient */
-    radial-gradient(ellipse at 15% 50%, rgba(24,95,165,.55) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 20%, rgba(4,44,83,.8)   0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(14,70,130,.6)  0%, transparent 50%),
-    /* Main gradient */
-    linear-gradient(160deg, #0b2545 0%, #134e8a 45%, #0d3b6e 100%);
-  background-size: 60px 60px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  /* Clean gradient background */
+  background: linear-gradient(135deg, #0a2540 0%, #134e8a 50%, #1a5f9e 100%);
   background-attachment: fixed;
   position: relative;
 }
 
-/* Floating fitness icons layer — pure CSS, no images needed */
+/* Subtle geometric accent shapes */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image:
-    /* Dumbbell silhouette (SVG encoded) */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect x='4' y='20' width='8' height='8' rx='2' fill='rgba(255,255,255,0.04)'/%3E%3Crect x='36' y='20' width='8' height='8' rx='2' fill='rgba(255,255,255,0.04)'/%3E%3Crect x='12' y='17' width='6' height='14' rx='2' fill='rgba(255,255,255,0.04)'/%3E%3Crect x='30' y='17' width='6' height='14' rx='2' fill='rgba(255,255,255,0.04)'/%3E%3Crect x='18' y='22' width='12' height='4' rx='1' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E"),
-    /* Running figure */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Ccircle cx='30' cy='10' r='4' fill='rgba(255,255,255,0.04)'/%3E%3Cpath d='M28 14 L20 26 L14 36' stroke='rgba(255,255,255,0.04)' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M20 26 L30 32 L36 40' stroke='rgba(255,255,255,0.04)' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M28 14 L34 20 L40 16' stroke='rgba(255,255,255,0.04)' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"),
-    /* Heart pulse */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath d='M4 24 L12 24 L16 16 L20 32 L24 20 L28 28 L32 24 L44 24' stroke='rgba(255,255,255,0.04)' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-size: 120px 120px, 160px 160px, 200px 200px;
-  background-position: 0 0, 80px 40px, 40px 100px;
+  background:
+    /* Large circle top-right */
+    radial-gradient(circle 400px at 85% 15%, rgba(255,255,255,.04) 0%, transparent 100%),
+    /* Medium circle bottom-left */
+    radial-gradient(circle 300px at 15% 85%, rgba(255,255,255,.03) 0%, transparent 100%),
+    /* Small accent top-left */
+    radial-gradient(circle 200px at 10% 20%, rgba(24,95,165,.15) 0%, transparent 100%);
   opacity: 1;
 }
 
 /* All page content sits above the background */
 body > * { position: relative; z-index: 1; }
 
-/* Floating animated orbs for depth */
+/* Subtle animated glow (optional — very gentle) */
 body::after {
   content: '';
   position: fixed;
@@ -64,17 +43,12 @@ body::after {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(circle 180px at 10% 20%,  rgba(24,95,165,.18)  0%, transparent 100%),
-    radial-gradient(circle 240px at 90% 70%,  rgba(4,44,83,.3)     0%, transparent 100%),
-    radial-gradient(circle 120px at 50% 90%,  rgba(14,70,130,.2)   0%, transparent 100%),
-    radial-gradient(circle 300px at 75% 10%,  rgba(24,95,165,.12)  0%, transparent 100%);
-  animation: orb-drift 12s ease-in-out infinite alternate;
+    radial-gradient(ellipse 600px 400px at 50% 50%, rgba(24,95,165,.08) 0%, transparent 60%);
+  animation: gentle-pulse 8s ease-in-out infinite alternate;
 }
-@keyframes orb-drift {
-  0%   { transform: translate(0, 0); }
-  33%  { transform: translate(12px, -8px); }
-  66%  { transform: translate(-8px, 14px); }
-  100% { transform: translate(6px, -4px); }
+@keyframes gentle-pulse {
+  from { opacity: .6; transform: scale(1); }
+  to   { opacity: 1;  transform: scale(1.05); }
 }
 
 /* ── Header ──────────────────────────────────────────────── */
@@ -89,7 +63,7 @@ header {
   justify-content: space-between;
   align-items: center;
   position: relative;
-  z-index: 100;
+  z-index: 1000;
 }
 header .brand { display: flex; align-items: center; gap: 12px; }
 header .brand-logo { height: 52px; width: 52px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); flex-shrink: 0; }
@@ -313,40 +287,55 @@ footer {
 
 /* ── Student Approval Modal ──────────────────────────────── */
 .modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(4,44,83,.55); backdrop-filter: blur(3px);
-  z-index: 2000; align-items: center; justify-content: center;
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(4,44,83,.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99999;
+  overflow-y: auto;
+  padding: 24px 16px;
 }
-.modal-overlay.open { display: flex; }
+.modal-overlay.open { display: block; }
 .modal-box {
-  background: #fff; border-radius: 16px; width: 100%; max-width: 480px;
-  margin: 16px; box-shadow: 0 20px 60px rgba(4,44,83,.25);
-  overflow: hidden; animation: modalIn .2s ease;
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  box-shadow: 0 24px 64px rgba(4,44,83,.35);
+  animation: modalIn .2s ease;
+  position: relative;
 }
 @keyframes modalIn {
-  from { opacity: 0; transform: translateY(-16px) scale(.97); }
+  from { opacity: 0; transform: translateY(-20px) scale(.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 20px 24px 16px; border-bottom: 1px solid #e8ecf0;
+  padding: 22px 24px 16px; border-bottom: 1px solid #e8ecf0;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
 }
-.modal-title { font-size: 1.05rem; font-weight: 700; color: #042C53; }
+.modal-title { font-size: 1.08rem; font-weight: 700; color: #042C53; }
 .modal-sub   { font-size: .8rem; color: #888; margin-top: 3px; }
 .modal-close {
-  background: none; border: none; font-size: 1.4rem; color: #aaa;
+  background: none; border: none; font-size: 1.5rem; color: #aaa;
   cursor: pointer; line-height: 1; padding: 0 4px; transition: color .15s;
+  flex-shrink: 0;
 }
 .modal-close:hover { color: #042C53; }
-.modal-body { padding: 24px; text-align: center; }
+.modal-body { padding: 24px; text-align: center; background: #fff; }
 .modal-avatar {
-  width: 64px; height: 64px; border-radius: 50%;
+  width: 68px; height: 68px; border-radius: 50%;
   background: linear-gradient(135deg, #042C53, #185FA5);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem; margin: 0 auto 12px;
+  font-size: 2rem; margin: 0 auto 14px;
 }
-.modal-name  { font-size: 1.15rem; font-weight: 700; color: #042C53; }
-.modal-email { font-size: .82rem; color: #888; margin-top: 3px; margin-bottom: 20px; }
+.modal-name  { font-size: 1.18rem; font-weight: 700; color: #042C53; }
+.modal-email { font-size: .84rem; color: #888; margin-top: 4px; margin-bottom: 20px; }
 .modal-grid  {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
   text-align: left;
@@ -355,10 +344,12 @@ footer {
   background: #f5f8fc; border-radius: 8px; padding: 10px 14px;
 }
 .modal-label { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .7px; color: #888; font-weight: 600; margin-bottom: 3px; }
-.modal-val   { font-size: .9rem; font-weight: 600; color: #042C53; }
+.modal-val   { font-size: .92rem; font-weight: 600; color: #042C53; }
 .modal-footer {
-  display: flex; gap: 10px; padding: 16px 24px;
+  display: flex; gap: 10px; padding: 16px 24px 20px;
   border-top: 1px solid #e8ecf0; justify-content: flex-end;
+  border-radius: 0 0 16px 16px;
+  background: #fff;
 }
 .modal-approve-btn { background: #27ae60; flex: 1; }
 .modal-approve-btn:hover { background: #1e8449; }

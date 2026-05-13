@@ -169,6 +169,24 @@ WHERE email = 'gpquiblat@nbsc.edu.ph'
 ON CONFLICT (email) DO UPDATE
     SET role = 'instructor', student_id = 'INST-001', name = 'GP Quiblat';
 
+-- Insert INSTRUCTOR profile (Grace PQ)
+INSERT INTO public.users (user_id, student_id, name, email, section, course, year_level, gender, pathfit_level, role)
+SELECT
+    id,
+    'INST-002',
+    'Grace PQ',
+    'gracepq@nbsc.edu.ph',
+    'N/A',
+    'Physical Education',
+    1,
+    'female',
+    1,
+    'instructor'
+FROM auth.users
+WHERE email = 'gracepq@nbsc.edu.ph'
+ON CONFLICT (email) DO UPDATE
+    SET role = 'instructor', student_id = 'INST-002', name = 'Grace PQ';
+
 -- Insert STUDENT profile (20211428@nbsc.edu.ph)
 INSERT INTO public.users (user_id, student_id, name, email, section, course, year_level, gender, pathfit_level, role)
 SELECT

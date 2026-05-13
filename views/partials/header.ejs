@@ -19,8 +19,6 @@
   <nav>
     <% if (user.role === 'instructor') { %>
       <a href="/instructor/dashboard">Dashboard</a>
-      <a href="/instructor/fitness-tests">Fitness Tests</a>
-      <a href="/instructor/attendance">Attendance</a>
       <a href="/instructor/lesson-plans">Lesson Plans</a>
       <a href="/instructor/report">Reports</a>
       <a href="/instructor/health-screening">Screening</a>
@@ -110,93 +108,11 @@
 
         </div>
       </div>
-
-      <!-- Student Approval Modal -->
-      <div class="modal-overlay" id="studentModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <div class="modal-box">
-          <div class="modal-header">
-            <div>
-              <div class="modal-title" id="modalTitle">New Student Registration</div>
-              <div class="modal-sub">Review the details below and approve or reject this account.</div>
-            </div>
-            <button class="modal-close" onclick="closeStudentModal()" aria-label="Close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="modal-avatar" id="modalAvatar">👤</div>
-            <div class="modal-name" id="modalName"></div>
-            <div class="modal-email" id="modalEmail"></div>
-            <div class="modal-grid">
-              <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="modalStudentId"></span></div>
-              <div class="modal-field"><span class="modal-label">Gender</span><span class="modal-val" id="modalGender"></span></div>
-              <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="modalCourse"></span></div>
-              <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="modalSection"></span></div>
-              <div class="modal-field"><span class="modal-label">Year Level</span><span class="modal-val" id="modalYear"></span></div>
-              <div class="modal-field"><span class="modal-label">PATHFit Level</span><span class="modal-val" id="modalPathfit"></span></div>
-              <div class="modal-field" style="grid-column:1/-1"><span class="modal-label">Registered</span><span class="modal-val" id="modalDate"></span></div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <form method="POST" action="/instructor/approve-student" style="display:contents;">
-              <input type="hidden" name="user_id" id="modalUserId">
-              <input type="hidden" name="action" value="approve">
-              <button type="submit" class="btn modal-approve-btn">✓ Approve</button>
-            </form>
-            <form method="POST" action="/instructor/approve-student" style="display:contents;"
-                  onsubmit="return confirm('Reject and permanently delete this registration?')">
-              <input type="hidden" name="user_id" id="modalUserIdReject">
-              <input type="hidden" name="action" value="reject">
-              <button type="submit" class="btn modal-reject-btn">✕ Reject</button>
-            </form>
-            <button type="button" class="btn modal-cancel-btn" onclick="closeStudentModal()">Cancel</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Password Reset Approval Modal -->
-      <div class="modal-overlay" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
-        <div class="modal-box">
-          <div class="modal-header">
-            <div>
-              <div class="modal-title" id="resetModalTitle">Password Reset Request</div>
-              <div class="modal-sub">A student is requesting a password change. Approve to apply it immediately.</div>
-            </div>
-            <button class="modal-close" onclick="closeResetModal()" aria-label="Close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="modal-avatar" style="background:linear-gradient(135deg,#b71c1c,#e53935);">🔑</div>
-            <div class="modal-name" id="resetModalName"></div>
-            <div class="modal-email" id="resetModalEmail"></div>
-            <div class="modal-grid">
-              <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="resetModalStudentId"></span></div>
-              <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="resetModalSection"></span></div>
-              <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="resetModalCourse"></span></div>
-              <div class="modal-field"><span class="modal-label">Requested</span><span class="modal-val" id="resetModalDate"></span></div>
-            </div>
-            <div style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:.83rem;color:#7b5800;">
-              ⚠️ Approving will immediately change this student's password to the one they submitted.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <form method="POST" action="/instructor/reset-password" style="display:contents;">
-              <input type="hidden" name="request_id" id="resetModalRequestId">
-              <input type="hidden" name="action" value="approve">
-              <button type="submit" class="btn modal-approve-btn">✓ Approve Reset</button>
-            </form>
-            <form method="POST" action="/instructor/reset-password" style="display:contents;">
-              <input type="hidden" name="request_id" id="resetModalRequestIdDecline">
-              <input type="hidden" name="action" value="decline">
-              <button type="submit" class="btn modal-reject-btn">✕ Decline</button>
-            </form>
-            <button type="button" class="btn modal-cancel-btn" onclick="closeResetModal()">Cancel</button>
-          </div>
-        </div>
-      </div>
-
       <% } %>
 
     <% } else { %>
       <a href="/student/dashboard">Dashboard</a>
-      <a href="/student/fitness-tests">My Tests</a>
+      <a href="/student/fitness-tests">Fitness Tests</a>
       <a href="/student/lesson-plans">Lesson Plans</a>
       <a href="/student/report">My Report</a>
     <% } %>
@@ -204,43 +120,153 @@
   </nav>
   <% } %>
 </header>
+
+<!-- ── Modals: rendered outside <header> so position:fixed works correctly ── -->
+<% if (user && user.role === 'instructor' && typeof pendingRegistrations !== 'undefined') { %>
+
+<!-- Student Approval Modal -->
+<div class="modal-overlay" id="studentModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">New Student Registration</div>
+        <div class="modal-sub">Review the details below and approve or reject this account.</div>
+      </div>
+      <button class="modal-close" onclick="closeStudentModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-avatar" id="modalAvatar">👤</div>
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-email" id="modalEmail"></div>
+      <div class="modal-grid">
+        <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="modalStudentId"></span></div>
+        <div class="modal-field"><span class="modal-label">Gender</span><span class="modal-val" id="modalGender"></span></div>
+        <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="modalCourse"></span></div>
+        <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="modalSection"></span></div>
+        <div class="modal-field"><span class="modal-label">Year Level</span><span class="modal-val" id="modalYear"></span></div>
+        <div class="modal-field"><span class="modal-label">PATHFit Level</span><span class="modal-val" id="modalPathfit"></span></div>
+        <div class="modal-field" style="grid-column:1/-1"><span class="modal-label">Registered</span><span class="modal-val" id="modalDate"></span></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <form method="POST" action="/instructor/approve-student" style="display:contents;">
+        <input type="hidden" name="user_id" id="modalUserId">
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" class="btn modal-approve-btn">✓ Approve</button>
+      </form>
+      <form method="POST" action="/instructor/approve-student" style="display:contents;"
+            onsubmit="return confirm('Reject and permanently delete this registration?')">
+        <input type="hidden" name="user_id" id="modalUserIdReject">
+        <input type="hidden" name="action" value="reject">
+        <button type="submit" class="btn modal-reject-btn">✕ Reject</button>
+      </form>
+      <button type="button" class="btn modal-cancel-btn" onclick="closeStudentModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Reset Approval Modal -->
+<div class="modal-overlay" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="resetModalTitle">Password Reset Request</div>
+        <div class="modal-sub">A student is requesting a password change. Approve to apply it immediately.</div>
+      </div>
+      <button class="modal-close" onclick="closeResetModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-avatar" style="background:linear-gradient(135deg,#b71c1c,#e53935);">🔑</div>
+      <div class="modal-name" id="resetModalName"></div>
+      <div class="modal-email" id="resetModalEmail"></div>
+      <div class="modal-grid">
+        <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="resetModalStudentId"></span></div>
+        <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="resetModalSection"></span></div>
+        <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="resetModalCourse"></span></div>
+        <div class="modal-field"><span class="modal-label">Requested</span><span class="modal-val" id="resetModalDate"></span></div>
+      </div>
+      <div style="margin-top:16px;padding:12px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:.83rem;color:#7b5800;">
+        ⚠️ Approving will immediately change this student's password to the one they submitted.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <form method="POST" action="/instructor/reset-password" style="display:contents;">
+        <input type="hidden" name="request_id" id="resetModalRequestId">
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" class="btn modal-approve-btn">✓ Approve Reset</button>
+      </form>
+      <form method="POST" action="/instructor/reset-password" style="display:contents;">
+        <input type="hidden" name="request_id" id="resetModalRequestIdDecline">
+        <input type="hidden" name="action" value="decline">
+        <button type="submit" class="btn modal-reject-btn">✕ Decline</button>
+      </form>
+      <button type="button" class="btn modal-cancel-btn" onclick="closeResetModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<% } %>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('notifBtn');
+    // ── Notification bell toggle ──
+    const btn      = document.getElementById('notifBtn');
     const dropdown = document.getElementById('notifDropdown');
-    if (!btn || !dropdown) return;
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
-    document.addEventListener('click', function () {
-      dropdown.classList.remove('open');
-    });
-    dropdown.addEventListener('click', function (e) {
-      e.stopPropagation();
+    if (btn && dropdown) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+      });
+      document.addEventListener('click', function () {
+        dropdown.classList.remove('open');
+      });
+      dropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
+
+    // ── Close modals on backdrop click ──
+    const studentOverlay = document.getElementById('studentModal');
+    if (studentOverlay) {
+      studentOverlay.addEventListener('click', function (e) {
+        if (e.target === studentOverlay) closeStudentModal();
+      });
+    }
+    const resetOverlay = document.getElementById('resetModal');
+    if (resetOverlay) {
+      resetOverlay.addEventListener('click', function (e) {
+        if (e.target === resetOverlay) closeResetModal();
+      });
+    }
+
+    // ── Close on Escape ──
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeStudentModal(); closeResetModal(); }
     });
   });
 
+  // ── Student Approval Modal ──
   function openStudentModal(s) {
-    // Close the dropdown first
     const dd = document.getElementById('notifDropdown');
     if (dd) dd.classList.remove('open');
 
-    // Populate modal fields
     document.getElementById('modalName').textContent      = s.name;
     document.getElementById('modalEmail').textContent     = s.email;
     document.getElementById('modalStudentId').textContent = s.student_id || '—';
     document.getElementById('modalGender').textContent    = s.gender ? s.gender.charAt(0).toUpperCase() + s.gender.slice(1) : '—';
     document.getElementById('modalCourse').textContent    = s.course;
     document.getElementById('modalSection').textContent   = s.section;
-    document.getElementById('modalYear').textContent      = s.year_level ? s.year_level + (s.year_level==='1'?'st':s.year_level==='2'?'nd':s.year_level==='3'?'rd':'th') + ' Year' : '—';
+    document.getElementById('modalYear').textContent      = s.year_level
+      ? s.year_level + (s.year_level==='1'?'st':s.year_level==='2'?'nd':s.year_level==='3'?'rd':'th') + ' Year'
+      : '—';
     document.getElementById('modalPathfit').textContent   = 'PATHFit ' + s.pathfit_level;
     document.getElementById('modalDate').textContent      = s.created_at;
     document.getElementById('modalUserId').value          = s.user_id;
     document.getElementById('modalUserIdReject').value    = s.user_id;
 
-    // Show modal
-    document.getElementById('studentModal').classList.add('open');
+    const overlay = document.getElementById('studentModal');
+    overlay.scrollTop = 0;
+    overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
 
@@ -249,7 +275,7 @@
     document.body.style.overflow = '';
   }
 
-  // ── Password Reset Modal ──────────────────────────────────
+  // ── Password Reset Modal ──
   function openResetModal(r) {
     const dd = document.getElementById('notifDropdown');
     if (dd) dd.classList.remove('open');
@@ -263,7 +289,9 @@
     document.getElementById('resetModalRequestId').value        = r.request_id;
     document.getElementById('resetModalRequestIdDecline').value = r.request_id;
 
-    document.getElementById('resetModal').classList.add('open');
+    const overlay = document.getElementById('resetModal');
+    overlay.scrollTop = 0;
+    overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
 
@@ -271,24 +299,4 @@
     document.getElementById('resetModal').classList.remove('open');
     document.body.style.overflow = '';
   }
-
-  // Close modal on overlay click
-  document.addEventListener('DOMContentLoaded', function () {
-    const overlay = document.getElementById('studentModal');
-    if (overlay) {
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeStudentModal();
-      });
-    }
-    const resetOverlay = document.getElementById('resetModal');
-    if (resetOverlay) {
-      resetOverlay.addEventListener('click', function (e) {
-        if (e.target === resetOverlay) closeResetModal();
-      });
-    }
-    // Close on Escape key
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { closeStudentModal(); closeResetModal(); }
-    });
-  });
 </script>

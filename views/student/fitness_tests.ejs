@@ -1,114 +1,520 @@
 <%- include('../partials/header', { title: 'My Fitness Tests' }) %>
 
 <style>
-/* ── PDF button ── */
 .pdf-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: #e53935;
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  font-size: .92rem;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background .2s, opacity .2s;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; background: #e53935; color: #fff;
+  border: none; border-radius: 7px; font-size: .88rem; font-weight: 700;
+  cursor: pointer; text-decoration: none; transition: background .2s, opacity .2s;
 }
 .pdf-btn:hover    { background: #b71c1c; }
 .pdf-btn:disabled { opacity: .6; cursor: not-allowed; }
-.pdf-btn svg      { flex-shrink: 0; }
+
+/* Rating preview chip */
+.rating-preview {
+  display: none; margin-top: 10px; padding: 10px 14px;
+  border-radius: 8px; font-size: .88rem; font-weight: 600;
+  border: 1.5px solid; align-items: center; gap: 8px;
+}
+.rating-preview.show { display: flex; }
+.rating-excellent        { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+.rating-good             { background:#e3f2fd; color:#1565c0; border-color:#90caf9; }
+.rating-fair             { background:#fff3e0; color:#e65100; border-color:#ffcc80; }
+.rating-needs_improvement{ background:#ffebee; color:#c62828; border-color:#ef9a9a; }
+
+/* ── Exercise Counter ── */
+.counter-card {
+  background: rgba(255,255,255,.93);
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 32px rgba(4,44,83,.18);
+  border: 1px solid rgba(255,255,255,.5);
+  margin-bottom: 24px;
+}
+.counter-title {
+  font-size: .75rem; text-transform: uppercase; letter-spacing: 1px;
+  color: #185FA5; font-weight: 700; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.counter-body {
+  display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap;
+}
+.counter-display {
+  flex: 0 0 auto; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #042C53, #185FA5);
+  border-radius: 12px; padding: 20px 32px; min-width: 140px;
+}
+.counter-number {
+  font-size: 4rem; font-weight: 900; color: #fff; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -2px;
+}
+.counter-label {
+  font-size: .75rem; color: rgba(255,255,255,.7); margin-top: 6px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.counter-timer {
+  font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,.9);
+  margin-top: 8px; font-variant-numeric: tabular-nums;
+}
+.counter-controls {
+  flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 180px;
+}
+.tap-btn {
+  flex: 1; background: #185FA5; color: #fff; border: none;
+  border-radius: 10px; font-size: 1.1rem; font-weight: 700;
+  cursor: pointer; transition: background .1s, transform .08s;
+  padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  user-select: none; -webkit-user-select: none;
+  min-height: 64px;
+}
+.tap-btn:active { transform: scale(.96); background: #042C53; }
+.tap-btn.running { background: #2e7d32; }
+.tap-btn.running:active { background: #1b5e20; }
+.counter-row { display: flex; gap: 8px; }
+.counter-btn {
+  flex: 1; padding: 9px 10px; border: none; border-radius: 8px;
+  font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.btn-start  { background: #e8f5e9; color: #2e7d32; }
+.btn-start:hover  { background: #c8e6c9; }
+.btn-pause  { background: #fff3e0; color: #e65100; }
+.btn-pause:hover  { background: #ffe0b2; }
+.btn-reset  { background: #ffebee; color: #c62828; }
+.btn-reset:hover  { background: #ffcdd2; }
+.btn-minus  { background: #f5f8fc; color: #042C53; border: 1.5px solid #cdd5e0; }
+.btn-minus:hover  { background: #e8ecf0; }
+.counter-hint {
+  font-size: .78rem; color: #888; text-align: center; margin-top: 4px;
+}
+.counter-type-label {
+  font-size: .82rem; font-weight: 600; color: #042C53;
+  background: #e8f0fb; border-radius: 6px; padding: 5px 12px;
+  text-align: center;
+}
+/* pulse animation on tap */
+@keyframes tap-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(24,95,165,.5); }
+  70%  { box-shadow: 0 0 0 14px rgba(24,95,165,0); }
+  100% { box-shadow: 0 0 0 0 rgba(24,95,165,0); }
+}
+.tap-pulse { animation: tap-pulse .3s ease-out; }
 </style>
 
-<!-- jsPDF + AutoTable (CDN — no install needed) -->
+<!-- jsPDF + AutoTable -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <div class="container">
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
   <div class="page-title">My Fitness Tests</div>
-  <div class="page-sub">View all your recorded fitness test results.</div>
+  <div class="page-sub">Record your fitness test scores and view your history.</div>
 
-  <div class="card">
-    <!-- Card header row: title + download button -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid #e8ecf0;">
-      <h3 style="margin:0; border:none; padding:0;">Test History</h3>
+  <!-- ── Exercise Counter Widget ── -->
+  <div class="counter-card">
+    <div class="counter-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Exercise Counter &amp; Timer
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:6px;">Select Exercise</label>
+      <select id="counterExType" onchange="updateCounterType()" style="padding:8px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.9rem;color:#0a0a0a;background:#fff;min-width:220px;">
+        <option value="push_ups">Push-Ups</option>
+        <option value="sit_reach">Sit &amp; Reach</option>
+        <option value="zipper_test">Zipper Test</option>
+        <option value="juggling">Juggling</option>
+        <option value="sprint_40m">40 Meter Sprint</option>
+      </select>
+    </div>
+
+    <div class="counter-body">
+      <!-- Display -->
+      <div class="counter-display">
+        <div class="counter-number" id="counterNum">0</div>
+        <div class="counter-label" id="counterUnitLabel">reps</div>
+        <div class="counter-timer" id="counterTimer">00:00</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="counter-controls">
+        <div class="counter-type-label" id="counterTypeLabel">Push-Ups</div>
+
+        <!-- Big tap button -->
+        <button class="tap-btn" id="tapBtn" onclick="handleTap()">
+          👊 Tap to Count Rep
+        </button>
+
+        <!-- Start / Pause / Reset row -->
+        <div class="counter-row">
+          <button class="counter-btn btn-start" id="startBtn" onclick="startTimer()">▶ Start</button>
+          <button class="counter-btn btn-pause" id="pauseBtn" onclick="pauseTimer()" disabled>⏸ Pause</button>
+          <button class="counter-btn btn-reset" onclick="resetCounter()">↺ Reset</button>
+        </div>
+
+        <!-- Undo last tap -->
+        <div class="counter-row">
+          <button class="counter-btn btn-minus" onclick="undoRep()" style="flex:1;">− Undo Last Rep</button>
+        </div>
+
+        <div class="counter-hint" id="counterHint">Press Start, then tap the button each rep.</div>
+      </div>
+
+      <!-- Use score button -->
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;min-width:140px;">
+        <button onclick="useCounterScore()" style="padding:10px 16px;background:#042C53;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#185FA5'" onmouseout="this.style.background='#042C53'">
+          ✓ Use This Score
+        </button>
+        <div style="font-size:.75rem;color:#888;text-align:center;">Fills the score field below</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2-asym">
+
+    <!-- ── Entry Form ── -->
+    <div class="card">
+      <h3>Record New Test</h3>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="alert alert-success"><%= success %></div>
+      <% } %>
+
+      <form method="POST" action="/student/fitness-tests" id="testForm">
+        <div class="form-group">
+          <label>Test Type *</label>
+          <select name="test_type" id="testType" required onchange="previewRating()">
+            <option value="">— Select Test —</option>
+            <option value="push_ups">Push-Ups (reps)</option>
+            <option value="sit_reach">Sit & Reach (cm)</option>
+            <option value="zipper_test">Zipper Test (bpm)</option>
+            <option value="juggling">Juggling (reps)</option>
+            <option value="sprint_40m">40 Meter Sprint (seconds)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Test Period *</label>
+          <select name="test_period" required>
+            <option value="">— Select Period —</option>
+            <option value="pre">Pre-Test</option>
+            <option value="post">Post-Test</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Your Score *</label>
+          <input type="number" name="reps_or_cm" id="scoreInput"
+                 step="0.01" min="0" placeholder="e.g. 25"
+                 required oninput="previewRating()">
+          <!-- Live rating preview -->
+          <div class="rating-preview" id="ratingPreview"></div>
+        </div>
+
+        <button type="submit" class="btn btn-full">Save My Test Result</button>
+      </form>
+
+      <!-- Rubric reference -->
+      <div style="margin-top:20px;padding:14px;background:#f5f8fc;border-radius:8px;font-size:.8rem;">
+        <strong style="color:#042C53;display:block;margin-bottom:8px;">📋 Rating Reference</strong>
+        <div id="rubricRef" style="color:#555;line-height:1.8;">
+          Select a test type above to see the rating guide.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Test History ── -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e8ecf0;">
+        <h3 style="margin:0;border:none;padding:0;">Test History</h3>
+        <% if (tests.length > 0) { %>
+        <button class="pdf-btn" id="pdfBtn" onclick="downloadPDF()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download PDF
+        </button>
+        <% } %>
+      </div>
+
       <% if (tests.length > 0) { %>
-      <button class="pdf-btn" id="pdfBtn" onclick="downloadPDF()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2.5"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Download as PDF
-      </button>
+      <div class="table-wrap">
+        <table id="tests-table">
+          <thead>
+            <tr><th>#</th><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <% const labels = {
+                 push_ups:    'Push-Ups',
+                 sit_reach:   'Sit & Reach (cm)',
+                 zipper_test: 'Zipper Test (bpm)',
+                 juggling:    'Juggling',
+                 sprint_40m:  '40 Meter Sprint (sec)'
+               }; %>
+            <% tests.forEach((t, i) => { %>
+            <tr>
+              <td style="color:#999;font-size:.8rem;"><%= i+1 %></td>
+              <td><strong><%= labels[t.test_type]||t.test_type %></strong></td>
+              <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+              <td><%= t.reps_or_cm %></td>
+              <td>
+                <% if(t.rating){ %>
+                  <span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span>
+                <% }else{ %>—<% } %>
+              </td>
+              <td><%= new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid #e8ecf0;">
+        <div style="font-size:.8rem;color:#555;"><strong style="color:#042C53;">Total:</strong> <%= tests.length %></div>
+        <div style="font-size:.8rem;color:#555;"><strong style="color:#042C53;">Pre-Tests:</strong> <%= tests.filter(t=>t.test_period==='pre').length %></div>
+        <div style="font-size:.8rem;color:#555;"><strong style="color:#042C53;">Post-Tests:</strong> <%= tests.filter(t=>t.test_period==='post').length %></div>
+      </div>
+
+      <% } else { %>
+        <div class="empty-state">No tests recorded yet. Use the form on the left to add your first result.</div>
       <% } %>
     </div>
 
-    <% if (tests.length > 0) { %>
-    <div class="table-wrap">
-      <table id="tests-table">
-        <thead>
-          <tr><th>#</th><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr>
-        </thead>
-        <tbody>
-          <% const labels = {
-               push_ups:    'Push-Ups',
-               sit_ups:     'Sit-Ups',
-               sit_reach:   'Sit & Reach (cm)',
-               step_test:   'Step Test (bpm)',
-               shuttle_run: 'Shuttle Run (sec)'
-             }; %>
-          <% tests.forEach((t, i) => { %>
-          <tr>
-            <td style="color:#999;font-size:.82rem;"><%= i + 1 %></td>
-            <td><strong><%= labels[t.test_type] || t.test_type %></strong></td>
-            <td>
-              <span class="badge badge-<%= t.test_period %>">
-                <%= t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1) %>
-              </span>
-            </td>
-            <td><%= t.reps_or_cm %></td>
-            <td>
-              <% if (t.rating) { %>
-                <span class="badge badge-<%= t.rating %>">
-                  <%= t.rating.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) %>
-                </span>
-              <% } else { %>—<% } %>
-            </td>
-            <td><%= new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Summary -->
-    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid #e8ecf0;">
-      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Total Records:</strong> <%= tests.length %></div>
-      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Pre-Tests:</strong> <%= tests.filter(t=>t.test_period==='pre').length %></div>
-      <div style="font-size:.82rem;color:#555;"><strong style="color:#042C53;">Post-Tests:</strong> <%= tests.filter(t=>t.test_period==='post').length %></div>
-    </div>
-
-    <% } else { %>
-      <div class="empty-state">No fitness tests recorded yet. Your instructor will record your tests.</div>
-    <% } %>
-  </div>
+  </div><!-- end grid -->
 
   <div style="margin-top:8px;">
     <a href="/student/report" class="btn">View Pre/Post Comparison →</a>
   </div>
 </div>
 
-<!-- Embed test data for JS -->
+<!-- Embed data for JS -->
 <script>
+const STUDENT_GENDER = '<%= gender %>';
+
+/* ── Rubric data (mirrors server-side getRating) ── */
+const RUBRICS = {
+  push_ups: {
+    male:   [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']],
+    female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']],
+  },
+  sit_reach: {
+    male:   [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],
+    female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']],
+  },
+  zipper_test: {
+    male:   [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']],
+    female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']],
+    lowerIsBetter: true,
+  },
+  juggling: {
+    male:   [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']],
+    female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']],
+  },
+  sprint_40m: {
+    male:   [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']],
+    female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']],
+    lowerIsBetter: true,
+  },
+};
+
+const RUBRIC_LABELS = {
+  push_ups:    { unit:'reps', male:  ['≥ 36','29–35','22–28','< 22'],   female: ['≥ 20','15–19','10–14','< 10'] },
+  sit_reach:   { unit:'cm',   male:  ['≥ 27','17–26','6–16','< 6'],     female: ['≥ 30','21–29','11–20','< 11'] },
+  zipper_test: { unit:'bpm',  male:  ['< 80','80–89','90–99','≥ 100'],  female: ['< 85','85–94','95–104','≥ 105'] },
+  juggling:    { unit:'reps', male:  ['≥ 36','29–35','22–28','< 22'],   female: ['≥ 20','15–19','10–14','< 10'] },
+  sprint_40m:  { unit:'sec',  male:  ['< 6','6–6.9','7–7.9','≥ 8'],    female: ['< 7','7–7.9','8–8.9','≥ 9'] },
+};
+
+const RATING_NAMES  = ['Excellent','Good','Fair','Needs Improvement'];
+const RATING_KEYS   = ['excellent','good','fair','needs_improvement'];
+const RATING_COLORS_CSS = {
+  excellent:         'rating-excellent',
+  good:              'rating-good',
+  fair:              'rating-fair',
+  needs_improvement: 'rating-needs_improvement',
+};
+
+function getRating(testType, gender, value) {
+  const v = parseFloat(value);
+  if (isNaN(v)) return null;
+  const rubric = RUBRICS[testType];
+  if (!rubric) return null;
+  const table = rubric[gender] || rubric['male'];
+  if (rubric.lowerIsBetter) {
+    const rev = [...table].reverse();
+    for (const [threshold, rating] of rev) {
+      if (v >= threshold) return rating;
+    }
+    return 'excellent';
+  }
+  for (const [threshold, rating] of table) {
+    if (v >= threshold) return rating;
+  }
+  return 'needs_improvement';
+}
+
+function previewRating() {
+  const testType = document.getElementById('testType').value;
+  const score    = document.getElementById('scoreInput').value;
+  const preview  = document.getElementById('ratingPreview');
+
+  updateRubricRef(testType);
+
+  if (!testType || !score) { preview.className = 'rating-preview'; return; }
+  const rating = getRating(testType, STUDENT_GENDER, score);
+  if (!rating) { preview.className = 'rating-preview'; return; }
+
+  const labels = { excellent:'Excellent ⭐', good:'Good 👍', fair:'Fair 📊', needs_improvement:'Needs Improvement 💪' };
+  preview.textContent = 'Estimated Rating: ' + labels[rating];
+  preview.className   = 'rating-preview show ' + RATING_COLORS_CSS[rating];
+}
+
+function updateRubricRef(testType) {
+  const el = document.getElementById('rubricRef');
+  if (!testType || !RUBRIC_LABELS[testType]) {
+    el.innerHTML = 'Select a test type above to see the rating guide.';
+    return;
+  }
+  const r   = RUBRIC_LABELS[testType];
+  const g   = STUDENT_GENDER || 'male';
+  const arr = r[g] || r['male'];
+  const colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
+  el.innerHTML = RATING_NAMES.map((name, i) =>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
+       <span style="color:${colors[i]};font-weight:600;">${name}</span>
+       <span>${arr[i]} ${r.unit}</span>
+     </div>`
+  ).join('');
+}
+
+/* ── Exercise Counter ── */
+let counterCount  = 0;
+let counterSeconds = 0;
+let counterRunning = false;
+let counterInterval = null;
+
+const COUNTER_TYPES = {
+  push_ups:    { label: 'Push-Ups',         unit: 'reps',    tapMode: true  },
+  sit_reach:   { label: 'Sit & Reach',      unit: 'cm',      tapMode: false },
+  zipper_test: { label: 'Zipper Test',      unit: 'seconds', tapMode: false },
+  juggling:    { label: 'Juggling',         unit: 'reps',    tapMode: true  },
+  sprint_40m:  { label: '40 Meter Sprint',  unit: 'seconds', tapMode: false },
+};
+
+function updateCounterType() {
+  const type = document.getElementById('counterExType').value;
+  const cfg  = COUNTER_TYPES[type];
+  document.getElementById('counterTypeLabel').textContent = cfg.label;
+  document.getElementById('counterUnitLabel').textContent = cfg.unit;
+  const tapBtn = document.getElementById('tapBtn');
+  if (cfg.tapMode) {
+    tapBtn.style.display = 'flex';
+    tapBtn.textContent   = '👊 Tap to Count Rep';
+    document.getElementById('counterHint').textContent = 'Press Start, then tap each rep.';
+  } else {
+    tapBtn.style.display = 'none';
+    document.getElementById('counterHint').textContent = 'Press Start to begin timing. Press Pause when done.';
+  }
+  resetCounter();
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60).toString().padStart(2, '0');
+  const sec = (s % 60).toString().padStart(2, '0');
+  return m + ':' + sec;
+}
+
+function startTimer() {
+  if (counterRunning) return;
+  counterRunning = true;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('pauseBtn').disabled = false;
+  const tapBtn = document.getElementById('tapBtn');
+  tapBtn.classList.add('running');
+  tapBtn.innerHTML = '👊 Tap to Count Rep';
+  counterInterval = setInterval(() => {
+    counterSeconds++;
+    document.getElementById('counterTimer').textContent = formatTime(counterSeconds);
+    // For timed exercises, update the count display with elapsed seconds
+    const type = document.getElementById('counterExType').value;
+    if (!COUNTER_TYPES[type].tapMode) {
+      counterCount = counterSeconds;
+      document.getElementById('counterNum').textContent = counterCount;
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  if (!counterRunning) return;
+  counterRunning = false;
+  clearInterval(counterInterval);
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('pauseBtn').disabled = true;
+  document.getElementById('tapBtn').classList.remove('running');
+}
+
+function resetCounter() {
+  pauseTimer();
+  counterCount   = 0;
+  counterSeconds = 0;
+  document.getElementById('counterNum').textContent   = '0';
+  document.getElementById('counterTimer').textContent = '00:00';
+  document.getElementById('startBtn').disabled  = false;
+  document.getElementById('pauseBtn').disabled  = true;
+}
+
+function handleTap() {
+  if (!counterRunning) {
+    // Auto-start on first tap
+    startTimer();
+  }
+  const type = document.getElementById('counterExType').value;
+  if (!COUNTER_TYPES[type].tapMode) return;
+  counterCount++;
+  document.getElementById('counterNum').textContent = counterCount;
+  // Pulse animation
+  const btn = document.getElementById('tapBtn');
+  btn.classList.remove('tap-pulse');
+  void btn.offsetWidth; // reflow
+  btn.classList.add('tap-pulse');
+}
+
+function undoRep() {
+  const type = document.getElementById('counterExType').value;
+  if (!COUNTER_TYPES[type].tapMode) return;
+  if (counterCount > 0) {
+    counterCount--;
+    document.getElementById('counterNum').textContent = counterCount;
+  }
+}
+
+function useCounterScore() {
+  const type  = document.getElementById('counterExType').value;
+  const score = counterCount;
+  if (score === 0) { alert('Start the counter first and record some reps or time.'); return; }
+  // Fill in the form fields
+  const testTypeSelect = document.getElementById('testType');
+  testTypeSelect.value = type;
+  testTypeSelect.dispatchEvent(new Event('change'));
+  document.getElementById('scoreInput').value = score;
+  document.getElementById('scoreInput').dispatchEvent(new Event('input'));
+  // Scroll to form
+  document.getElementById('testForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', updateCounterType);
+
+/* ── PDF generation (same as before) ── */
 const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
   num:    i + 1,
-  type:   { push_ups:'Push-Ups', sit_ups:'Sit-Ups', sit_reach:'Sit & Reach (cm)', step_test:'Step Test (bpm)', shuttle_run:'Shuttle Run (sec)' }[t.test_type] || t.test_type,
+  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (bpm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)' }[t.test_type] || t.test_type,
   period: t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1),
   score:  String(t.reps_or_cm),
   rating: t.rating ? t.rating.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) : '—',
@@ -117,192 +523,93 @@ const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
   periodKey: t.test_period || ''
 }))) %>;
 
-/* Rating → RGB colour map */
-const RATING_COLORS = {
-  excellent:        [46, 125, 50],
-  good:             [21, 101, 192],
-  fair:             [230, 81, 0],
-  needs_improvement:[198, 40, 40],
-};
-const PERIOD_COLORS = {
-  pre:  [106, 27, 154],
-  post: [0,   105, 92],
-};
+const RATING_COLORS = { excellent:[46,125,50], good:[21,101,192], fair:[230,81,0], needs_improvement:[198,40,40] };
+const PERIOD_COLORS = { pre:[106,27,154], post:[0,105,92] };
 
 function downloadPDF() {
   const btn = document.getElementById('pdfBtn');
   btn.disabled = true;
   btn.innerHTML = '⏳ Generating…';
-
   try {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    const pageW  = doc.internal.pageSize.getWidth();
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
     const margin = 15;
-    const now    = new Date();
+    const now = new Date();
 
-    /* ── Header bar ── */
-    doc.setFillColor(4, 44, 83);
-    doc.rect(0, 0, pageW, 28, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(15);
-    doc.setFont('helvetica', 'bold');
+    doc.setFillColor(4,44,83); doc.rect(0,0,pageW,28,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
     doc.text('PATHFIT Tracking System', margin, 11);
-
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.text('Physical Activity Towards Health and Fitness — NBSC', margin, 17);
-
-    /* Generated date — right-aligned */
-    const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     doc.setFontSize(7.5);
-    doc.text('Generated: ' + dateStr, pageW - margin, 17, { align: 'right' });
+    doc.text('Generated: ' + now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}), pageW-margin, 17, {align:'right'});
 
-    /* ── Section title ── */
-    doc.setTextColor(4, 44, 83);
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(4,44,83); doc.setFontSize(13); doc.setFont('helvetica','bold');
     doc.text('My Fitness Test Results', margin, 38);
+    doc.setDrawColor(24,95,165); doc.setLineWidth(0.8); doc.line(margin,41,margin+70,41);
 
-    /* Accent line under title */
-    doc.setDrawColor(24, 95, 165);
-    doc.setLineWidth(0.8);
-    doc.line(margin, 41, margin + 70, 41);
-
-    /* ── Summary chips ── */
-    const preCount  = TEST_DATA.filter(r => r.periodKey === 'pre').length;
-    const postCount = TEST_DATA.filter(r => r.periodKey === 'post').length;
-    const chips = [
-      { label: 'Total Records', value: String(TEST_DATA.length) },
-      { label: 'Pre-Tests',     value: String(preCount)  },
-      { label: 'Post-Tests',    value: String(postCount) },
-    ];
+    const preCount  = TEST_DATA.filter(r=>r.periodKey==='pre').length;
+    const postCount = TEST_DATA.filter(r=>r.periodKey==='post').length;
     let cx = margin;
-    chips.forEach(chip => {
-      doc.setFillColor(240, 244, 248);
-      doc.roundedRect(cx, 44, 42, 12, 2, 2, 'F');
-      doc.setTextColor(100, 100, 100);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text(chip.label, cx + 21, 49, { align: 'center' });
-      doc.setTextColor(4, 44, 83);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(chip.value, cx + 21, 54, { align: 'center' });
-      cx += 46;
+    [{label:'Total Records',value:String(TEST_DATA.length)},{label:'Pre-Tests',value:String(preCount)},{label:'Post-Tests',value:String(postCount)}].forEach(chip=>{
+      doc.setFillColor(240,244,248); doc.roundedRect(cx,44,42,12,2,2,'F');
+      doc.setTextColor(100,100,100); doc.setFontSize(7); doc.setFont('helvetica','normal');
+      doc.text(chip.label,cx+21,49,{align:'center'});
+      doc.setTextColor(4,44,83); doc.setFontSize(10); doc.setFont('helvetica','bold');
+      doc.text(chip.value,cx+21,54,{align:'center'}); cx+=46;
     });
 
-    /* ── Table ── */
     doc.autoTable({
-      startY: 60,
-      margin: { left: margin, right: margin },
-      head: [['#', 'Test', 'Period', 'Score', 'Rating', 'Date']],
-      body: TEST_DATA.map(r => [r.num, r.type, r.period, r.score, r.rating, r.date]),
-      headStyles: {
-        fillColor: [4, 44, 83],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 9,
-        cellPadding: 4,
-      },
-      bodyStyles: {
-        fontSize: 9,
-        cellPadding: 3.5,
-        textColor: [20, 20, 20],
-      },
-      alternateRowStyles: { fillColor: [245, 248, 252] },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center', textColor: [160,160,160] },
-        2: { cellWidth: 22, halign: 'center' },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 36, halign: 'center' },
-        5: { cellWidth: 32 },
-      },
-      /* Colour the Period and Rating cells */
-      didDrawCell(data) {
-        if (data.section !== 'body') return;
-        const row = TEST_DATA[data.row.index];
-        if (!row) return;
-
-        /* Period badge */
-        if (data.column.index === 2) {
-          const col = PERIOD_COLORS[row.periodKey] || [100,100,100];
-          const { x, y, width, height } = data.cell;
-          const text = row.period;
-          const tw   = doc.getTextWidth(text);
-          const bw   = tw + 6;
-          const bh   = 5;
-          const bx   = x + (width - bw) / 2;
-          const by   = y + (height - bh) / 2;
-          doc.setFillColor(...col);
-          doc.roundedRect(bx, by, bw, bh, 1.5, 1.5, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(7.5);
-          doc.setFont('helvetica', 'bold');
-          doc.text(text, bx + bw / 2, by + 3.5, { align: 'center' });
+      startY:60, margin:{left:margin,right:margin},
+      head:[['#','Test','Period','Score','Rating','Date']],
+      body:TEST_DATA.map(r=>[r.num,r.type,r.period,r.score,r.rating,r.date]),
+      headStyles:{fillColor:[4,44,83],textColor:[255,255,255],fontStyle:'bold',fontSize:9,cellPadding:4},
+      bodyStyles:{fontSize:9,cellPadding:3.5,textColor:[20,20,20]},
+      alternateRowStyles:{fillColor:[245,248,252]},
+      columnStyles:{0:{cellWidth:10,halign:'center',textColor:[160,160,160]},2:{cellWidth:22,halign:'center'},3:{cellWidth:20,halign:'center'},4:{cellWidth:36,halign:'center'},5:{cellWidth:32}},
+      didDrawCell(data){
+        if(data.section!=='body') return;
+        const row=TEST_DATA[data.row.index]; if(!row) return;
+        if(data.column.index===2){
+          const col=PERIOD_COLORS[row.periodKey]||[100,100,100];
+          const {x,y,width,height}=data.cell; const text=row.period;
+          const bw=doc.getTextWidth(text)+6,bh=5,bx=x+(width-bw)/2,by=y+(height-bh)/2;
+          doc.setFillColor(...col); doc.roundedRect(bx,by,bw,bh,1.5,1.5,'F');
+          doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+          doc.text(text,bx+bw/2,by+3.5,{align:'center'});
         }
-
-        /* Rating badge */
-        if (data.column.index === 4 && row.ratingKey) {
-          const col = RATING_COLORS[row.ratingKey] || [100,100,100];
-          const { x, y, width, height } = data.cell;
-          const text = row.rating;
-          const tw   = doc.getTextWidth(text);
-          const bw   = Math.max(tw + 8, 28);
-          const bh   = 5;
-          const bx   = x + (width - bw) / 2;
-          const by   = y + (height - bh) / 2;
-          doc.setFillColor(...col);
-          doc.roundedRect(bx, by, bw, bh, 1.5, 1.5, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(7.5);
-          doc.setFont('helvetica', 'bold');
-          doc.text(text, bx + bw / 2, by + 3.5, { align: 'center' });
+        if(data.column.index===4&&row.ratingKey){
+          const col=RATING_COLORS[row.ratingKey]||[100,100,100];
+          const {x,y,width,height}=data.cell; const text=row.rating;
+          const bw=Math.max(doc.getTextWidth(text)+8,28),bh=5,bx=x+(width-bw)/2,by=y+(height-bh)/2;
+          doc.setFillColor(...col); doc.roundedRect(bx,by,bw,bh,1.5,1.5,'F');
+          doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+          doc.text(text,bx+bw/2,by+3.5,{align:'center'});
         }
       },
-      /* Clear the raw text in badge cells so only the drawn badge shows */
-      didParseCell(data) {
-        if (data.section === 'body' && (data.column.index === 2 || data.column.index === 4)) {
-          data.cell.text = [];
-        }
+      didParseCell(data){
+        if(data.section==='body'&&(data.column.index===2||data.column.index===4)) data.cell.text=[];
       },
     });
 
-    /* ── Footer on every page ── */
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let p = 1; p <= pageCount; p++) {
+    const pageCount=doc.internal.getNumberOfPages();
+    for(let p=1;p<=pageCount;p++){
       doc.setPage(p);
-      const footerY = doc.internal.pageSize.getHeight() - 8;
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.line(margin, footerY - 3, pageW - margin, footerY - 3);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(160, 160, 160);
-      doc.text('PATHFIT Tracking System — NBSC  |  Confidential', margin, footerY);
-      doc.text('Page ' + p + ' of ' + pageCount, pageW - margin, footerY, { align: 'right' });
+      const footerY=doc.internal.pageSize.getHeight()-8;
+      doc.setDrawColor(200,200,200); doc.setLineWidth(0.3); doc.line(margin,footerY-3,pageW-margin,footerY-3);
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160);
+      doc.text('PATHFIT Tracking System — NBSC  |  Confidential',margin,footerY);
+      doc.text('Page '+p+' of '+pageCount,pageW-margin,footerY,{align:'right'});
     }
-
-    /* ── Save ── */
-    const filename = 'Fitness_Test_Results_' + now.toISOString().slice(0, 10) + '.pdf';
-    doc.save(filename);
-
-  } catch (err) {
-    console.error('PDF generation failed:', err);
-    alert('Could not generate PDF. Please try again.');
+    doc.save('Fitness_Test_Results_'+now.toISOString().slice(0,10)+'.pdf');
+  } catch(err) {
+    console.error(err); alert('Could not generate PDF. Please try again.');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="7 10 12 15 17 10"/>
-      <line x1="12" y1="15" x2="12" y2="3"/>
-    </svg> Download as PDF`;
+    btn.disabled=false;
+    btn.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF`;
   }
 }
 </script>
 
 <%- include('../partials/footer') %>
-

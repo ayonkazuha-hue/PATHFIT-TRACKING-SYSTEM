@@ -1,25 +1,85 @@
 <%- include('../partials/header', { title: 'Pre/Post Report' }) %>
+
+<style>
+/* ── Report search bar ── */
+.report-search-wrap { position: relative; flex: 1; min-width: 260px; }
+.report-search-wrap input[type="text"] {
+  width: 100%; padding: 9px 36px 9px 12px;
+  border: 1.5px solid #cdd5e0; border-radius: 7px;
+  font-size: .92rem; color: #0a0a0a; background: #fff;
+  transition: border-color .2s; box-sizing: border-box;
+}
+.report-search-wrap input[type="text"]:focus {
+  outline: none; border-color: #185FA5;
+  box-shadow: 0 0 0 2px rgba(24,95,165,.15);
+}
+/* search icon */
+.report-search-wrap::after {
+  content: '';
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat center;
+}
+.report-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid #cdd5e0; border-radius: 8px;
+  max-height: 260px; overflow-y: auto; z-index: 999;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12); display: none;
+}
+.report-dropdown .rd-item {
+  padding: 10px 14px; cursor: pointer; font-size: .88rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.report-dropdown .rd-item:last-child { border-bottom: none; }
+.report-dropdown .rd-item:hover, .report-dropdown .rd-item.active { background: #eef3fb; }
+.report-dropdown .rd-item .rd-name { font-weight: 600; color: #042C53; }
+.report-dropdown .rd-item .rd-meta { font-size: .75rem; color: #888; white-space: nowrap; }
+.report-dropdown .rd-empty { padding: 12px 14px; color: #999; font-size: .85rem; font-style: italic; }
+/* selected chip */
+.report-chip {
+  display: none; align-items: center; gap: 8px;
+  background: #e8f0fb; border: 1.5px solid #185FA5; border-radius: 7px;
+  padding: 8px 12px; font-size: .9rem; font-weight: 600; color: #042C53;
+}
+.report-chip.show { display: flex; }
+.report-chip .chip-clear {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  font-size: 1.1rem; color: #888; line-height: 1; padding: 0 2px; transition: color .15s;
+}
+.report-chip .chip-clear:hover { color: #e53935; }
+</style>
+
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
   <div class="page-title">Pre vs. Post Fitness Report</div>
   <div class="page-sub">Compare baseline and end-of-semester fitness test results to measure student progress.</div>
 
-  <!-- Student Selector -->
-  <form method="GET" action="/instructor/report">
-    <div class="filter-bar">
-      <div class="fg">
-        <label>Select Student</label>
-        <select name="student_id" style="min-width:280px;">
-          <option value="">— Class-Wide Summary —</option>
-          <% studentsList.forEach(s => { %>
-            <option value="<%= s.user_id %>" <%= targetId===s.user_id?'selected':'' %>>
-              <%= s.name %> (<%= s.section||'' %>)
-            </option>
-          <% }) %>
-        </select>
+  <!-- Student Search -->
+  <form method="GET" action="/instructor/report" id="reportForm">
+    <input type="hidden" name="student_id" id="reportStudentId" value="<%= targetId || '' %>">
+    <div class="filter-bar" style="align-items:flex-end;">
+      <div style="flex:1;min-width:260px;">
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search Student by Name or ID</label>
+        <div class="report-search-wrap" id="searchWrap">
+          <input type="text" id="reportSearchInput"
+                 placeholder="Type name or student ID…"
+                 autocomplete="off"
+                 value="<% if(studentInfo){ %><%= studentInfo.name %> (<%= studentInfo.student_id||'' %>)<% } %>">
+          <div class="report-dropdown" id="reportDropdown"></div>
+        </div>
+        <!-- Selected chip -->
+        <div class="report-chip <%= studentInfo ? 'show' : '' %>" id="reportChip">
+          <span id="chipText"><% if(studentInfo){ %><%= studentInfo.name %><% } %></span>
+          <span id="chipMeta" style="opacity:.7;font-size:.78rem;">
+            <% if(studentInfo){ %>&nbsp;· <%= studentInfo.student_id||'' %> · Section <%= studentInfo.section||'—' %><% } %>
+          </span>
+          <button type="button" class="chip-clear" onclick="clearStudent()" aria-label="Clear">×</button>
+        </div>
       </div>
-      <div style="align-self:flex-end;">
+      <div style="display:flex;gap:8px;">
         <button type="submit" class="btn">View Report</button>
+        <a href="/instructor/report" class="btn btn-outline">Class Summary</a>
       </div>
     </div>
   </form>
@@ -38,7 +98,7 @@
   <!-- Comparison Table -->
   <div class="card">
     <h3>Fitness Test Comparison</h3>
-    <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach (cm)',step_test:'Step Test (bpm)',shuttle_run:'Shuttle Run (sec)'}; %>
+    <% const labels = {push_ups:'Push-Ups',sit_reach:'Sit & Reach (cm)',zipper_test:'Zipper Test (bpm)',juggling:'Juggling',sprint_40m:'40 Meter Sprint (sec)'}; %>
     <% const ratingOrder = {needs_improvement:1,fair:2,good:3,excellent:4}; %>
     <div class="table-wrap">
       <table>
@@ -96,4 +156,116 @@
   </div>
   <% } %>
 </div>
+
+<script>
+/* Embed student list for autocomplete */
+const REPORT_STUDENTS = <%- JSON.stringify(studentsList.map(s => ({
+  id:         s.user_id,
+  name:       s.name,
+  student_id: s.student_id || '',
+  section:    s.section    || '',
+  course:     s.course     || ''
+}))) %>;
+
+const searchInput = document.getElementById('reportSearchInput');
+const dropdown    = document.getElementById('reportDropdown');
+const hiddenId    = document.getElementById('reportStudentId');
+const chip        = document.getElementById('reportChip');
+const chipText    = document.getElementById('chipText');
+const chipMeta    = document.getElementById('chipMeta');
+
+let activeIdx = -1;
+
+/* If a student is already selected, hide the text input */
+if (hiddenId.value) {
+  searchInput.style.display = 'none';
+}
+
+function filterStudents(q) {
+  const lq = q.trim().toLowerCase();
+  if (!lq) return REPORT_STUDENTS;
+  return REPORT_STUDENTS.filter(s =>
+    s.name.toLowerCase().includes(lq) ||
+    s.student_id.toLowerCase().includes(lq) ||
+    s.section.toLowerCase().includes(lq)
+  );
+}
+
+function renderDropdown(list) {
+  dropdown.innerHTML = '';
+  activeIdx = -1;
+  if (!list.length) {
+    dropdown.innerHTML = '<div class="rd-empty">No students found</div>';
+  } else {
+    list.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'rd-item';
+      div.dataset.id = s.id;
+      div.innerHTML =
+        `<span class="rd-name">${s.name}</span>` +
+        `<span class="rd-meta">${s.student_id ? s.student_id + ' · ' : ''}${s.section ? 'Sec ' + s.section : ''}</span>`;
+      div.addEventListener('mousedown', e => { e.preventDefault(); selectStudent(s); });
+      dropdown.appendChild(div);
+    });
+  }
+  dropdown.style.display = 'block';
+}
+
+function selectStudent(s) {
+  hiddenId.value   = s.id;
+  chipText.textContent = s.name;
+  chipMeta.innerHTML   = `&nbsp;· ${s.student_id || '—'} · Section ${s.section || '—'}`;
+  chip.classList.add('show');
+  searchInput.style.display = 'none';
+  searchInput.value = '';
+  dropdown.style.display = 'none';
+  activeIdx = -1;
+}
+
+function clearStudent() {
+  hiddenId.value = '';
+  chip.classList.remove('show');
+  searchInput.style.display = '';
+  searchInput.value = '';
+  searchInput.focus();
+  dropdown.style.display = 'none';
+}
+
+searchInput.addEventListener('input', () => {
+  hiddenId.value = '';
+  renderDropdown(filterStudents(searchInput.value));
+});
+
+searchInput.addEventListener('focus', () => {
+  renderDropdown(filterStudents(searchInput.value));
+});
+
+searchInput.addEventListener('blur', () => {
+  setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+});
+
+searchInput.addEventListener('keydown', e => {
+  const items = dropdown.querySelectorAll('.rd-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeIdx = Math.min(activeIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeIdx = Math.max(activeIdx - 1, 0);
+  } else if (e.key === 'Enter' && activeIdx >= 0) {
+    e.preventDefault();
+    const it = items[activeIdx];
+    const s  = REPORT_STUDENTS.find(x => x.id === it.dataset.id);
+    if (s) selectStudent(s);
+    return;
+  } else if (e.key === 'Escape') {
+    dropdown.style.display = 'none';
+    return;
+  }
+  items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  if (activeIdx >= 0) items[activeIdx].scrollIntoView({ block: 'nearest' });
+});
+</script>
+
 <%- include('../partials/footer') %>

@@ -1,191 +1,192 @@
-<%- include('../partials/header', { title: 'Record Fitness Tests' }) %>
+<%- include('../partials/header', { title: 'Fitness Test Records' }) %>
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">Fitness Test Entry</div>
-  <div class="page-sub">Record pre-test and post-test results. Ratings are auto-calculated based on gender-specific rubrics.</div>
+  <div class="page-title">Fitness Test Records</div>
+  <div class="page-sub">View fitness test results submitted by students. Students enter their own scores.</div>
 
-  <div class="grid-2">
-    <!-- Form -->
-    <div class="card">
-      <h3>Record New Test</h3>
-      <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
-      <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
-
-      <form method="POST" action="/instructor/fitness-tests">
-        <div class="form-group">
-          <label>Student *</label>
-
-          <!-- Search input -->
-          <div class="student-search-wrap">
-            <input
-              type="text"
-              id="studentSearchInput"
-              class="student-search-input"
-              placeholder="Type a name to search…"
-              autocomplete="off"
-              value="<%= selectedStudent ? selectedStudent.name + ' (' + (selectedStudent.section||'') + ')' : '' %>"
-            >
-            <ul class="student-suggestions" id="studentSuggestions"></ul>
-          </div>
-
-          <!-- Hidden fields submitted with the form -->
-          <input type="hidden" name="target_student_id" id="target_student_id"
-                 value="<%= selectedStudentId %>">
-          <input type="hidden" name="student_gender"    id="student_gender"
-                 value="<%= selectedStudent ? selectedStudent.gender : '' %>">
-
-          <!-- Selected student chip -->
-          <div class="student-chip" id="studentChip" style="<%= selectedStudent ? '' : 'display:none' %>">
-            <span id="chipName"><%= selectedStudent ? selectedStudent.name : '' %></span>
-            <span id="chipMeta" style="opacity:.7;font-size:.78rem;margin-left:6px;">
-              <%= selectedStudent ? '· ' + (selectedStudent.section||'') + ' · ' + (selectedStudent.gender||'') : '' %>
-            </span>
-            <button type="button" class="chip-clear" onclick="clearStudent()" aria-label="Clear">×</button>
-          </div>
+  <!-- Student search filter -->
+  <form method="GET" action="/instructor/fitness-tests" id="filterForm">
+    <div class="filter-bar">
+      <div class="fg" style="flex:1;min-width:220px;">
+        <label>Search Student</label>
+        <input type="hidden" name="student_id" id="filterStudentId" value="<%= selectedStudentId %>">
+        <div class="student-search-wrap">
+          <input type="text" id="filterStudentSearch" placeholder="Type a name to search…"
+                 autocomplete="off"
+                 value="<%= selectedStudent ? selectedStudent.name : '' %>">
+          <div class="student-dropdown" id="filterDropdown"></div>
         </div>
-
-        <div class="form-group">
-          <label>Test Type *</label>
-          <select name="test_type" required>
-            <option value="">— Select Test —</option>
-            <option value="push_ups">Push-Ups (reps)</option>
-            <option value="sit_ups">Sit-Ups (reps)</option>
-            <option value="sit_reach">Sit & Reach (cm)</option>
-            <option value="step_test">Step Test (bpm)</option>
-            <option value="shuttle_run">Shuttle Run (seconds)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Test Period *</label>
-          <select name="test_period" required>
-            <option value="">— Select Period —</option>
-            <option value="pre">Pre-Test</option>
-            <option value="post">Post-Test</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Score *</label>
-          <input type="number" name="reps_or_cm" step="0.01" min="0" placeholder="e.g. 25" required>
-        </div>
-        <button type="submit" class="btn btn-full">Save Test Result</button>
-      </form>
-
-      <!-- Rubric Reference -->
-      <div style="background:#f5f8fc;border-radius:8px;padding:14px;margin-top:16px;font-size:.82rem;">
-        <strong style="color:#042C53;display:block;margin-bottom:8px;">Push-Up Rubric Reference</strong>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Excellent</span><span>≥ 36 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Good</span><span>29–35 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Fair</span><span>22–28 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Male — Needs Improvement</span><span>&lt; 22 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;margin-top:6px;"><span>Female — Excellent</span><span>≥ 20 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Female — Good</span><span>15–19 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;"><span>Female — Fair</span><span>10–14 reps</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Female — Needs Improvement</span><span>&lt; 10 reps</span></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <button type="submit" class="btn">View Records</button>
+        <a href="/instructor/fitness-tests" class="btn btn-outline">Reset</a>
       </div>
     </div>
+  </form>
 
-    <!-- Existing Tests -->
-    <div class="card">
-      <h3>Recorded Tests</h3>
-      <% if (tests.length > 0) { %>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th><th>Date</th></tr></thead>
-          <tbody>
-            <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach',step_test:'Step Test',shuttle_run:'Shuttle Run'}; %>
-            <% tests.forEach(t => { %>
-            <tr>
-              <td><%= labels[t.test_type]||t.test_type %></td>
-              <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
-              <td><%= t.reps_or_cm %></td>
-              <td><% if(t.rating){ %><span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span><% }else{ %>—<% } %></td>
-              <td><%= new Date(t.created_at).toLocaleDateString() %></td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
+  <% if (error)   { %><div class="alert alert-error"  style="margin-bottom:16px;"><%= error %></div><% } %>
+  <% if (success) { %><div class="alert alert-success" style="margin-bottom:16px;"><%= success %></div><% } %>
+
+  <% if (selectedStudent) { %>
+  <!-- Student info banner -->
+  <div style="background:rgba(255,255,255,.92);border-radius:12px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 20px rgba(4,44,83,.12);border:1px solid rgba(255,255,255,.5);">
+    <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#042C53,#185FA5);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;">👤</div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:700;color:#042C53;"><%= selectedStudent.name %></div>
+      <div style="font-size:.82rem;color:#666;margin-top:3px;">
+        <%= selectedStudent.student_id || '—' %> &bull;
+        Section <%= selectedStudent.section || '—' %> &bull;
+        <%= selectedStudent.course || '—' %> &bull;
+        <%= selectedStudent.gender ? selectedStudent.gender.charAt(0).toUpperCase()+selectedStudent.gender.slice(1) : '—' %> &bull;
+        PATHFit <%= selectedStudent.pathfit_level || '—' %>
       </div>
+    </div>
+    <div style="margin-left:auto;text-align:right;">
+      <div style="font-size:1.6rem;font-weight:800;color:#042C53;"><%= tests.length %></div>
+      <div style="font-size:.75rem;color:#888;text-transform:uppercase;letter-spacing:.6px;">Tests Recorded</div>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e8ecf0;">
+      <h3 style="margin:0;border:none;padding:0;">
+        <% if (selectedStudent) { %>
+          <%= selectedStudent.name %>'s Test Results
+        <% } else { %>
+          All Student Test Records
+        <% } %>
+      </h3>
+      <% if (!selectedStudentId) { %>
+        <span style="font-size:.78rem;color:#888;background:#f0f4f8;padding:4px 10px;border-radius:20px;">
+          <%= tests.length %> total records
+        </span>
       <% } else { %>
-        <div class="empty-state"><%= selectedStudentId ? 'No tests recorded for this student yet.' : 'Select a student to view their test history.' %></div>
+        <div style="display:flex;gap:12px;font-size:.8rem;">
+          <span style="color:#6a1b9a;font-weight:600;">Pre: <%= tests.filter(t=>t.test_period==='pre').length %></span>
+          <span style="color:#00695c;font-weight:600;">Post: <%= tests.filter(t=>t.test_period==='post').length %></span>
+        </div>
       <% } %>
     </div>
+
+    <% if (tests.length > 0) { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <% if (!selectedStudentId) { %><th>Student</th><% } %>
+            <th>Test</th>
+            <th>Period</th>
+            <th>Score</th>
+            <th>Rating</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% const labels = {push_ups:'Push-Ups',sit_reach:'Sit & Reach (cm)',zipper_test:'Zipper Test (bpm)',juggling:'Juggling',sprint_40m:'40 Meter Sprint (sec)'}; %>
+          <% tests.forEach(t => { %>
+          <tr>
+            <% if (!selectedStudentId) { %>
+            <td><strong><%= t.users ? t.users.name : '—' %></strong></td>
+            <% } %>
+            <td><strong><%= labels[t.test_type]||t.test_type %></strong></td>
+            <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
+            <td><%= t.reps_or_cm %></td>
+            <td>
+              <% if(t.rating){ %>
+                <span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span>
+              <% }else{ %>—<% } %>
+            </td>
+            <td><%= new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="empty-state">
+        <% if (selectedStudentId) { %>
+          No fitness tests recorded for this student yet.
+        <% } else { %>
+          No fitness test records found. Students will appear here once they submit their results.
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Info notice -->
+  <div style="background:rgba(255,255,255,.7);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:.85rem;color:#555;border:1px solid rgba(255,255,255,.4);">
+    <span style="font-size:1.3rem;">ℹ️</span>
+    <span>Students record their own fitness test scores from their <strong>My Tests</strong> page. Ratings are automatically calculated based on gender-specific rubrics.</span>
   </div>
 </div>
 
 <script>
-// Build student list from server data
-const STUDENTS = [
-  <% students.forEach(function(s, i) { %>
-  {
-    id:      '<%= s.user_id %>',
-    name:    '<%= s.name.replace(/'/g, "\\'") %>',
-    section: '<%= (s.section||'').replace(/'/g, "\\'") %>',
-    gender:  '<%= s.gender || '' %>'
-  }<%= i < students.length - 1 ? ',' : '' %>
-  <% }) %>
-];
+const ALL_STUDENTS = <%- JSON.stringify(students.map(s => ({
+  id: s.user_id,
+  name: s.name,
+  section: s.section || ''
+}))) %>;
 
-const searchInput   = document.getElementById('studentSearchInput');
-const suggestions   = document.getElementById('studentSuggestions');
-const hiddenId      = document.getElementById('target_student_id');
-const hiddenGender  = document.getElementById('student_gender');
-const chip          = document.getElementById('studentChip');
-const chipName      = document.getElementById('chipName');
-const chipMeta      = document.getElementById('chipMeta');
+function buildStudentSearch(inputId, dropId, hiddenId) {
+  const input  = document.getElementById(inputId);
+  const drop   = document.getElementById(dropId);
+  const hidden = document.getElementById(hiddenId);
+  if (!input || !drop || !hidden) return;
+  let activeIdx = -1;
 
-// If a student is already selected, hide the input
-if (hiddenId.value) {
-  searchInput.style.display = 'none';
-}
-
-searchInput.addEventListener('input', function () {
-  const q = this.value.trim().toLowerCase();
-  suggestions.innerHTML = '';
-  if (!q) { suggestions.style.display = 'none'; return; }
-
-  const matches = STUDENTS.filter(s => s.name.toLowerCase().includes(q)).slice(0, 8);
-  if (matches.length === 0) {
-    suggestions.style.display = 'none';
-    return;
+  function renderItems(list) {
+    drop.innerHTML = ''; activeIdx = -1;
+    if (!list.length) {
+      drop.innerHTML = '<div class="sd-empty">No students found</div>';
+    } else {
+      list.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'sd-item';
+        div.dataset.id = s.id; div.dataset.name = s.name;
+        div.innerHTML = `<span>${s.name}</span>${s.section?`<span class="sd-section">${s.section}</span>`:''}`;
+        div.addEventListener('mousedown', e => { e.preventDefault(); selectStudent(s); });
+        drop.appendChild(div);
+      });
+    }
+    drop.style.display = 'block';
   }
 
-  matches.forEach(function (s) {
-    const li = document.createElement('li');
-    // Highlight matching part
-    const regex = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    const highlighted = s.name.replace(regex, '<mark>$1</mark>');
-    li.innerHTML = highlighted + '<span class="sug-meta"> · ' + (s.section||'—') + ' · ' + (s.gender||'—') + '</span>';
-    li.addEventListener('mousedown', function (e) {
-      e.preventDefault(); // prevent blur before click
-      selectStudent(s);
-    });
-    suggestions.appendChild(li);
+  function selectStudent(s) {
+    input.value = s.name; hidden.value = s.id;
+    drop.style.display = 'none'; activeIdx = -1;
+  }
+
+  function filter(q) {
+    const lq = q.trim().toLowerCase();
+    return lq ? ALL_STUDENTS.filter(s => s.name.toLowerCase().includes(lq) || s.section.toLowerCase().includes(lq)) : ALL_STUDENTS;
+  }
+
+  input.addEventListener('input',  () => { hidden.value = ''; renderItems(filter(input.value)); });
+  input.addEventListener('focus',  () => renderItems(filter(input.value)));
+  input.addEventListener('blur',   () => setTimeout(() => { drop.style.display = 'none'; }, 150));
+  input.addEventListener('keydown', e => {
+    const items = drop.querySelectorAll('.sd-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx+1, items.length-1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx-1, 0); }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); const it=items[activeIdx]; selectStudent({id:it.dataset.id,name:it.dataset.name}); return; }
+    else if (e.key === 'Escape') { drop.style.display='none'; return; }
+    items.forEach((el,i) => el.classList.toggle('active', i===activeIdx));
+    if (activeIdx >= 0) items[activeIdx].scrollIntoView({block:'nearest'});
   });
-  suggestions.style.display = 'block';
-});
-
-searchInput.addEventListener('blur', function () {
-  setTimeout(function () { suggestions.style.display = 'none'; }, 150);
-});
-
-function selectStudent(s) {
-  hiddenId.value     = s.id;
-  hiddenGender.value = s.gender;
-  chipName.textContent = s.name;
-  chipMeta.textContent = '· ' + (s.section||'—') + ' · ' + (s.gender||'—');
-  chip.style.display   = 'flex';
-  searchInput.style.display = 'none';
-  searchInput.value    = '';
-  suggestions.style.display = 'none';
 }
 
-function clearStudent() {
-  hiddenId.value     = '';
-  hiddenGender.value = '';
-  chip.style.display = 'none';
-  searchInput.style.display = '';
-  searchInput.value  = '';
-  searchInput.focus();
-}
+buildStudentSearch('filterStudentSearch', 'filterDropdown', 'filterStudentId');
 </script>
+
+<style>
+.student-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #cdd5e0; border-radius:6px; max-height:220px; overflow-y:auto; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,.12); display:none; }
+.student-dropdown .sd-item { padding:9px 14px; cursor:pointer; font-size:.88rem; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; }
+.student-dropdown .sd-item:last-child { border-bottom:none; }
+.student-dropdown .sd-item:hover, .student-dropdown .sd-item.active { background:#eef3fb; }
+.student-dropdown .sd-section { font-size:.75rem; color:#888; background:#f0f4fa; padding:2px 7px; border-radius:10px; }
+.student-dropdown .sd-empty { padding:10px 14px; color:#999; font-size:.85rem; font-style:italic; }
+</style>
+
 <%- include('../partials/footer') %>

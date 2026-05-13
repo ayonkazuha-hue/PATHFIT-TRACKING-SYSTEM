@@ -1,29 +1,5 @@
 const express = require('express');
 
-// Auto-rating rubric
-function getRating(testType, gender, value) {
-  const v = parseFloat(value);
-  const rubrics = {
-    push_ups:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
-    sit_ups:     { male: [[38,'excellent'],[31,'good'],[24,'fair'],[0,'needs_improvement']], female: [[32,'excellent'],[25,'good'],[18,'fair'],[0,'needs_improvement']] },
-    sit_reach:   { male: [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],  female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']] },
-    step_test:   { male: [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']], female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']] },
-    shuttle_run: { male: [[0,'excellent'],[10.0,'good'],[11.0,'fair'],[12.0,'needs_improvement']], female: [[0,'excellent'],[11.5,'good'],[12.5,'fair'],[13.5,'needs_improvement']] },
-  };
-  const table = rubrics[testType]?.[gender];
-  if (!table) return 'fair';
-  if (['step_test','shuttle_run'].includes(testType)) {
-    for (const [threshold, rating] of table.slice().reverse()) {
-      if (v >= threshold) return rating;
-    }
-    return 'excellent';
-  }
-  for (const [threshold, rating] of table) {
-    if (v >= threshold) return rating;
-  }
-  return 'needs_improvement';
-}
-
 module.exports = function(supabaseAdmin) {
   const router = express.Router();
 
@@ -68,13 +44,70 @@ module.exports = function(supabaseAdmin) {
 
   // GET /student/fitness-tests
   router.get('/fitness-tests', async (req, res) => {
-    const uid = req.session.user.user_id;
+    const uid    = req.session.user.user_id;
+    const gender = req.session.user.gender || '';
     try {
       const { data: tests } = await supabaseAdmin
         .from('fitness_tests').select('*').eq('student_id', uid).order('created_at', { ascending: false });
-      res.render('student/fitness_tests', { tests: tests || [], error: null, success: null });
+      res.render('student/fitness_tests', {
+        tests: tests || [],
+        gender,
+        error:   req.query.error   || null,
+        success: req.query.success || null,
+      });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
+    }
+  });
+
+  // POST /student/fitness-tests — student self-entry
+  router.post('/fitness-tests', async (req, res) => {
+    const uid    = req.session.user.user_id;
+    const gender = req.session.user.gender || '';
+    const { test_type, test_period, reps_or_cm } = req.body;
+
+    if (!test_type || !test_period || !reps_or_cm) {
+      return res.redirect('/student/fitness-tests?error=Please fill in all fields.');
+    }
+
+    // Auto-rating rubric
+    function getRating(testType, g, value) {
+      const v = parseFloat(value);
+      const rubrics = {
+        push_ups:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
+        sit_reach:   { male: [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],  female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']] },
+        zipper_test: { male: [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']], female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']] },
+        juggling:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
+        sprint_40m:  { male: [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']], female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']] },
+      };
+      const table = rubrics[testType]?.[g];
+      if (!table) return 'fair';
+      if (['zipper_test','sprint_40m'].includes(testType)) {
+        for (const [threshold, rating] of table.slice().reverse()) {
+          if (v >= threshold) return rating;
+        }
+        return 'excellent';
+      }
+      for (const [threshold, rating] of table) {
+        if (v >= threshold) return rating;
+      }
+      return 'needs_improvement';
+    }
+
+    const rating = getRating(test_type, gender, parseFloat(reps_or_cm));
+
+    try {
+      await supabaseAdmin.from('fitness_tests').insert({
+        student_id:  uid,
+        test_type,
+        test_period,
+        reps_or_cm:  parseFloat(reps_or_cm),
+        rating,
+        recorded_by: uid,
+      });
+      res.redirect('/student/fitness-tests?success=Test recorded! Your rating: ' + rating.replace(/_/g, ' '));
+    } catch (err) {
+      res.redirect('/student/fitness-tests?error=' + encodeURIComponent(err.message));
     }
   });
 
@@ -164,7 +197,7 @@ module.exports = function(supabaseAdmin) {
         .from('fitness_tests').select('*').eq('student_id', uid).order('created_at');
 
       const grouped = {};
-      const testTypes = ['push_ups','sit_ups','sit_reach','step_test','shuttle_run'];
+      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m'];
       testTypes.forEach(t => { grouped[t] = { pre: null, post: null }; });
 
       (tests || []).forEach(t => {
