@@ -125,10 +125,11 @@
         <option value="zipper_test">Zipper Test</option>
         <option value="juggling">Juggling</option>
         <option value="sprint_40m">40 Meter Sprint</option>
+        <option value="step_test_3min">Cardiovascular Endurance (3-Min Step Test)</option>
       </select>
     </div>
 
-    <div class="counter-body">
+    <div class="counter-body" id="counterBody">
       <!-- Display -->
       <div class="counter-display">
         <div class="counter-number" id="counterNum">0</div>
@@ -168,6 +169,65 @@
         <div style="font-size:.75rem;color:#888;text-align:center;">Fills the score field below</div>
       </div>
     </div>
+
+    <!-- ── 3-Minute Step Test HR Panel (shown only for step_test_3min) ── -->
+    <div id="stepTestPanel" style="display:none;margin-top:18px;padding:18px;background:#f0f6ff;border-radius:10px;border:1.5px solid #90caf9;">
+      <div style="font-size:.8rem;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;">❤️ Heart Rate Measurement</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:5px;">HR Before Activity <span style="color:#e53935;">*</span></label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="hrBeforeInput" min="40" max="220" placeholder="e.g. 72"
+              style="width:100%;padding:9px 12px;border:1.5px solid #90caf9;border-radius:7px;font-size:1rem;font-weight:700;color:#042C53;background:#fff;"
+              oninput="updateStepTestPreview()">
+            <span style="font-size:.8rem;color:#666;white-space:nowrap;">bpm</span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:5px;">HR After Activity <span style="color:#e53935;">*</span></label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="hrAfterInput" min="40" max="220" placeholder="e.g. 120"
+              style="width:100%;padding:9px 12px;border:1.5px solid #90caf9;border-radius:7px;font-size:1rem;font-weight:700;color:#042C53;background:#fff;"
+              oninput="updateStepTestPreview()">
+            <span style="font-size:.8rem;color:#666;white-space:nowrap;">bpm</span>
+          </div>
+        </div>
+        <div>
+          <button onclick="useStepTestScore()" style="padding:10px 18px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+            ✓ Use These Values
+          </button>
+        </div>
+      </div>
+      <div id="stepTestPreview" style="margin-top:12px;display:none;padding:10px 14px;border-radius:8px;font-size:.85rem;font-weight:600;border:1.5px solid;"></div>
+      <!-- Rating table reference -->
+      <div style="margin-top:14px;">
+        <div style="font-size:.78rem;font-weight:700;color:#1565c0;margin-bottom:8px;">📊 Rating Reference (Age 18–25)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:.72rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Men (Post-Exercise HR)</div>
+            <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
+              <tr style="background:#e3f2fd;"><td style="padding:3px 8px;font-weight:700;color:#2e7d32;">Excellent</td><td style="padding:3px 8px;">≤ 76 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#1565c0;">Very Good</td><td style="padding:3px 8px;">77–93 bpm</td></tr>
+              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#e65100;">Good</td><td style="padding:3px 8px;">94–100 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#c62828;">Fair</td><td style="padding:3px 8px;">101–107 bpm</td></tr>
+              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#880e4f;">Needs Improvement</td><td style="padding:3px 8px;">108–157 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#4a148c;">Poor</td><td style="padding:3px 8px;">≥ 158 bpm</td></tr>
+            </table>
+          </div>
+          <div>
+            <div style="font-size:.72rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Women (Post-Exercise HR)</div>
+            <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
+              <tr style="background:#fce4ec;"><td style="padding:3px 8px;font-weight:700;color:#2e7d32;">Excellent</td><td style="padding:3px 8px;">≤ 81 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#1565c0;">Very Good</td><td style="padding:3px 8px;">82–102 bpm</td></tr>
+              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#e65100;">Good</td><td style="padding:3px 8px;">103–110 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#c62828;">Fair</td><td style="padding:3px 8px;">111–120 bpm</td></tr>
+              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#880e4f;">Needs Improvement</td><td style="padding:3px 8px;">121–169 bpm</td></tr>
+              <tr><td style="padding:3px 8px;font-weight:700;color:#4a148c;">Poor</td><td style="padding:3px 8px;">≥ 170 bpm</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="grid-2-asym">
@@ -186,13 +246,14 @@
       <form method="POST" action="/student/fitness-tests" id="testForm">
         <div class="form-group">
           <label>Test Type *</label>
-          <select name="test_type" id="testType" required onchange="previewRating()">
+          <select name="test_type" id="testType" required onchange="onTestTypeChange()">
             <option value="">— Select Test —</option>
             <option value="push_ups">Push-Ups (reps)</option>
             <option value="sit_reach">Sit & Reach (cm)</option>
             <option value="zipper_test">Zipper Test (bpm)</option>
             <option value="juggling">Juggling (reps)</option>
             <option value="sprint_40m">40 Meter Sprint (seconds)</option>
+            <option value="step_test_3min">Cardiovascular Endurance — 3-Min Step Test</option>
           </select>
         </div>
 
@@ -205,16 +266,29 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Your Score *</label>
+        <!-- Standard score field (hidden for step test) -->
+        <div class="form-group" id="scoreGroup">
+          <label id="scoreLabel">Your Score *</label>
           <input type="number" name="reps_or_cm" id="scoreInput"
                  step="0.01" min="0" placeholder="e.g. 25"
-                 required oninput="previewRating()">
-          <!-- Live rating preview -->
+                 oninput="previewRating()">
           <div class="rating-preview" id="ratingPreview"></div>
         </div>
 
-        <button type="submit" class="btn btn-full">Save My Test Result</button>
+        <!-- Step Test HR fields (shown only for step_test_3min) -->
+        <div id="stepFormFields" style="display:none;">
+          <div class="form-group">
+            <label>Heart Rate Before Activity * <span style="font-size:.78rem;color:#888;">(bpm)</span></label>
+            <input type="number" id="formHrBefore" name="hr_before" min="40" max="220" placeholder="e.g. 72" step="1">
+          </div>
+          <div class="form-group">
+            <label>Heart Rate After Activity * <span style="font-size:.78rem;color:#888;">(bpm — used for rating)</span></label>
+            <input type="number" id="formHrAfter" name="reps_or_cm_step" min="40" max="220" placeholder="e.g. 120" step="1" oninput="previewStepRating()">
+            <div class="rating-preview" id="stepRatingPreview"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-full" id="submitBtn" onclick="return prepareStepSubmit()">Save My Test Result</button>
       </form>
 
       <!-- Rubric reference -->
@@ -251,18 +325,30 @@
           </thead>
           <tbody>
             <% const labels = {
-                 push_ups:    'Push-Ups',
-                 sit_reach:   'Sit & Reach (cm)',
-                 zipper_test: 'Zipper Test (bpm)',
-                 juggling:    'Juggling',
-                 sprint_40m:  '40 Meter Sprint (sec)'
+                 push_ups:       'Push-Ups',
+                 sit_reach:      'Sit & Reach (cm)',
+                 zipper_test:    'Zipper Test (bpm)',
+                 juggling:       'Juggling',
+                 sprint_40m:     '40 Meter Sprint (sec)',
+                 step_test_3min: 'Cardio Endurance — 3-Min Step Test'
                }; %>
             <% tests.forEach((t, i) => { %>
             <tr>
               <td style="color:#999;font-size:.8rem;"><%= i+1 %></td>
               <td><strong><%= labels[t.test_type]||t.test_type %></strong></td>
               <td><span class="badge badge-<%= t.test_period %>"><%= t.test_period.charAt(0).toUpperCase()+t.test_period.slice(1) %></span></td>
-              <td><%= t.reps_or_cm %></td>
+              <td>
+                <% if (t.test_type === 'step_test_3min') { %>
+                  <% if (t.hr_before) { %>
+                    <span style="font-size:.78rem;color:#666;">Before:</span> <strong><%= t.hr_before %></strong> bpm<br>
+                    <span style="font-size:.78rem;color:#666;">After:</span> <strong><%= t.reps_or_cm %></strong> bpm
+                  <% } else { %>
+                    <strong><%= t.reps_or_cm %></strong> bpm (after)
+                  <% } %>
+                <% } else { %>
+                  <%= t.reps_or_cm %>
+                <% } %>
+              </td>
               <td>
                 <% if(t.rating){ %>
                   <span class="badge badge-<%= t.rating %>"><%= t.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span>
@@ -300,8 +386,10 @@ const STUDENT_GENDER = '<%= gender %>';
 /* ── Rubric data (mirrors server-side getRating) ── */
 const RUBRICS = {
   push_ups: {
-    male:   [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']],
-    female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']],
+    // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
+    // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
+    male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement'],[0,'needs_improvement']],
+    female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement'],[0,'needs_improvement']],
   },
   sit_reach: {
     male:   [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],
@@ -324,14 +412,14 @@ const RUBRICS = {
 };
 
 const RUBRIC_LABELS = {
-  push_ups:    { unit:'reps', male:  ['≥ 36','29–35','22–28','< 22'],   female: ['≥ 20','15–19','10–14','< 10'] },
+  push_ups:    { unit:'reps', male:  ['≥ 30','20–29','10–19','5–9','1–4','0'],   female: ['≥ 20','15–19','10–14','5–9','1–4','0'] },
   sit_reach:   { unit:'cm',   male:  ['≥ 27','17–26','6–16','< 6'],     female: ['≥ 30','21–29','11–20','< 11'] },
   zipper_test: { unit:'bpm',  male:  ['< 80','80–89','90–99','≥ 100'],  female: ['< 85','85–94','95–104','≥ 105'] },
   juggling:    { unit:'reps', male:  ['≥ 36','29–35','22–28','< 22'],   female: ['≥ 20','15–19','10–14','< 10'] },
   sprint_40m:  { unit:'sec',  male:  ['< 6','6–6.9','7–7.9','≥ 8'],    female: ['< 7','7–7.9','8–8.9','≥ 9'] },
 };
 
-const RATING_NAMES  = ['Excellent','Good','Fair','Needs Improvement'];
+const RATING_NAMES  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
 const RATING_KEYS   = ['excellent','good','fair','needs_improvement'];
 const RATING_COLORS_CSS = {
   excellent:         'rating-excellent',
@@ -339,6 +427,38 @@ const RATING_COLORS_CSS = {
   fair:              'rating-fair',
   needs_improvement: 'rating-needs_improvement',
 };
+
+function updateRubricRef(testType) {
+  const el = document.getElementById('rubricRef');
+  if (testType === 'push_ups') {
+    const g = STUDENT_GENDER || 'male';
+    const arr = RUBRIC_LABELS.push_ups[g];
+    const names  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
+    const colors = ['#2e7d32','#1565c0','#388e3c','#e65100','#c62828','#4a148c'];
+    el.innerHTML = names.map((name, i) =>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
+         <span style="color:${colors[i]};font-weight:600;">${name}</span>
+         <span>${arr[i]} reps</span>
+       </div>`
+    ).join('');
+    return;
+  }
+  if (!testType || !RUBRIC_LABELS[testType]) {
+    el.innerHTML = 'Select a test type above to see the rating guide.';
+    return;
+  }
+  const r   = RUBRIC_LABELS[testType];
+  const g   = STUDENT_GENDER || 'male';
+  const arr = r[g] || r['male'];
+  const stdNames  = ['Excellent','Good','Fair','Needs Improvement'];
+  const colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
+  el.innerHTML = stdNames.map((name, i) =>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
+       <span style="color:${colors[i]};font-weight:600;">${name}</span>
+       <span>${arr[i]} ${r.unit}</span>
+     </div>`
+  ).join('');
+}
 
 function getRating(testType, gender, value) {
   const v = parseFloat(value);
@@ -370,13 +490,26 @@ function previewRating() {
   const rating = getRating(testType, STUDENT_GENDER, score);
   if (!rating) { preview.className = 'rating-preview'; return; }
 
-  const labels = { excellent:'Excellent ⭐', good:'Good 👍', fair:'Fair 📊', needs_improvement:'Needs Improvement 💪' };
-  preview.textContent = 'Estimated Rating: ' + labels[rating];
+  const ratingLabels = { excellent:'Excellent ⭐', good:'Good 👍', fair:'Fair 📊', needs_improvement:'Needs Improvement 💪' };
+  preview.textContent = 'Estimated Rating: ' + (ratingLabels[rating] || rating);
   preview.className   = 'rating-preview show ' + RATING_COLORS_CSS[rating];
 }
 
 function updateRubricRef(testType) {
   const el = document.getElementById('rubricRef');
+  if (testType === 'push_ups') {
+    const g = STUDENT_GENDER || 'male';
+    const arr = RUBRIC_LABELS.push_ups[g];
+    const names  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
+    const colors = ['#2e7d32','#1565c0','#388e3c','#e65100','#c62828','#4a148c'];
+    el.innerHTML = names.map((name, i) =>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
+         <span style="color:${colors[i]};font-weight:600;">${name}</span>
+         <span>${arr[i]} reps</span>
+       </div>`
+    ).join('');
+    return;
+  }
   if (!testType || !RUBRIC_LABELS[testType]) {
     el.innerHTML = 'Select a test type above to see the rating guide.';
     return;
@@ -384,8 +517,9 @@ function updateRubricRef(testType) {
   const r   = RUBRIC_LABELS[testType];
   const g   = STUDENT_GENDER || 'male';
   const arr = r[g] || r['male'];
+  const stdNames  = ['Excellent','Good','Fair','Needs Improvement'];
   const colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
-  el.innerHTML = RATING_NAMES.map((name, i) =>
+  el.innerHTML = stdNames.map((name, i) =>
     `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
        <span style="color:${colors[i]};font-weight:600;">${name}</span>
        <span>${arr[i]} ${r.unit}</span>
@@ -400,26 +534,46 @@ let counterRunning = false;
 let counterInterval = null;
 
 const COUNTER_TYPES = {
-  push_ups:    { label: 'Push-Ups',         unit: 'reps',    tapMode: true  },
-  sit_reach:   { label: 'Sit & Reach',      unit: 'cm',      tapMode: false },
-  zipper_test: { label: 'Zipper Test',      unit: 'seconds', tapMode: false },
-  juggling:    { label: 'Juggling',         unit: 'reps',    tapMode: true  },
-  sprint_40m:  { label: '40 Meter Sprint',  unit: 'seconds', tapMode: false },
+  push_ups:       { label: 'Push-Ups',                           unit: 'reps',    tapMode: true,  manualOnly: true },
+  sit_reach:      { label: 'Sit & Reach',                        unit: 'cm',      tapMode: false },
+  zipper_test:    { label: 'Zipper Test',                        unit: 'seconds', tapMode: false },
+  juggling:       { label: 'Juggling',                           unit: 'reps',    tapMode: true  },
+  sprint_40m:     { label: '40 Meter Sprint',                    unit: 'seconds', tapMode: false },
+  step_test_3min: { label: 'Cardio Endurance — 3-Min Step Test', unit: 'bpm',     tapMode: false, isStepTest: true },
 };
 
 function updateCounterType() {
   const type = document.getElementById('counterExType').value;
-  const cfg  = COUNTER_TYPES[type];
+  const cfg  = COUNTER_TYPES[type] || COUNTER_TYPES['push_ups'];
   document.getElementById('counterTypeLabel').textContent = cfg.label;
   document.getElementById('counterUnitLabel').textContent = cfg.unit;
-  const tapBtn = document.getElementById('tapBtn');
-  if (cfg.tapMode) {
-    tapBtn.style.display = 'flex';
-    tapBtn.textContent   = '👊 Tap to Count Rep';
-    document.getElementById('counterHint').textContent = 'Press Start, then tap each rep.';
+  const tapBtn    = document.getElementById('tapBtn');
+  const stepPanel = document.getElementById('stepTestPanel');
+  const counterBody = document.getElementById('counterBody');
+
+  if (cfg.manualOnly) {
+    // Push-Ups: hide the entire counter body — manual form entry only
+    counterBody.style.display = 'none';
+    stepPanel.style.display   = 'none';
+    document.getElementById('counterHint').textContent = 'Enter your Push-Up count directly in the form below.';
+    document.getElementById('counterHint').style.display = 'block';
+  } else if (cfg.isStepTest) {
+    counterBody.style.display = '';
+    tapBtn.style.display      = 'none';
+    stepPanel.style.display   = '';
+    document.getElementById('counterHint').textContent = 'Enter your heart rate before and after the 3-minute step test.';
+    document.getElementById('counterNum').textContent  = '—';
+    document.getElementById('counterTimer').textContent = '03:00';
   } else {
-    tapBtn.style.display = 'none';
-    document.getElementById('counterHint').textContent = 'Press Start to begin timing. Press Pause when done.';
+    counterBody.style.display = '';
+    stepPanel.style.display   = 'none';
+    if (cfg.tapMode) {
+      tapBtn.style.display = 'flex';
+      document.getElementById('counterHint').textContent = 'Press Start, then tap each rep.';
+    } else {
+      tapBtn.style.display = 'none';
+      document.getElementById('counterHint').textContent = 'Press Start to begin timing. Press Pause when done.';
+    }
   }
   resetCounter();
 }
@@ -511,12 +665,111 @@ function useCounterScore() {
 // Init on load
 document.addEventListener('DOMContentLoaded', updateCounterType);
 
+/* ── Step Test (3-Min) specific functions ── */
+function getStepRating(gender, hrAfter) {
+  const v = parseFloat(hrAfter);
+  if (isNaN(v)) return null;
+  if (gender === 'female') {
+    if (v <= 81)  return { key:'excellent',        label:'Excellent ⭐',         css:'rating-excellent' };
+    if (v <= 102) return { key:'good',             label:'Very Good 👍',         css:'rating-good' };
+    if (v <= 110) return { key:'fair',             label:'Good 📊',              css:'rating-fair' };
+    if (v <= 120) return { key:'needs_improvement',label:'Fair 💪',              css:'rating-needs_improvement' };
+    return                { key:'needs_improvement',label:'Needs Improvement ⚠️', css:'rating-needs_improvement' };
+  } else {
+    if (v <= 76)  return { key:'excellent',        label:'Excellent ⭐',         css:'rating-excellent' };
+    if (v <= 93)  return { key:'good',             label:'Very Good 👍',         css:'rating-good' };
+    if (v <= 100) return { key:'fair',             label:'Good 📊',              css:'rating-fair' };
+    if (v <= 107) return { key:'needs_improvement',label:'Fair 💪',              css:'rating-needs_improvement' };
+    return                { key:'needs_improvement',label:'Needs Improvement ⚠️', css:'rating-needs_improvement' };
+  }
+}
+
+function updateStepTestPreview() {
+  const hrAfter  = document.getElementById('hrAfterInput').value;
+  const preview  = document.getElementById('stepTestPreview');
+  if (!hrAfter) { preview.style.display = 'none'; return; }
+  const result = getStepRating(STUDENT_GENDER, hrAfter);
+  if (!result) { preview.style.display = 'none'; return; }
+  preview.textContent = 'Estimated Rating: ' + result.label;
+  preview.className   = result.css;
+  preview.style.display = 'block';
+}
+
+function previewStepRating() {
+  const hrAfter  = document.getElementById('formHrAfter').value;
+  const preview  = document.getElementById('stepRatingPreview');
+  if (!hrAfter) { preview.className = 'rating-preview'; return; }
+  const result = getStepRating(STUDENT_GENDER, hrAfter);
+  if (!result) { preview.className = 'rating-preview'; return; }
+  preview.textContent = 'Estimated Rating: ' + result.label;
+  preview.className   = 'rating-preview show ' + result.css;
+}
+
+function useStepTestScore() {
+  const hrBefore = document.getElementById('hrBeforeInput').value;
+  const hrAfter  = document.getElementById('hrAfterInput').value;
+  if (!hrBefore || !hrAfter) { alert('Please enter both HR Before and HR After values.'); return; }
+  // Sync to form
+  const testTypeSelect = document.getElementById('testType');
+  testTypeSelect.value = 'step_test_3min';
+  testTypeSelect.dispatchEvent(new Event('change'));
+  document.getElementById('formHrBefore').value = hrBefore;
+  document.getElementById('formHrAfter').value  = hrAfter;
+  previewStepRating();
+  document.getElementById('testForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function onTestTypeChange() {
+  const type = document.getElementById('testType').value;
+  const isStep = type === 'step_test_3min';
+  // Toggle standard score vs step test fields
+  document.getElementById('scoreGroup').style.display     = isStep ? 'none' : '';
+  document.getElementById('stepFormFields').style.display = isStep ? '' : 'none';
+  // Toggle required attributes
+  const scoreInput = document.getElementById('scoreInput');
+  scoreInput.required = !isStep;
+  if (isStep) scoreInput.value = '';
+  // Update rubric ref
+  if (!isStep) {
+    previewRating();
+  } else {
+    document.getElementById('rubricRef').innerHTML =
+      'See the Heart Rate rating table in the Exercise Counter above.';
+    document.getElementById('ratingPreview').className = 'rating-preview';
+  }
+  // Sync counter widget
+  const counterSelect = document.getElementById('counterExType');
+  if (counterSelect.value !== type) {
+    counterSelect.value = type;
+    updateCounterType();
+  }
+  // Show/hide step test panel in counter
+  document.getElementById('stepTestPanel').style.display = isStep ? '' : 'none';
+}
+
+function prepareStepSubmit() {
+  const type = document.getElementById('testType').value;
+  if (type !== 'step_test_3min') return true; // normal submit
+  const hrBefore = document.getElementById('formHrBefore').value;
+  const hrAfter  = document.getElementById('formHrAfter').value;
+  if (!hrBefore || !hrAfter) {
+    alert('Please enter both Heart Rate Before and Heart Rate After values.');
+    return false;
+  }
+  // Copy hrAfter into the reps_or_cm field (that's what the server reads for rating)
+  document.getElementById('scoreInput').value = hrAfter;
+  document.getElementById('scoreInput').removeAttribute('required');
+  return true;
+}
+
 /* ── PDF generation (same as before) ── */
 const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
   num:    i + 1,
-  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (bpm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)' }[t.test_type] || t.test_type,
+  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (bpm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)', step_test_3min:'Cardio Endurance — 3-Min Step Test' }[t.test_type] || t.test_type,
   period: t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1),
-  score:  String(t.reps_or_cm),
+  score:  t.test_type === 'step_test_3min'
+    ? (t.hr_before ? 'Before: ' + t.hr_before + ' / After: ' + t.reps_or_cm + ' bpm' : 'After: ' + t.reps_or_cm + ' bpm')
+    : String(t.reps_or_cm),
   rating: t.rating ? t.rating.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) : '—',
   date:   new Date(t.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
   ratingKey: t.rating || '',

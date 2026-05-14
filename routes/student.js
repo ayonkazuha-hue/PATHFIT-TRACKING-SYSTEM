@@ -64,7 +64,7 @@ module.exports = function(supabaseAdmin) {
   router.post('/fitness-tests', async (req, res) => {
     const uid    = req.session.user.user_id;
     const gender = req.session.user.gender || '';
-    const { test_type, test_period, reps_or_cm } = req.body;
+    const { test_type, test_period, reps_or_cm, hr_before } = req.body;
 
     if (!test_type || !test_period || !reps_or_cm) {
       return res.redirect('/student/fitness-tests?error=Please fill in all fields.');
@@ -74,12 +74,33 @@ module.exports = function(supabaseAdmin) {
     function getRating(testType, g, value) {
       const v = parseFloat(value);
       const rubrics = {
-        push_ups:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
+        push_ups:    {
+          // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
+          // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
+          male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
+          female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
+        },
         sit_reach:   { male: [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],  female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']] },
         zipper_test: { male: [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']], female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']] },
         juggling:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
         sprint_40m:  { male: [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']], female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']] },
       };
+      // 3-Minute Step Test: rated by post-exercise HR (lower = better), age 18-25 bracket
+      if (testType === 'step_test_3min') {
+        if (g === 'female') {
+          if (v <= 81)  return 'excellent';
+          if (v <= 102) return 'good';
+          if (v <= 110) return 'fair';
+          if (v <= 120) return 'needs_improvement';
+          return 'poor';
+        } else {
+          if (v <= 76)  return 'excellent';
+          if (v <= 93)  return 'good';
+          if (v <= 100) return 'fair';
+          if (v <= 107) return 'needs_improvement';
+          return 'poor';
+        }
+      }
       const table = rubrics[testType]?.[g];
       if (!table) return 'fair';
       if (['zipper_test','sprint_40m'].includes(testType)) {
@@ -97,14 +118,19 @@ module.exports = function(supabaseAdmin) {
     const rating = getRating(test_type, gender, parseFloat(reps_or_cm));
 
     try {
-      await supabaseAdmin.from('fitness_tests').insert({
+      const insertData = {
         student_id:  uid,
         test_type,
         test_period,
         reps_or_cm:  parseFloat(reps_or_cm),
         rating,
         recorded_by: uid,
-      });
+      };
+      // Store pre-exercise HR if provided (step test)
+      if (hr_before && !isNaN(parseFloat(hr_before))) {
+        insertData.hr_before = parseFloat(hr_before);
+      }
+      await supabaseAdmin.from('fitness_tests').insert(insertData);
       res.redirect('/student/fitness-tests?success=Test recorded! Your rating: ' + rating.replace(/_/g, ' '));
     } catch (err) {
       res.redirect('/student/fitness-tests?error=' + encodeURIComponent(err.message));
@@ -197,7 +223,7 @@ module.exports = function(supabaseAdmin) {
         .from('fitness_tests').select('*').eq('student_id', uid).order('created_at');
 
       const grouped = {};
-      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m'];
+      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','step_test_3min'];
       testTypes.forEach(t => { grouped[t] = { pre: null, post: null }; });
 
       (tests || []).forEach(t => {

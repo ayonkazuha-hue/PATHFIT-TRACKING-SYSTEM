@@ -115,7 +115,7 @@
     <div class="table-wrap">
       <table id="studentTable">
         <thead>
-          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>PATHFit</th><th>Actions</th></tr>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>PATHFit</th><th></th></tr>
         </thead>
         <tbody>
           <% students.forEach(s => { %>
@@ -129,9 +129,20 @@
             <td><span class="badge badge-<%= s.gender %>"><%= (s.gender||'').charAt(0).toUpperCase()+(s.gender||'').slice(1) %></span></td>
             <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
             <td class="action-links">
-              <a href="/instructor/fitness-tests?student_id=<%= s.user_id %>">Tests</a>
-              <a href="/instructor/attendance?student_id=<%= s.user_id %>">Attendance</a>
-              <a href="/instructor/report?student_id=<%= s.user_id %>">Report</a>
+              <button type="button"
+                class="edit-student-btn"
+                data-user-id="<%= s.user_id %>"
+                data-name="<%= (s.name||'').replace(/"/g,'&quot;') %>"
+                data-student-id="<%= s.student_id||'' %>"
+                data-email="<%= s.email||'' %>"
+                data-gender="<%= s.gender||'' %>"
+                data-course="<%= s.course||'' %>"
+                data-section="<%= s.section||'' %>"
+                data-year-level="<%= s.year_level||'' %>"
+                data-pathfit-level="<%= s.pathfit_level||'' %>"
+                style="padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.82rem;font-weight:700;cursor:pointer;">
+                ✏️ Edit
+              </button>
             </td>
           </tr>
           <% }) %>
@@ -205,6 +216,165 @@ function exportToExcel() {
 
   XLSX.writeFile(wb, 'StudentList_' + now + (suffix ? '_' + suffix : '') + '.xlsx');
 }
+</script>
+
+<!-- ── Edit Student Modal ── -->
+<div id="editStudentModal" style="
+  display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+  width:100vw; height:100vh; background:rgba(4,44,83,.65);
+  backdrop-filter:blur(4px); z-index:99999; overflow-y:auto; padding:24px 16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;margin:0 auto;box-shadow:0 24px 64px rgba(4,44,83,.35);">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:22px 24px 16px;border-bottom:1px solid #e8ecf0;">
+      <div>
+        <div style="font-size:1.08rem;font-weight:700;color:#042C53;">✏️ Edit Student Information</div>
+        <div style="font-size:.8rem;color:#888;margin-top:3px;">Update personal and academic details for this student.</div>
+      </div>
+      <button id="editModalCloseBtn" type="button" style="background:none;border:none;font-size:1.6rem;color:#aaa;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" action="/instructor/edit-student">
+      <input type="hidden" name="user_id" id="editUserId">
+
+      <div style="padding:20px 24px;">
+
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#185FA5;font-weight:700;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8ecf0;">
+          Personal Information
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+          <div style="grid-column:1/-1;">
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Full Name *</label>
+            <input type="text" name="name" id="editName" required
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Student ID</label>
+            <input type="text" name="student_id" id="editStudentId"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Email *</label>
+            <input type="email" name="email" id="editEmail" required
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Gender</label>
+            <select name="gender" id="editGender"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#185FA5;font-weight:700;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8ecf0;">
+          Academic Information
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Institute / Course</label>
+            <select name="course" id="editCourse"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+              <option value="">— Select —</option>
+              <option value="IBM">IBM</option>
+              <option value="ICS">ICS</option>
+              <option value="ITE">ITE</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section</label>
+            <select name="section" id="editSection"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+              <option value="">— Select —</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Year Level</label>
+            <select name="year_level" id="editYearLevel"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+              <option value="">— Select —</option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">PATHFit Level</label>
+            <select name="pathfit_level" id="editPathfitLevel"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+              <option value="">— Select —</option>
+              <option value="1">PATHFit 1</option>
+              <option value="2">PATHFit 2</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="display:flex;gap:10px;padding:16px 24px 20px;border-top:1px solid #e8ecf0;">
+        <button type="submit" style="flex:1;padding:10px 20px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:.92rem;font-weight:700;cursor:pointer;">
+          💾 Save Changes
+        </button>
+        <button type="button" id="editModalCancelBtn" style="padding:10px 20px;background:transparent;border:2px solid #cdd5e0;color:#555;border-radius:7px;font-size:.92rem;font-weight:700;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal = document.getElementById('editStudentModal');
+
+  function openEditModal(btn) {
+    document.getElementById('editUserId').value       = btn.dataset.userId;
+    document.getElementById('editName').value         = btn.dataset.name;
+    document.getElementById('editStudentId').value    = btn.dataset.studentId;
+    document.getElementById('editEmail').value        = btn.dataset.email;
+    document.getElementById('editGender').value       = btn.dataset.gender;
+    document.getElementById('editCourse').value       = btn.dataset.course;
+    document.getElementById('editSection').value      = btn.dataset.section;
+    document.getElementById('editYearLevel').value    = btn.dataset.yearLevel;
+    document.getElementById('editPathfitLevel').value = btn.dataset.pathfitLevel;
+    modal.scrollTop = 0;
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditModal() {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // Wire up all Edit buttons
+  document.querySelectorAll('.edit-student-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { openEditModal(btn); });
+  });
+
+  // Close buttons
+  document.getElementById('editModalCloseBtn').addEventListener('click', closeEditModal);
+  document.getElementById('editModalCancelBtn').addEventListener('click', closeEditModal);
+
+  // Close on backdrop click
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeEditModal();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+  });
+})();
 </script>
 
 <%- include('../partials/footer') %>
