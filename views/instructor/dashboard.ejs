@@ -128,7 +128,7 @@
             <td><%= s.year_level ? s.year_level + (s.year_level==1?'st':s.year_level==2?'nd':s.year_level==3?'rd':'th') + ' Year' : '—' %></td>
             <td><span class="badge badge-<%= s.gender %>"><%= (s.gender||'').charAt(0).toUpperCase()+(s.gender||'').slice(1) %></span></td>
             <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
-            <td class="action-links">
+            <td>
               <button type="button"
                 class="edit-student-btn"
                 data-user-id="<%= s.user_id %>"

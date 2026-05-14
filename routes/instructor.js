@@ -54,6 +54,16 @@ module.exports = function(supabaseAdmin) {
     return data || [];
   }
 
+  // Helper: fetch unread fitness test notifications for the nav bell
+  async function getFitnessTestNotifications() {
+    const { data } = await supabaseAdmin
+      .from('fitness_test_notifications')
+      .select('*, users(name, student_id, section, course)')
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
+    return data || [];
+  }
+
   // Helper: fetch pending password reset requests for the nav bell
   async function getPendingPasswordResets() {
     const { data } = await supabaseAdmin
@@ -76,21 +86,20 @@ module.exports = function(supabaseAdmin) {
       if (year_level)    query = query.eq('year_level', parseInt(year_level));
       if (search)        query = query.ilike('name', `%${search}%`);
 
-      const [studentsRes, sectionsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
+      const [studentsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
         query,
-        supabaseAdmin.from('users').select('section').eq('role', 'student').eq('status', 'approved'),
         supabaseAdmin.from('health_screening').select('screen_id').eq('cleared', false),
         supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
       const students = studentsRes.data || [];
-      const sections = [...new Set((sectionsRes.data || []).map(s => s.section).filter(Boolean))].sort();
       const pendingScreenings = (pendingRes.data || []).length;
       const pendingRegistrations = pendingRegistrationsRes.data || [];
       const pendingPasswordResets = await getPendingPasswordResets();
+      const fitnessTestNotifications = await getFitnessTestNotifications();
 
       res.render('instructor/dashboard', {
-        students, sections, pendingScreenings, pendingRegistrations, pendingPasswordResets,
+        students, pendingScreenings, pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
         filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
@@ -190,9 +199,10 @@ module.exports = function(supabaseAdmin) {
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
+      const fitnessTestNotifications = await getFitnessTestNotifications();
       res.render('instructor/fitness_tests', {
         students: students2, tests, selectedStudentId, selectedStudent,
-        pendingRegistrations, pendingPasswordResets,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -248,11 +258,12 @@ module.exports = function(supabaseAdmin) {
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
+      const fitnessTestNotifications = await getFitnessTestNotifications();
       res.render('instructor/attendance', {
         students: students || [], attByStudent, sections,
         filters: { section, student_id },
         attendance: attendance || [],
-        pendingRegistrations, pendingPasswordResets,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -284,9 +295,10 @@ module.exports = function(supabaseAdmin) {
         .from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number');
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
+      const fitnessTestNotifications = await getFitnessTestNotifications();
       res.render('instructor/lesson_plans', {
         plans: plans || [], level,
-        pendingRegistrations, pendingPasswordResets,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -342,10 +354,11 @@ module.exports = function(supabaseAdmin) {
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
+      const fitnessTestNotifications = await getFitnessTestNotifications();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, dist, totalTests: tests.length,
-        pendingRegistrations, pendingPasswordResets,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -362,7 +375,8 @@ module.exports = function(supabaseAdmin) {
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
-      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations, pendingPasswordResets });
+      const fitnessTestNotifications = await getFitnessTestNotifications();
+      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations, pendingPasswordResets, fitnessTestNotifications });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
@@ -432,6 +446,49 @@ module.exports = function(supabaseAdmin) {
       console.error(err);
       return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
     }
+  });
+
+  // GET /instructor/view-test-notification/:notif_id
+  // Marks the notification as read and redirects to that student's report
+  router.get('/view-test-notification/:notif_id', async (req, res) => {
+    const { notif_id } = req.params;
+    try {
+      // Fetch the notification to get the student_id
+      const { data: notif } = await supabaseAdmin
+        .from('fitness_test_notifications')
+        .select('student_id')
+        .eq('notif_id', notif_id)
+        .single();
+
+      // Mark as read
+      await supabaseAdmin
+        .from('fitness_test_notifications')
+        .update({ is_read: true })
+        .eq('notif_id', notif_id);
+
+      // Redirect to the student's report
+      if (notif?.student_id) {
+        return res.redirect(`/instructor/report?student_id=${notif.student_id}`);
+      }
+      res.redirect('/instructor/report');
+    } catch (err) {
+      console.error('[view-test-notification]', err);
+      res.redirect('/instructor/report');
+    }
+  });
+
+  // POST /instructor/dismiss-test-notification
+  router.post('/dismiss-test-notification', async (req, res) => {
+    const { notif_id } = req.body;
+    if (notif_id) {
+      await supabaseAdmin
+        .from('fitness_test_notifications')
+        .update({ is_read: true })
+        .eq('notif_id', notif_id);
+    }
+    // Redirect back to wherever the instructor was
+    const ref = req.get('Referer') || '/instructor/dashboard';
+    res.redirect(ref);
   });
 
   return router;

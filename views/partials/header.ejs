@@ -26,8 +26,9 @@
       <!-- Notification Bell -->
       <% if (typeof pendingRegistrations !== 'undefined') { %>
       <%
-        const _resets = (typeof pendingPasswordResets !== 'undefined') ? pendingPasswordResets : [];
-        const _totalNotif = pendingRegistrations.length + _resets.length;
+        const _resets   = (typeof pendingPasswordResets      !== 'undefined') ? pendingPasswordResets      : [];
+        const _ftNotifs = (typeof fitnessTestNotifications   !== 'undefined') ? fitnessTestNotifications   : [];
+        const _totalNotif = pendingRegistrations.length + _resets.length + _ftNotifs.length;
       %>
       <div class="notif-wrap">
         <button class="notif-btn" id="notifBtn" aria-label="Notifications">
@@ -49,6 +50,43 @@
 
           <% if (_totalNotif === 0) { %>
             <div class="notif-empty">No new notifications</div>
+          <% } %>
+
+          <!-- Fitness Test Results -->
+          <% if (_ftNotifs.length > 0) { %>
+            <%
+              const _testLabels = {
+                push_ups:'Push-Ups', sit_reach:'Sit & Reach', zipper_test:'Zipper Test',
+                juggling:'Juggling', sprint_40m:'40m Sprint', step_test_3min:'3-Min Step Test'
+              };
+            %>
+            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
+              📊 New Test Results
+            </div>
+            <% _ftNotifs.forEach(function(n) { %>
+            <div style="display:flex;align-items:flex-start;border-bottom:1px solid #f0f4f8;">
+              <!-- Clickable area → goes to student report and marks as read -->
+              <a href="/instructor/view-test-notification/<%= n.notif_id %>"
+                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 10px 12px 16px;flex:1;text-decoration:none;color:inherit;transition:background .15s;"
+                 onmouseover="this.style.background='#f5f8fc'" onmouseout="this.style.background=''">
+                <div class="notif-icon">📊</div>
+                <div class="notif-body">
+                  <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
+                  <div class="notif-meta">
+                    <%= _testLabels[n.test_type] || n.test_type %> ·
+                    <%= n.test_period === 'pre' ? 'Pre-Test' : 'Post-Test' %>
+                    <% if (n.rating) { %> · <strong><%= n.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></strong><% } %>
+                  </div>
+                  <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+                </div>
+              </a>
+              <!-- Dismiss button -->
+              <form method="POST" action="/instructor/dismiss-test-notification" style="margin:0;padding:10px 12px 0 0;flex-shrink:0;">
+                <input type="hidden" name="notif_id" value="<%= n.notif_id %>">
+                <button type="submit" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:2px 4px;line-height:1;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+              </form>
+            </div>
+            <% }) %>
           <% } %>
 
           <!-- Registration requests -->

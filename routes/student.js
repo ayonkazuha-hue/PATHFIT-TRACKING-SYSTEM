@@ -130,7 +130,32 @@ module.exports = function(supabaseAdmin) {
       if (hr_before && !isNaN(parseFloat(hr_before))) {
         insertData.hr_before = parseFloat(hr_before);
       }
-      await supabaseAdmin.from('fitness_tests').insert(insertData);
+      // Insert the fitness test and get back the new row's ID
+      const { data: insertedTest, error: insertErr } = await supabaseAdmin
+        .from('fitness_tests')
+        .insert(insertData)
+        .select('test_id')
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      // Notify instructor — insert notification row
+      const { error: notifErr } = await supabaseAdmin
+        .from('fitness_test_notifications')
+        .insert({
+          student_id:  uid,
+          test_id:     insertedTest?.test_id || null,
+          test_type,
+          test_period,
+          rating,
+          is_read:     false,
+        });
+
+      if (notifErr) {
+        // Log but don't block the student — table may not exist yet
+        console.error('[fitness-test notification]', notifErr.message);
+      }
+
       res.redirect('/student/fitness-tests?success=Test recorded! Your rating: ' + rating.replace(/_/g, ' '));
     } catch (err) {
       res.redirect('/student/fitness-tests?error=' + encodeURIComponent(err.message));
