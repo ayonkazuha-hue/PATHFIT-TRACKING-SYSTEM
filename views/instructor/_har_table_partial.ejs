@@ -1,0 +1,49 @@
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Student Name</th>
+        <th>Student ID</th>
+        <th>Section</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Submitted</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(function(s) { %>
+      <tr>
+        <td><strong><%= (s.users && s.users.name) ? s.users.name : (s.name || '—') %></strong></td>
+        <td><%= (s.users && s.users.student_id) ? s.users.student_id : '—' %></td>
+        <td><%= (s.users && s.users.section) ? s.users.section : '—' %></td>
+        <td><%= s.age || '—' %></td>
+        <td><%= s.gender || '—' %></td>
+        <td><%= new Date(s.submitted_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></td>
+        <td>
+          <span class="badge" style="background:<%= s.cleared ? '#2e7d32' : '#f57f17' %>; color:#fff; padding:4px 10px; border-radius:12px; font-size:.78rem; font-weight:700;">
+            <%= s.cleared ? '✔ Cleared' : '⏳ Pending' %>
+          </span>
+        </td>
+        <td style="white-space:nowrap;">
+          <button type="button" class="btn btn-sm"
+            onclick="viewRecord('<%= s.record_id %>')"
+            style="margin-right:6px; background:#185FA5; color:#fff; border:none; padding:5px 12px; border-radius:5px; font-size:.82rem; cursor:pointer;">
+            👁️ View
+          </button>
+          <form method="POST" action="/instructor/health-appraisal/clear" style="display:inline;">
+            <input type="hidden" name="record_id" value="<%= s.record_id %>">
+            <input type="hidden" name="cleared"   value="<%= !s.cleared %>">
+            <button type="submit"
+              style="padding:5px 12px; border:none; border-radius:5px; font-size:.82rem; cursor:pointer; font-weight:700;
+                     background:<%= s.cleared ? '#e53935' : '#2e7d32' %>; color:#fff;">
+              <%= s.cleared ? 'Revoke' : '✔ Clear' %>
+            </button>
+          </form>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>

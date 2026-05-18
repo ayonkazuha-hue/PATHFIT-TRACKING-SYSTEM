@@ -1,12 +1,7 @@
--- ============================================================
--- Health Appraisal Record (PAR-Q) Migration
--- Replaces the simple health_screening table with comprehensive PAR-Q form
--- ============================================================
 
--- Drop the old health_screening table if it exists
 DROP TABLE IF EXISTS health_screening CASCADE;
 
--- Create the new health_appraisal_record table
+
 CREATE TABLE health_appraisal_record (
   record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,

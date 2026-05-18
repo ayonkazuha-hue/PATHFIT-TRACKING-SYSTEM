@@ -1,20 +1,12 @@
--- ============================================================
--- PATHFIT — Fix Roles After Registration
--- Run this in Supabase SQL Editor
--- ============================================================
 
--- STEP 1: Set instructor role for admin account
 UPDATE public.users
 SET role = 'instructor'
 WHERE email = 'gpquiblat@nbsc.edu.ph';
 
--- STEP 2: Make sure student role is correct
 UPDATE public.users
 SET role = 'student'
 WHERE email != 'gpquiblat@nbsc.edu.ph';
 
--- STEP 3: Add health screening for all students
--- (so they skip the health screening gate)
 INSERT INTO public.health_screening (
   student_id,
   injury_history,
@@ -31,7 +23,6 @@ WHERE role = 'student'
 ON CONFLICT (student_id) DO UPDATE
   SET cleared = TRUE;
 
--- STEP 4: Verify — check all accounts and their roles
 SELECT
   name,
   email,

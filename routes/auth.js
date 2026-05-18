@@ -280,6 +280,29 @@ module.exports = function(supabase, supabaseAdmin) {
         return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
       }
 
+      // Get the inserted record ID
+      const { data: insertedRecord } = await supabaseAdmin
+        .from('health_appraisal_record')
+        .select('record_id')
+        .eq('student_id', req.session.user.user_id)
+        .single();
+
+      // Create notification for instructor
+      if (insertedRecord?.record_id) {
+        const { error: notifErr } = await supabaseAdmin
+          .from('health_appraisal_notifications')
+          .insert({
+            student_id: req.session.user.user_id,
+            record_id: insertedRecord.record_id,
+            is_read: false,
+          });
+
+        if (notifErr) {
+          console.error('[health-appraisal notification]', notifErr.message);
+          // Don't block the student if notification fails
+        }
+      }
+
       res.redirect('/student/dashboard');
     } catch (err) {
       console.error('[health-screening] catch error:', err);

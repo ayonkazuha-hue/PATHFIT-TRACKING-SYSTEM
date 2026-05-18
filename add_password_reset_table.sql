@@ -1,5 +1,3 @@
--- Run this in your Supabase SQL editor to add the password reset requests table
-
 CREATE TABLE IF NOT EXISTS password_reset_requests (
     request_id  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id     UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,

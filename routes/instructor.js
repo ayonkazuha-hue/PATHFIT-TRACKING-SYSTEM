@@ -63,6 +63,16 @@ module.exports = function(supabaseAdmin) {
     return data || [];
   }
 
+  // Helper: fetch unread health appraisal notifications for the nav bell
+  async function getHealthAppraisalNotifications() {
+    const { data } = await supabaseAdmin
+      .from('health_appraisal_notifications')
+      .select('*, users!fk_han_student(name, student_id, section, course)')
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
+    return data || [];
+  }
+
   
   async function getPendingPasswordResets() {
     const { data } = await supabaseAdmin
@@ -87,7 +97,7 @@ module.exports = function(supabaseAdmin) {
 
       const [studentsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
         query,
-        supabaseAdmin.from('health_appraisal_record').select('record_id').eq('cleared', false),
+        supabaseAdmin.from('health_appraisal_record').select('record_id', { count: 'exact', head: false }).eq('cleared', false),
         supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
@@ -96,9 +106,10 @@ module.exports = function(supabaseAdmin) {
       const pendingRegistrations = pendingRegistrationsRes.data || [];
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
 
       res.render('instructor/dashboard', {
-        students, pendingScreenings, pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
+        students, pendingScreenings, pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
         filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
@@ -199,9 +210,10 @@ module.exports = function(supabaseAdmin) {
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
       res.render('instructor/fitness_tests', {
         students: students2, tests, selectedStudentId, selectedStudent,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -242,9 +254,10 @@ module.exports = function(supabaseAdmin) {
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
       res.render('instructor/lesson_plans', {
         plans: plans || [], level,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -301,35 +314,50 @@ module.exports = function(supabaseAdmin) {
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, dist, totalTests: tests.length,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
+        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
   });
 
-  // GET /instructor/health-screening
-  router.get('/health-screening', async (req, res) => {
+  // GET /instructor/health-appraisal
+  router.get('/health-appraisal', async (req, res) => {
     try {
-      const { data: screenings } = await supabaseAdmin
+      const { data: screenings, error: fetchErr } = await supabaseAdmin
         .from('health_appraisal_record')
-        .select('*, users(name, student_id, section)')
+        .select('*, users!fk_har_student(name, student_id, section, course)')
         .order('submitted_at', { ascending: false });
 
-      const pendingRegistrations = await getPendingRegistrations();
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      res.render('instructor/health_screening', { screenings: screenings || [], pendingRegistrations, pendingPasswordResets, fitnessTestNotifications });
+      if (fetchErr) {
+        console.error('[health-appraisal GET]', fetchErr.message);
+      }
+
+      const pendingRegistrations        = await getPendingRegistrations();
+      const pendingPasswordResets       = await getPendingPasswordResets();
+      const fitnessTestNotifications    = await getFitnessTestNotifications();
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+
+      res.render('instructor/health_appraisal', {
+        screenings: screenings || [],
+        pendingRegistrations,
+        pendingPasswordResets,
+        fitnessTestNotifications,
+        healthAppraisalNotifications,
+        fetchError: fetchErr ? fetchErr.message : null,
+      });
     } catch (err) {
+      console.error('[health-appraisal GET catch]', err);
       res.render('error', { title: 'Error', message: err.message });
     }
   });
 
-  // POST /instructor/health-screening/clear
-  router.post('/health-screening/clear', async (req, res) => {
+  // POST /instructor/health-appraisal/clear
+  router.post('/health-appraisal/clear', async (req, res) => {
     const { record_id, cleared } = req.body;
     try {
       await supabaseAdmin.from('health_appraisal_record')
@@ -339,9 +367,9 @@ module.exports = function(supabaseAdmin) {
           cleared_by: cleared === 'true' ? req.session.user.user_id : null
         })
         .eq('record_id', record_id);
-      res.redirect('/instructor/health-screening');
+      res.redirect('/instructor/health-appraisal');
     } catch (err) {
-      res.redirect('/instructor/health-screening');
+      res.redirect('/instructor/health-appraisal');
     }
   });
 
@@ -435,6 +463,39 @@ module.exports = function(supabaseAdmin) {
         .from('fitness_test_notifications')
         .update({ is_read: true })
         .eq('notif_id', notif_id);
+    }
+    // Redirect back to wherever the instructor was
+    const ref = req.get('Referer') || '/instructor/dashboard';
+    res.redirect(ref);
+  });
+
+  // GET /instructor/view-health-appraisal/:notification_id
+  // Marks the notification as read and redirects to health appraisal page
+  router.get('/view-health-appraisal/:notification_id', async (req, res) => {
+    const { notification_id } = req.params;
+    try {
+      // Mark as read
+      await supabaseAdmin
+        .from('health_appraisal_notifications')
+        .update({ is_read: true })
+        .eq('notification_id', notification_id);
+
+      // Redirect to health appraisal page
+      res.redirect('/instructor/health-appraisal');
+    } catch (err) {
+      console.error('[view-health-appraisal]', err);
+      res.redirect('/instructor/health-appraisal');
+    }
+  });
+
+  // POST /instructor/dismiss-health-appraisal-notification
+  router.post('/dismiss-health-appraisal-notification', async (req, res) => {
+    const { notification_id } = req.body;
+    if (notification_id) {
+      await supabaseAdmin
+        .from('health_appraisal_notifications')
+        .update({ is_read: true })
+        .eq('notification_id', notification_id);
     }
     // Redirect back to wherever the instructor was
     const ref = req.get('Referer') || '/instructor/dashboard';

@@ -21,14 +21,20 @@
       <a href="/instructor/dashboard">Dashboard</a>
       <a href="/instructor/lesson-plans">Lesson Plans</a>
       <a href="/instructor/report">Reports</a>
-      <a href="/instructor/health-screening">Screening</a>
+      <a href="/instructor/health-appraisal" style="position:relative;">
+        Health Appraisal Record
+        <% if (typeof healthAppraisalNotifications !== 'undefined' && healthAppraisalNotifications.length > 0) { %>
+          <span style="position:absolute;top:-6px;right:-10px;background:#e53935;color:#fff;font-size:.6rem;font-weight:700;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;line-height:1;"><%= healthAppraisalNotifications.length %></span>
+        <% } %>
+      </a>
 
       <!-- Notification Bell -->
       <% if (typeof pendingRegistrations !== 'undefined') { %>
       <%
         const _resets   = (typeof pendingPasswordResets      !== 'undefined') ? pendingPasswordResets      : [];
         const _ftNotifs = (typeof fitnessTestNotifications   !== 'undefined') ? fitnessTestNotifications   : [];
-        const _totalNotif = pendingRegistrations.length + _resets.length + _ftNotifs.length;
+        const _haNotifs = (typeof healthAppraisalNotifications !== 'undefined') ? healthAppraisalNotifications : [];
+        const _totalNotif = pendingRegistrations.length + _resets.length + _ftNotifs.length + _haNotifs.length;
       %>
       <div class="notif-wrap">
         <button class="notif-btn" id="notifBtn" aria-label="Notifications">
@@ -83,6 +89,32 @@
               <!-- Dismiss button -->
               <form method="POST" action="/instructor/dismiss-test-notification" style="margin:0;padding:10px 12px 0 0;flex-shrink:0;">
                 <input type="hidden" name="notif_id" value="<%= n.notif_id %>">
+                <button type="submit" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:2px 4px;line-height:1;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
+              </form>
+            </div>
+            <% }) %>
+          <% } %>
+
+          <!-- Health Appraisal Record Submissions -->
+          <% if (_haNotifs.length > 0) { %>
+            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
+              🏥 New Health Appraisal Records
+            </div>
+            <% _haNotifs.forEach(function(n) { %>
+            <div style="display:flex;align-items:flex-start;border-bottom:1px solid #f0f4f8;">
+              <a href="/instructor/view-health-appraisal/<%= n.notification_id %>"
+                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 10px 12px 16px;flex:1;text-decoration:none;color:inherit;transition:background .15s;"
+                 onmouseover="this.style.background='#f5f8fc'" onmouseout="this.style.background=''">
+                <div class="notif-icon">🏥</div>
+                <div class="notif-body">
+                  <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
+                  <div class="notif-meta">Submitted Health Appraisal Record (PAR-Q)</div>
+                  <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+                </div>
+              </a>
+              <!-- Dismiss button -->
+              <form method="POST" action="/instructor/dismiss-health-appraisal-notification" style="margin:0;padding:10px 12px 0 0;flex-shrink:0;">
+                <input type="hidden" name="notification_id" value="<%= n.notification_id %>">
                 <button type="submit" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:2px 4px;line-height:1;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
               </form>
             </div>

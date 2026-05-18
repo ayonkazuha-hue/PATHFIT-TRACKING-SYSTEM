@@ -1,8 +1,5 @@
 <?php
-/**
- * PATHFIT Setup Checker
- * Run this file to verify your installation is ready
- */
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

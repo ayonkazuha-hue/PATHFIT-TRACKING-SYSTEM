@@ -1,7 +1,4 @@
--- ============================================================
--- Add fitness_test_notifications table
--- Run this in your Supabase SQL Editor
--- ============================================================
+
 
 -- Step 1: Create the table
 CREATE TABLE IF NOT EXISTS public.fitness_test_notifications (

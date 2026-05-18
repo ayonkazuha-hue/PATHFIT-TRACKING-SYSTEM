@@ -1,14 +1,3 @@
--- ============================================================
--- PATHFIT — Run this AFTER creating users in Auth Dashboard UI
--- ============================================================
--- Go to Authentication > Users > Add user (create both accounts first)
--- Then run this SQL to set up their profiles and roles
--- ============================================================
-
-
--- STEP 1: Create instructor profile
--- (pulls the UUID automatically from auth.users by email)
-
 INSERT INTO public.users (
   user_id,
   student_id,

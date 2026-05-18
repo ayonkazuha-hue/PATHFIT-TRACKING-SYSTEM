@@ -1,11 +1,9 @@
 <?php
-// ============================================================
-// config.php — Supabase credentials & shared helpers
-// ============================================================
 
-define('SUPABASE_URL', 'https://YOUR_PROJECT_ID.supabase.co');
-define('SUPABASE_ANON_KEY', 'YOUR_ANON_KEY_HERE');
-define('SUPABASE_SERVICE_KEY', 'YOUR_SERVICE_ROLE_KEY_HERE'); // server-side only
+
+define('SUPABASE_URL', 'https://rurktfddhzhbgafdwnht.supabase.co');
+define('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1cmt0ZmRkaHpoYmdhZmR3bmh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTgyMDYsImV4cCI6MjA5MzY3NDIwNn0.N8Xp_yJnPnTXisapsjMyl6WeIyzJPREn0caYA7JgQD0');
+define('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1cmt0ZmRkaHpoYmdhZmR3bmh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA5ODIwNiwiZXhwIjoyMDkzNjc0MjA2fQ.aU67mq0X2hqaXOpuTm9MV_bu3hO_XhYcltXVcRGFVnA'); // server-side only
 
 // ── cURL helper ─────────────────────────────────────────────
 function supabase_request(string $endpoint, string $method = 'GET', array $body = [], bool $useService = false): array

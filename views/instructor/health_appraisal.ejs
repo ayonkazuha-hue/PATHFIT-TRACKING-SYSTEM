@@ -1,0 +1,244 @@
+<%- include('../partials/header', { title: 'Health Appraisal Records' }) %>
+<style>
+.har-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(4,44,83,.7); backdrop-filter:blur(4px); z-index:99999; overflow-y:auto; padding:24px 16px; }
+.har-modal.open { display:block; }
+.har-modal-content { background:#fff; border-radius:16px; width:100%; max-width:900px; margin:0 auto; box-shadow:0 24px 64px rgba(4,44,83,.4); }
+.har-modal-header { display:flex; justify-content:space-between; align-items:flex-start; padding:22px 28px 18px; border-bottom:2px solid #e8ecf0; background:linear-gradient(135deg,#042C53,#185FA5); color:#fff; border-radius:16px 16px 0 0; }
+.har-modal-title { font-size:1.2rem; font-weight:700; margin:0; }
+.har-modal-close { background:none; border:none; font-size:2rem; color:#fff; cursor:pointer; line-height:1; padding:0 8px; opacity:.9; }
+.har-modal-close:hover { opacity:1; }
+.har-modal-body { padding:28px; max-height:70vh; overflow-y:auto; }
+.har-ms { margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f0f4f8; }
+.har-ms:last-child { border-bottom:none; }
+.har-ms-title { font-size:.78rem; text-transform:uppercase; letter-spacing:1px; color:#185FA5; font-weight:700; margin-bottom:14px; }
+.har-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.har-grid.two-col { grid-template-columns:repeat(2,1fr); }
+.har-lbl { font-size:.78rem; color:#666; font-weight:600; margin-bottom:4px; }
+.har-val { font-size:.92rem; color:#042C53; font-weight:600; }
+.har-qi { margin-bottom:14px; padding:12px 14px; background:#f8f9fb; border-radius:8px; }
+.har-qt { font-size:.86rem; font-weight:600; color:#042C53; margin-bottom:6px; }
+.har-ans { font-size:.88rem; font-weight:700; }
+.har-ans.yes { color:#d32f2f; }
+.har-ans.no  { color:#2e7d32; }
+.har-det { font-size:.84rem; color:#555; margin-top:6px; font-style:italic; background:#fff; padding:8px 10px; border-radius:6px; border-left:3px solid #185FA5; }
+.har-clist { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+.har-ci { font-size:.84rem; color:#d32f2f; font-weight:600; padding:6px 10px; background:#ffebee; border-radius:6px; }
+.har-cert { display:inline-block; padding:8px 14px; background:#e8f5e9; border:2px solid #2e7d32; border-radius:8px; color:#2e7d32; font-weight:700; font-size:.88rem; }
+.har-modal-footer { padding:18px 28px; border-top:2px solid #e8ecf0; display:flex; gap:12px; justify-content:flex-end; }
+.tab-bar { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #e8ecf0; }
+.tab-btn { padding:10px 22px; background:none; border:none; border-bottom:3px solid transparent; font-size:.9rem; font-weight:600; color:#888; cursor:pointer; margin-bottom:-2px; transition:all .15s; }
+.tab-btn.active { color:#185FA5; border-bottom-color:#185FA5; }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+</style>
+
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">Health Appraisal Records (PAR-Q)</div>
+  <div class="page-sub">Review comprehensive student health appraisal records and grant or revoke clearance.</div>
+
+  <% if (typeof fetchError !== 'undefined' && fetchError) { %>
+  <div class="alert alert-error" style="margin-bottom:16px;">
+    ⚠️ Database error: <%= fetchError %><br>
+    <strong>Action required:</strong> Run <code>SETUP_HEALTH_APPRAISAL.sql</code> in your Supabase SQL Editor, then restart the server.
+  </div>
+  <% } %>
+
+  <%
+    const _pending = screenings.filter(function(s){ return !s.cleared; });
+    const _cleared = screenings.filter(function(s){ return  s.cleared; });
+  %>
+
+  <!-- Summary stats -->
+  <div class="stats-grid" style="margin-bottom:24px;">
+    <div class="stat-card">
+      <div class="label">Total Submitted</div>
+      <div class="value"><%= screenings.length %></div>
+      <div class="sub">health appraisal records</div>
+    </div>
+    <div class="stat-card <%= _pending.length > 0 ? 'warn' : '' %>">
+      <div class="label">Pending Clearance</div>
+      <div class="value" style="color:<%= _pending.length > 0 ? '#f57f17' : 'inherit' %>"><%= _pending.length %></div>
+      <div class="sub">awaiting review</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Cleared</div>
+      <div class="value" style="color:#2e7d32"><%= _cleared.length %></div>
+      <div class="sub">approved students</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('all',this)">
+        All Records
+        <span style="background:#e8ecf0;color:#555;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= screenings.length %></span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('pending',this)">
+        ⏳ Pending
+        <span style="background:#fff3e0;color:#f57f17;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _pending.length %></span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('cleared',this)">
+        ✔ Cleared
+        <span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _cleared.length %></span>
+      </button>
+    </div>
+
+    <!-- All Records -->
+    <div id="tab-all" class="tab-pane active">
+      <% if (screenings.length > 0) { %>
+        <%- include('./_har_table_partial', { rows: screenings }) %>
+      <% } else { %>
+        <div class="empty-state" style="padding:48px 0;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:12px;">🏥</div>
+          <div style="font-weight:700;color:#042C53;font-size:1rem;margin-bottom:6px;">No health appraisal records yet</div>
+          <div style="font-size:.86rem;color:#888;">Records appear here once students submit their PAR-Q forms after logging in for the first time.</div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Pending -->
+    <div id="tab-pending" class="tab-pane">
+      <% if (_pending.length > 0) { %>
+        <%- include('./_har_table_partial', { rows: _pending }) %>
+      <% } else { %>
+        <div class="empty-state" style="padding:40px 0;text-align:center;">✔ All submitted records have been cleared.</div>
+      <% } %>
+    </div>
+
+    <!-- Cleared -->
+    <div id="tab-cleared" class="tab-pane">
+      <% if (_cleared.length > 0) { %>
+        <%- include('./_har_table_partial', { rows: _cleared }) %>
+      <% } else { %>
+        <div class="empty-state" style="padding:40px 0;text-align:center;">No cleared records yet.</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="har-modal" id="harModal">
+  <div class="har-modal-content">
+    <div class="har-modal-header">
+      <div>
+        <div class="har-modal-title">🏥 Health Appraisal Record (PAR-Q)</div>
+        <div style="font-size:.86rem;opacity:.95;margin-top:4px;" id="modalStudentName"></div>
+      </div>
+      <button class="har-modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="har-modal-body" id="modalBody"></div>
+    <div class="har-modal-footer">
+      <button type="button" class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const RECORDS = <%- JSON.stringify(screenings) %>;
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function viewRecord(recordId) {
+  const record = RECORDS.find(function(r){ return r.record_id === recordId; });
+  if (!record) return;
+
+  const studentName = (record.users && record.users.name) ? record.users.name : (record.name || 'Student');
+  document.getElementById('modalStudentName').textContent = studentName;
+
+  const conditions = [];
+  if (record.q3_1_chest_pain)   conditions.push('3.1 Chest pain');
+  if (record.q3_2_breathing)    conditions.push('3.2 Difficulty breathing');
+  if (record.q3_3_dizziness)    conditions.push('3.3 Dizziness or fainting spell');
+  if (record.q3_4_hypertension) conditions.push('3.4 Hypertension (High Blood Pressure)');
+  if (record.q3_5_anemia)       conditions.push('3.5 Anemia');
+  if (record.q3_6_kidney)       conditions.push('3.6 Kidney problem');
+  if (record.q3_7_arthritis)    conditions.push('3.7 Arthritis');
+  if (record.q3_8_gout)         conditions.push('3.8 Gout');
+  if (record.q3_9_dislocation)  conditions.push('3.9 Dislocation');
+  if (record.q3_10_fracture)    conditions.push('3.10 Fracture');
+
+  function yn(val) {
+    return '<span class="har-ans ' + (val ? 'yes' : 'no') + '">' + (val ? 'YES' : 'NO') + '</span>';
+  }
+  function det(txt) {
+    return txt ? '<div class="har-det">' + txt + '</div>' : '';
+  }
+  const condHtml = conditions.length
+    ? '<div class="har-clist">' + conditions.map(function(c){ return '<div class="har-ci">✓ ' + c + '</div>'; }).join('') + '</div>'
+    : '';
+
+  document.getElementById('modalBody').innerHTML =
+    '<div class="har-ms">' +
+      '<div class="har-ms-title">I. Personal Data</div>' +
+      '<div class="har-grid">' +
+        '<div class="har-item"><div class="har-lbl">Name</div><div class="har-val">' + (record.name||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Gender</div><div class="har-val">' + (record.gender||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Age</div><div class="har-val">' + (record.age||'—') + '</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="har-ms">' +
+      '<div class="har-ms-title">II. Physical Check-up Result</div>' +
+      '<div class="har-grid">' +
+        '<div class="har-item"><div class="har-lbl">Height (kg)</div><div class="har-val">' + (record.height_kg||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Weight (cm)</div><div class="har-val">' + (record.weight_cm||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Resting Pulse Rate</div><div class="har-val">' + (record.resting_pulse_rate||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Waistline (inches)</div><div class="har-val">' + (record.waistline_inches||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Ideal Weight</div><div class="har-val">' + (record.ideal_weight||'—') + '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">BMI Classification</div><div class="har-val">' + (record.bmi_classification||'—') + '</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="har-ms">' +
+      '<div class="har-ms-title">III. Medical-related Questionnaire</div>' +
+      '<div class="har-qi"><div class="har-qt">1. Have you had any hospitalization/surgery for the last 5 years?</div>' + yn(record.q1_hospitalization) + det(record.q1_details) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">2. Have you sustained or had major injury for the last 5 years?</div>' + yn(record.q2_injury) + det(record.q2_details) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">3. Have you experienced or been diagnosed with any of the following?</div>' + yn(record.q3_diagnosed) + condHtml + '</div>' +
+      '<div class="har-qi"><div class="har-qt">4. Have you experienced lower back pain?</div>' + yn(record.q4_lower_back_pain) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">5. Do you have ailments which restrict movement or physical activity?</div>' + yn(record.q5_movement_restriction) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">6. Are you under medical treatment?</div>' + yn(record.q6_medical_treatment) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">7. Do you engage in regular exercise (at least 3 times a week)?</div>' + yn(record.q7_regular_exercise) + det(record.q7_details) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">8. Do you smoke?</div>' + yn(record.q8_smoke) + det(record.q8_details) + '</div>' +
+      '<div class="har-qi"><div class="har-qt">9. Do you drink alcoholic beverages?</div>' + yn(record.q9_alcohol) + det(record.q9_details) + '</div>' +
+    '</div>' +
+    '<div class="har-ms">' +
+      '<div class="har-ms-title">Certification</div>' +
+      (record.certify_correctness
+        ? '<div class="har-cert">✓ Student certified the correctness of all answers</div>'
+        : '<div style="color:#d32f2f;">⚠️ Not certified</div>') +
+    '</div>' +
+    '<div class="har-ms">' +
+      '<div class="har-ms-title">Clearance Status</div>' +
+      '<div class="har-grid two-col">' +
+        '<div class="har-item"><div class="har-lbl">Status</div>' +
+          '<div class="har-val" style="color:' + (record.cleared ? '#2e7d32' : '#f57f17') + ';">' +
+            (record.cleared ? '✔ Cleared' : '⏳ Pending Clearance') +
+          '</div></div>' +
+        '<div class="har-item"><div class="har-lbl">Submitted</div>' +
+          '<div class="har-val">' + new Date(record.submitted_at).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('harModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('harModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('harModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+
+<%- include('../partials/footer') %>
