@@ -1,34 +1,75 @@
-<%- include('../partials/header', { title: 'Health Screenings' }) %>
+<%- include('../partials/header', { title: 'Health Appraisal Records' }) %>
+<style>
+.har-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(4,44,83,.7); backdrop-filter: blur(4px); z-index: 99999; overflow-y: auto; padding: 24px 16px; }
+.har-modal.open { display: block; }
+.har-modal-content { background: #fff; border-radius: 16px; width: 100%; max-width: 900px; margin: 0 auto; box-shadow: 0 24px 64px rgba(4,44,83,.4); }
+.har-modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 22px 28px 18px; border-bottom: 2px solid #e8ecf0; background: linear-gradient(135deg, #042C53, #185FA5); color: #fff; border-radius: 16px 16px 0 0; }
+.har-modal-title { font-size: 1.2rem; font-weight: 700; margin: 0; }
+.har-modal-close { background: none; border: none; font-size: 2rem; color: #fff; cursor: pointer; line-height: 1; padding: 0 8px; opacity: .9; }
+.har-modal-close:hover { opacity: 1; }
+.har-modal-body { padding: 28px; max-height: 70vh; overflow-y: auto; }
+.har-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f0f4f8; }
+.har-section:last-child { border-bottom: none; }
+.har-section-title { font-size: .78rem; text-transform: uppercase; letter-spacing: 1px; color: #185FA5; font-weight: 700; margin-bottom: 14px; }
+.har-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.har-grid.two-col { grid-template-columns: repeat(2, 1fr); }
+.har-item { }
+.har-label { font-size: .78rem; color: #666; font-weight: 600; margin-bottom: 4px; }
+.har-value { font-size: .92rem; color: #042C53; font-weight: 600; }
+.har-question-item { margin-bottom: 14px; padding: 12px 14px; background: #f8f9fb; border-radius: 8px; }
+.har-question-text { font-size: .86rem; font-weight: 600; color: #042C53; margin-bottom: 6px; }
+.har-answer { font-size: .88rem; color: #185FA5; font-weight: 700; }
+.har-answer.yes { color: #d32f2f; }
+.har-answer.no { color: #2e7d32; }
+.har-details-text { font-size: .84rem; color: #555; margin-top: 6px; font-style: italic; background: #fff; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #185FA5; }
+.har-conditions-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.har-condition-item { font-size: .84rem; color: #d32f2f; font-weight: 600; padding: 6px 10px; background: #ffebee; border-radius: 6px; }
+.har-certify-badge { display: inline-block; padding: 8px 14px; background: #e8f5e9; border: 2px solid #2e7d32; border-radius: 8px; color: #2e7d32; font-weight: 700; font-size: .88rem; }
+.har-modal-footer { padding: 18px 28px; border-top: 2px solid #e8ecf0; display: flex; gap: 12px; justify-content: flex-end; }
+</style>
+
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">Health Screening Records</div>
-  <div class="page-sub">Review student health screenings and grant or revoke clearance.</div>
+  <div class="page-title">Health Appraisal Records (PAR-Q)</div>
+  <div class="page-sub">Review comprehensive student health appraisal records and grant or revoke clearance.</div>
 
   <div class="card">
-    <h3>All Screenings <span style="font-size:.82rem;font-weight:400;color:#555;"><%= screenings.length %> record(s)</span></h3>
+    <h3>All Health Appraisal Records <span style="font-size:.82rem;font-weight:400;color:#555;"><%= screenings.length %> record(s)</span></h3>
     <% if (screenings.length > 0) { %>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Student</th><th>Student ID</th><th>Section</th><th>Injury History</th><th>Health Conditions</th><th>Screened</th><th>Cleared</th><th>Action</th></tr>
+          <tr>
+            <th>Student</th>
+            <th>Student ID</th>
+            <th>Section</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Submitted</th>
+            <th>Cleared</th>
+            <th>Actions</th>
+          </tr>
         </thead>
         <tbody>
           <% screenings.forEach(s => { %>
           <tr>
-            <td><strong><%= s.users?.name || '—' %></strong></td>
+            <td><strong><%= s.users?.name || s.name || '—' %></strong></td>
             <td><%= s.users?.student_id || '—' %></td>
             <td><%= s.users?.section || '—' %></td>
-            <td style="max-width:180px;font-size:.82rem;"><%= (s.injury_history||'None').substring(0,80) %></td>
-            <td style="max-width:180px;font-size:.82rem;"><%= (s.health_conditions||'None').substring(0,80) %></td>
-            <td><%= new Date(s.screened_at).toLocaleDateString() %></td>
+            <td><%= s.age || '—' %></td>
+            <td><%= s.gender || '—' %></td>
+            <td><%= new Date(s.submitted_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></td>
             <td>
               <span class="badge" style="background:<%= s.cleared?'#2e7d32':'#f57f17' %>;">
                 <%= s.cleared ? '✔ Cleared' : '⏳ Pending' %>
               </span>
             </td>
             <td>
+              <button type="button" class="btn btn-sm" onclick="viewRecord('<%= s.record_id %>')" style="margin-right:6px;">
+                👁️ View
+              </button>
               <form method="POST" action="/instructor/health-screening/clear" style="display:inline;">
-                <input type="hidden" name="screen_id" value="<%= s.screen_id %>">
+                <input type="hidden" name="record_id" value="<%= s.record_id %>">
                 <input type="hidden" name="cleared" value="<%= !s.cleared %>">
                 <button type="submit" class="btn btn-sm <%= s.cleared ? 'btn-danger' : '' %>">
                   <%= s.cleared ? 'Revoke' : 'Clear' %>
@@ -41,8 +82,165 @@
       </table>
     </div>
     <% } else { %>
-      <div class="empty-state">No health screening records yet.</div>
+      <div class="empty-state">No health appraisal records yet.</div>
     <% } %>
   </div>
 </div>
+
+<!-- Health Appraisal Record Modal -->
+<div class="har-modal" id="harModal">
+  <div class="har-modal-content">
+    <div class="har-modal-header">
+      <div>
+        <div class="har-modal-title">🏥 Health Appraisal Record (PAR-Q)</div>
+        <div style="font-size:.86rem;opacity:.95;margin-top:4px;" id="modalStudentName"></div>
+      </div>
+      <button class="har-modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="har-modal-body" id="modalBody">
+      <!-- Content will be populated by JavaScript -->
+    </div>
+    <div class="har-modal-footer">
+      <button type="button" class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const RECORDS = <%- JSON.stringify(screenings) %>;
+
+function viewRecord(recordId) {
+  const record = RECORDS.find(r => r.record_id === recordId);
+  if (!record) return;
+
+  document.getElementById('modalStudentName').textContent = record.users?.name || record.name || 'Student';
+
+  const conditions = [];
+  if (record.q3_1_chest_pain) conditions.push('3.1 Chest pain');
+  if (record.q3_2_breathing) conditions.push('3.2 Difficulty breathing');
+  if (record.q3_3_dizziness) conditions.push('3.3 Dizziness or fainting spell');
+  if (record.q3_4_hypertension) conditions.push('3.4 Hypertension (High Blood Pressure)');
+  if (record.q3_5_anemia) conditions.push('3.5 Anemia');
+  if (record.q3_6_kidney) conditions.push('3.6 Kidney problem');
+  if (record.q3_7_arthritis) conditions.push('3.7 Arthritis');
+  if (record.q3_8_gout) conditions.push('3.8 Gout');
+  if (record.q3_9_dislocation) conditions.push('3.9 Dislocation');
+  if (record.q3_10_fracture) conditions.push('3.10 Fracture');
+
+  const html = `
+    <div class="har-section">
+      <div class="har-section-title">I. Personal Data</div>
+      <div class="har-grid">
+        <div class="har-item"><div class="har-label">Name</div><div class="har-value">${record.name || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Gender</div><div class="har-value">${record.gender || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Age</div><div class="har-value">${record.age || '—'}</div></div>
+      </div>
+    </div>
+
+    <div class="har-section">
+      <div class="har-section-title">II. Physical Check-up Result</div>
+      <div class="har-grid">
+        <div class="har-item"><div class="har-label">Height (kg)</div><div class="har-value">${record.height_kg || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Weight (cm)</div><div class="har-value">${record.weight_cm || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Resting Pulse Rate</div><div class="har-value">${record.resting_pulse_rate || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Waistline (inches)</div><div class="har-value">${record.waistline_inches || '—'}</div></div>
+        <div class="har-item"><div class="har-label">Ideal Weight</div><div class="har-value">${record.ideal_weight || '—'}</div></div>
+        <div class="har-item"><div class="har-label">BMI Classification</div><div class="har-value">${record.bmi_classification || '—'}</div></div>
+      </div>
+    </div>
+
+    <div class="har-section">
+      <div class="har-section-title">III. Medical-related Questionnaire</div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">1. Have you had any hospitalization/surgery for the last 5 years?</div>
+        <div class="har-answer ${record.q1_hospitalization ? 'yes' : 'no'}">${record.q1_hospitalization ? 'YES' : 'NO'}</div>
+        ${record.q1_hospitalization && record.q1_details ? `<div class="har-details-text">${record.q1_details}</div>` : ''}
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">2. Have you sustained or had major injury for the last 5 years?</div>
+        <div class="har-answer ${record.q2_injury ? 'yes' : 'no'}">${record.q2_injury ? 'YES' : 'NO'}</div>
+        ${record.q2_injury && record.q2_details ? `<div class="har-details-text">${record.q2_details}</div>` : ''}
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">3. Have you experienced or have been diagnosed with, any or all of the following:</div>
+        <div class="har-answer ${record.q3_diagnosed ? 'yes' : 'no'}">${record.q3_diagnosed ? 'YES' : 'NO'}</div>
+        ${conditions.length > 0 ? `
+          <div class="har-conditions-list">
+            ${conditions.map(c => `<div class="har-condition-item">✓ ${c}</div>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">4. Have you experienced lower back pain?</div>
+        <div class="har-answer ${record.q4_lower_back_pain ? 'yes' : 'no'}">${record.q4_lower_back_pain ? 'YES' : 'NO'}</div>
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">5. Do you have ailments which restrict movement or physical activity?</div>
+        <div class="har-answer ${record.q5_movement_restriction ? 'yes' : 'no'}">${record.q5_movement_restriction ? 'YES' : 'NO'}</div>
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">6. Are you under medical treatment?</div>
+        <div class="har-answer ${record.q6_medical_treatment ? 'yes' : 'no'}">${record.q6_medical_treatment ? 'YES' : 'NO'}</div>
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">7. Do you engage in regular exercise (at least 3 times a week)?</div>
+        <div class="har-answer ${record.q7_regular_exercise ? 'yes' : 'no'}">${record.q7_regular_exercise ? 'YES' : 'NO'}</div>
+        ${record.q7_regular_exercise && record.q7_details ? `<div class="har-details-text">${record.q7_details}</div>` : ''}
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">8. Do you smoke?</div>
+        <div class="har-answer ${record.q8_smoke ? 'yes' : 'no'}">${record.q8_smoke ? 'YES' : 'NO'}</div>
+        ${record.q8_smoke && record.q8_details ? `<div class="har-details-text">${record.q8_details}</div>` : ''}
+      </div>
+
+      <div class="har-question-item">
+        <div class="har-question-text">9. Do you drink alcoholic beverages?</div>
+        <div class="har-answer ${record.q9_alcohol ? 'yes' : 'no'}">${record.q9_alcohol ? 'YES' : 'NO'}</div>
+        ${record.q9_alcohol && record.q9_details ? `<div class="har-details-text">${record.q9_details}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="har-section">
+      <div class="har-section-title">Certification</div>
+      ${record.certify_correctness ? '<div class="har-certify-badge">✓ Student certified the correctness of all answers</div>' : '<div style="color:#d32f2f;">⚠️ Not certified</div>'}
+    </div>
+
+    <div class="har-section">
+      <div class="har-section-title">Clearance Status</div>
+      <div class="har-grid two-col">
+        <div class="har-item"><div class="har-label">Status</div><div class="har-value" style="color:${record.cleared ? '#2e7d32' : '#f57f17'};">${record.cleared ? '✔ Cleared' : '⏳ Pending Clearance'}</div></div>
+        <div class="har-item"><div class="har-label">Submitted</div><div class="har-value">${new Date(record.submitted_at).toLocaleDateString('en-PH', { month:'long', day:'numeric', year:'numeric' })}</div></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('harModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('harModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close on backdrop click
+document.getElementById('harModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+
 <%- include('../partials/footer') %>

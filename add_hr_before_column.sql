@@ -1,7 +1,4 @@
--- ============================================================
--- Add hr_before column for Cardiovascular Endurance (3-Min Step Test)
--- Run this in your Supabase SQL Editor
--- ============================================================
+
 
 ALTER TABLE public.fitness_tests
   ADD COLUMN IF NOT EXISTS hr_before NUMERIC(6,1);

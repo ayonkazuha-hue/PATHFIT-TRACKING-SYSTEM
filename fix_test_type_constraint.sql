@@ -1,9 +1,3 @@
--- ============================================================
--- Fix fitness_tests test_type constraint
--- Run this in your Supabase SQL Editor
--- ============================================================
-
--- Step 1: Drop the old constraint
 ALTER TABLE public.fitness_tests
   DROP CONSTRAINT IF EXISTS fitness_tests_test_type_check;
 

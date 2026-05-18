@@ -11,20 +11,6 @@ if ($_SESSION['role'] === 'instructor') {
 $jwt = $_SESSION['jwt'];
 $uid = $_SESSION['user_id'];
 
-// Fetch attendance records
-$attRes = supabase_authed_request(
-    '/rest/v1/attendance?student_id=eq.' . urlencode($uid) . '&select=*&order=week_number.asc',
-    'GET', [], $jwt
-);
-$attendance = $attRes['data'] ?? [];
-
-$totalWeeks   = 16;
-$presentCount = count(array_filter($attendance, fn($r) => $r['status'] === 'present'));
-$excusedCount = count(array_filter($attendance, fn($r) => $r['status'] === 'excused'));
-$attendedCount = $presentCount + $excusedCount;
-$attendancePct = $totalWeeks > 0 ? round(($attendedCount / $totalWeeks) * 100) : 0;
-$attendanceFlag = $attendancePct < 75;
-
 // Fetch fitness tests
 $ftRes = supabase_authed_request(
     '/rest/v1/fitness_tests?student_id=eq.' . urlencode($uid) . '&select=*&order=created_at.desc',
@@ -102,10 +88,6 @@ $testLabels = [
   @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
   .card { background: #fff; border-radius: 10px; padding: 22px 24px; box-shadow: 0 2px 12px rgba(4,44,83,.08); }
   .card h3 { font-size: 1rem; color: #042C53; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e8ecf0; }
-  .attendance-bar-wrap { margin-bottom: 10px; }
-  .attendance-bar-bg { background: #e0e8f0; border-radius: 20px; height: 18px; overflow: hidden; }
-  .attendance-bar-fill { height: 100%; border-radius: 20px; background: #185FA5; transition: width .4s; }
-  .attendance-bar-fill.danger { background: #e53935; }
   .bar-label { display: flex; justify-content: space-between; font-size: .82rem; color: #555; margin-top: 5px; }
   .flag-alert { background: #fde8e8; color: #c0392b; border: 1px solid #f5c6c6; border-radius: 7px; padding: 10px 14px; font-size: .85rem; margin-top: 10px; }
   table { width: 100%; border-collapse: collapse; font-size: .88rem; }
@@ -157,11 +139,6 @@ $testLabels = [
 
   <!-- Stat Cards -->
   <div class="stats-grid">
-    <div class="stat-card <?= $attendanceFlag ? 'warning' : '' ?>">
-      <div class="label">Attendance Rate</div>
-      <div class="value"><?= $attendancePct ?>%</div>
-      <div class="sub"><?= $attendedCount ?> / <?= $totalWeeks ?> weeks attended</div>
-    </div>
     <div class="stat-card">
       <div class="label">Fitness Tests Recorded</div>
       <div class="value"><?= count($fitnessTests) ?></div>
@@ -199,41 +176,6 @@ $testLabels = [
   <?php endif; ?>
 
   <div class="grid-2">
-    <!-- Attendance Bar -->
-    <div class="card">
-      <h3>Attendance Overview</h3>
-      <div class="attendance-bar-wrap">
-        <div class="attendance-bar-bg">
-          <div class="attendance-bar-fill <?= $attendanceFlag ? 'danger' : '' ?>"
-               style="width: <?= $attendancePct ?>%"></div>
-        </div>
-        <div class="bar-label">
-          <span><?= $attendancePct ?>% attended</span>
-          <span>75% required</span>
-        </div>
-      </div>
-      <?php if ($attendanceFlag): ?>
-        <div class="flag-alert">⚠️ Your attendance is below the 75% threshold. Please consult your instructor.</div>
-      <?php endif; ?>
-
-      <?php if (!empty($attendance)): ?>
-      <table style="margin-top:14px;">
-        <thead><tr><th>Week</th><th>Date</th><th>Status</th></tr></thead>
-        <tbody>
-          <?php foreach (array_slice($attendance, 0, 8) as $rec): ?>
-          <tr>
-            <td>Week <?= $rec['week_number'] ?></td>
-            <td><?= date('M j, Y', strtotime($rec['date'])) ?></td>
-            <td><span class="badge badge-<?= $rec['status'] ?>"><?= ucfirst($rec['status']) ?></span></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-      <?php else: ?>
-        <div class="empty-state">No attendance records yet.</div>
-      <?php endif; ?>
-    </div>
-
     <!-- Fitness Test Summary -->
     <div class="card">
       <h3>Fitness Test Results</h3>

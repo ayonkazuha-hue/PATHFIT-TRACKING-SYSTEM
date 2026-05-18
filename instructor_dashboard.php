@@ -97,7 +97,6 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
   </div>
   <nav>
     <a href="fitness_test_entry.php">Record Tests</a>
-    <a href="attendance_tracker.php">Attendance</a>
     <a href="lesson_plans.php">Lesson Plans</a>
     <a href="fitness_report.php">Reports</a>
     <a href="logout.php">Logout</a>
@@ -106,7 +105,7 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
 
 <div class="container">
   <div class="page-title">Instructor Dashboard</div>
-  <div class="page-sub">Manage students, track fitness progress, and monitor attendance.</div>
+  <div class="page-sub">Manage students and track fitness progress.</div>
 
   <!-- Stat Cards -->
   <div class="stats-grid">
@@ -203,7 +202,6 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
           <td><span class="badge badge-<?= $s['pathfit_level'] ?>">PF<?= $s['pathfit_level'] ?></span></td>
           <td class="action-links">
             <a href="fitness_test_entry.php?student_id=<?= urlencode($s['user_id']) ?>">Tests</a>
-            <a href="attendance_tracker.php?student_id=<?= urlencode($s['user_id']) ?>">Attendance</a>
             <a href="fitness_report.php?student_id=<?= urlencode($s['user_id']) ?>">Report</a>
           </td>
         </tr>
@@ -218,7 +216,6 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
   <!-- Quick Links -->
   <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:28px;">
     <a href="fitness_test_entry.php" class="btn">+ Record Fitness Test</a>
-    <a href="attendance_tracker.php" class="btn">+ Mark Attendance</a>
     <a href="lesson_plans.php" class="btn">View Lesson Plans</a>
     <a href="fitness_report.php" class="btn">Pre/Post Report</a>
   </div>

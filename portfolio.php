@@ -69,15 +69,6 @@ $ftData   = $ftRes['data'] ?? [];
 $hasPreTests  = !empty(array_filter($ftData, fn($t) => $t['test_period'] === 'pre'));
 $hasPostTests = !empty(array_filter($ftData, fn($t) => $t['test_period'] === 'post'));
 
-// Fetch attendance
-$attQuery = '/rest/v1/attendance?select=status';
-if ($targetId) $attQuery .= '&student_id=eq.' . urlencode($targetId);
-$attRes   = supabase_authed_request($attQuery, 'GET', [], $jwt);
-$attData  = $attRes['data'] ?? [];
-$attPct   = count($attData) > 0
-    ? round((count(array_filter($attData, fn($r) => in_array($r['status'],['present','excused']))) / 16) * 100)
-    : 0;
-
 // Fetch health screening
 $hsRes    = supabase_authed_request('/rest/v1/health_screening?student_id=eq.' . urlencode($targetId ?? $uid) . '&select=cleared', 'GET', [], $jwt);
 $cleared  = $hsRes['data'][0]['cleared'] ?? false;
@@ -86,7 +77,6 @@ $cleared  = $hsRes['data'][0]['cleared'] ?? false;
 $checklist = [
     ['label' => 'Pre-test fitness results recorded',  'done' => $hasPreTests],
     ['label' => 'Post-test fitness results recorded', 'done' => $hasPostTests],
-    ['label' => 'Attendance ≥ 75%',                   'done' => $attPct >= 75],
     ['label' => 'Health screening completed',          'done' => !empty($hsRes['data'][0])],
     ['label' => 'Health screening cleared',            'done' => $cleared],
     ['label' => 'Portfolio reflection submitted',      'done' => !empty($portfolios)],

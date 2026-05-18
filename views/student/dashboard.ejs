@@ -45,7 +45,7 @@
         <table>
           <thead><tr><th>Test</th><th>Period</th><th>Score</th><th>Rating</th></tr></thead>
           <tbody>
-            <% const labels = {push_ups:'Push-Ups',sit_ups:'Sit-Ups',sit_reach:'Sit & Reach',step_test:'Step Test',shuttle_run:'Shuttle Run'}; %>
+            <% const labels = {push_ups:'Push-Ups',sit_reach:'Sit & Reach (cm)',zipper_test:'Zipper Test',juggling:'Juggling',sprint_40m:'40m Sprint',step_test_3min:'3-Min Step Test'}; %>
             <% tests.slice(0,8).forEach(t => { %>
             <tr>
               <td><%= labels[t.test_type]||t.test_type %></td>

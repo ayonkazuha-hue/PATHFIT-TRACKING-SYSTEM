@@ -4,8 +4,7 @@ function getRating(testType, gender, value) {
   const v = parseFloat(value);
   const rubrics = {
     push_ups:      {
-      // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
-      // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
+     
       male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
       female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
     },
@@ -14,7 +13,7 @@ function getRating(testType, gender, value) {
     juggling:      { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
     sprint_40m:    { male: [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']], female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']] },
   };
-  // 3-Minute Step Test: rated by post-exercise HR (lower = better), age 18-25 bracket
+  
   if (testType === 'step_test_3min') {
     if (gender === 'female') {
       if (v <= 81)  return 'excellent';
@@ -47,14 +46,14 @@ function getRating(testType, gender, value) {
 module.exports = function(supabaseAdmin) {
   const router = express.Router();
 
-  // Helper: fetch pending registrations count for the nav bell
+  
   async function getPendingRegistrations() {
     const { data } = await supabaseAdmin
       .from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false });
     return data || [];
   }
 
-  // Helper: fetch unread fitness test notifications for the nav bell
+  
   async function getFitnessTestNotifications() {
     const { data } = await supabaseAdmin
       .from('fitness_test_notifications')
@@ -64,7 +63,7 @@ module.exports = function(supabaseAdmin) {
     return data || [];
   }
 
-  // Helper: fetch pending password reset requests for the nav bell
+  
   async function getPendingPasswordResets() {
     const { data } = await supabaseAdmin
       .from('password_reset_requests')
@@ -74,7 +73,7 @@ module.exports = function(supabaseAdmin) {
     return data || [];
   }
 
-  // GET /instructor/dashboard
+  
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
     try {
@@ -88,7 +87,7 @@ module.exports = function(supabaseAdmin) {
 
       const [studentsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
         query,
-        supabaseAdmin.from('health_screening').select('screen_id').eq('cleared', false),
+        supabaseAdmin.from('health_appraisal_record').select('record_id').eq('cleared', false),
         supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
@@ -116,7 +115,7 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
-  // POST /instructor/edit-student
+  
   router.post('/edit-student', async (req, res) => {
     const {
       user_id, name, student_id, email,
@@ -234,59 +233,6 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
-  // GET /instructor/attendance
-  router.get('/attendance', async (req, res) => {
-    const { section = '', student_id = '' } = req.query;
-    try {
-      let sQuery = supabaseAdmin.from('users').select('user_id,name,section,pathfit_level').eq('role','student').order('name');
-      if (section) sQuery = sQuery.eq('section', section);
-      const { data: students } = await sQuery;
-
-      let attQuery = supabaseAdmin.from('attendance').select('*').order('week_number');
-      if (student_id) attQuery = attQuery.eq('student_id', student_id);
-      const { data: attendance } = await attQuery;
-
-      const { data: sectionsRaw } = await supabaseAdmin.from('users').select('section').eq('role','student');
-      const sections = [...new Set((sectionsRaw || []).map(s => s.section).filter(Boolean))].sort();
-
-      // Group attendance by student
-      const attByStudent = {};
-      (attendance || []).forEach(r => {
-        if (!attByStudent[r.student_id]) attByStudent[r.student_id] = [];
-        attByStudent[r.student_id].push(r);
-      });
-
-      const pendingRegistrations = await getPendingRegistrations();
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      res.render('instructor/attendance', {
-        students: students || [], attByStudent, sections,
-        filters: { section, student_id },
-        attendance: attendance || [],
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications,
-        error: req.query.error || null, success: req.query.success || null,
-      });
-    } catch (err) {
-      res.render('error', { title: 'Error', message: err.message });
-    }
-  });
-
-  // POST /instructor/attendance
-  router.post('/attendance', async (req, res) => {
-    const { student_id, week_number, date, status } = req.body;
-    if (!student_id || !week_number || !date || !['present','absent','excused'].includes(status)) {
-      return res.redirect('/instructor/attendance?error=Please fill in all fields correctly.');
-    }
-    try {
-      await supabaseAdmin.from('attendance').upsert({
-        student_id, week_number: parseInt(week_number), date, status,
-      }, { onConflict: 'student_id,date' });
-      res.redirect('/instructor/attendance?success=Attendance saved successfully.');
-    } catch (err) {
-      res.redirect('/instructor/attendance?error=' + err.message);
-    }
-  });
-
   // GET /instructor/lesson-plans
   router.get('/lesson-plans', async (req, res) => {
     const level = parseInt(req.query.level) || 1;
@@ -369,9 +315,9 @@ module.exports = function(supabaseAdmin) {
   router.get('/health-screening', async (req, res) => {
     try {
       const { data: screenings } = await supabaseAdmin
-        .from('health_screening')
+        .from('health_appraisal_record')
         .select('*, users(name, student_id, section)')
-        .order('screened_at', { ascending: false });
+        .order('submitted_at', { ascending: false });
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
@@ -384,11 +330,15 @@ module.exports = function(supabaseAdmin) {
 
   // POST /instructor/health-screening/clear
   router.post('/health-screening/clear', async (req, res) => {
-    const { screen_id, cleared } = req.body;
+    const { record_id, cleared } = req.body;
     try {
-      await supabaseAdmin.from('health_screening')
-        .update({ cleared: cleared === 'true' })
-        .eq('screen_id', screen_id);
+      await supabaseAdmin.from('health_appraisal_record')
+        .update({ 
+          cleared: cleared === 'true',
+          cleared_at: cleared === 'true' ? new Date().toISOString() : null,
+          cleared_by: cleared === 'true' ? req.session.user.user_id : null
+        })
+        .eq('record_id', record_id);
       res.redirect('/instructor/health-screening');
     } catch (err) {
       res.redirect('/instructor/health-screening');

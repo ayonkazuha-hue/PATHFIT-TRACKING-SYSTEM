@@ -9,29 +9,20 @@ module.exports = function(supabaseAdmin) {
     const level = req.session.user.pathfit_level || 1;
 
     try {
-      const [attRes, ftRes, lpRes, hsRes] = await Promise.all([
-        supabaseAdmin.from('attendance').select('*').eq('student_id', uid).order('week_number'),
+      const [ftRes, lpRes, hsRes] = await Promise.all([
         supabaseAdmin.from('fitness_tests').select('*').eq('student_id', uid).order('created_at', { ascending: false }),
         supabaseAdmin.from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number'),
-        supabaseAdmin.from('health_screening').select('*').eq('student_id', uid).maybeSingle(),
+        supabaseAdmin.from('health_appraisal_record').select('*').eq('student_id', uid).maybeSingle(),
       ]);
 
-      const attendance  = attRes.data  || [];
       const tests       = ftRes.data   || [];
       const plans       = lpRes.data   || [];
       const screening   = hsRes.data;
-      const portfolios  = [];
 
-      const presentCount  = attendance.filter(r => r.status === 'present').length;
-      const excusedCount  = attendance.filter(r => r.status === 'excused').length;
-      const attendedCount = presentCount + excusedCount;
-      const attendancePct = Math.round((attendedCount / 16) * 100);
-      const currentWeek   = Math.min(Math.max(1, plans.length > 0 ? 1 : 1), 16);
-      const currentPlan   = plans[currentWeek - 1] || null;
+      const currentPlan = plans[0] || null;
 
       res.render('student/dashboard', {
-        attendance, tests, screening,
-        attendancePct, attendedCount,
+        tests, screening,
         preTests:  tests.filter(t => t.test_period === 'pre'),
         postTests: tests.filter(t => t.test_period === 'post'),
         currentPlan, level,
@@ -178,27 +169,22 @@ module.exports = function(supabaseAdmin) {
   router.get('/portfolio', async (req, res) => {
     const uid = req.session.user.user_id;
     try {
-      const [pfRes, ftRes, attRes, hsRes] = await Promise.all([
+      const [pfRes, ftRes, hsRes] = await Promise.all([
         supabaseAdmin.from('fitness_portfolio').select('*').eq('student_id', uid).order('submitted_at', { ascending: false }),
         supabaseAdmin.from('fitness_tests').select('test_type,test_period').eq('student_id', uid),
-        supabaseAdmin.from('attendance').select('status').eq('student_id', uid),
-        supabaseAdmin.from('health_screening').select('cleared').eq('student_id', uid).maybeSingle(),
+        supabaseAdmin.from('health_appraisal_record').select('cleared').eq('student_id', uid).maybeSingle(),
       ]);
 
       const portfolios  = pfRes.data  || [];
       const tests       = ftRes.data  || [];
-      const attendance  = attRes.data || [];
       const screening   = hsRes.data;
 
       const hasPreTests  = tests.some(t => t.test_period === 'pre');
       const hasPostTests = tests.some(t => t.test_period === 'post');
-      const attended     = attendance.filter(r => ['present','excused'].includes(r.status)).length;
-      const attPct       = Math.round((attended / 16) * 100);
 
       const checklist = [
         { label: 'Pre-test fitness results recorded',  done: hasPreTests },
         { label: 'Post-test fitness results recorded', done: hasPostTests },
-        { label: 'Attendance ≥ 75%',                   done: attPct >= 75 },
         { label: 'Health screening completed',          done: !!screening },
         { label: 'Health screening cleared',            done: !!(screening?.cleared) },
         { label: 'Portfolio reflection submitted',      done: portfolios.length > 0 },

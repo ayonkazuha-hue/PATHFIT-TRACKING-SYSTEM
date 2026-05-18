@@ -98,9 +98,6 @@ $currentWeek = min(max(1, (int)date('W') % 16 ?: 16), 16);
   <h1>PATHFIT — Lesson Plans</h1>
   <nav>
     <a href="<?= $isInstructor ? 'instructor_dashboard.php' : 'student_dashboard.php' ?>">Dashboard</a>
-    <?php if ($isInstructor): ?>
-      <a href="attendance_tracker.php">Attendance</a>
-    <?php endif; ?>
     <a href="logout.php">Logout</a>
   </nav>
 </header>

@@ -57,8 +57,8 @@ module.exports = function(supabase, supabaseAdmin) {
       // Check health screening for students
       if (profile.role === 'student') {
         const { data: hs } = await supabaseAdmin
-          .from('health_screening')
-          .select('screen_id')
+          .from('health_appraisal_record')
+          .select('record_id')
           .eq('student_id', profile.user_id)
           .maybeSingle();
 
@@ -185,27 +185,105 @@ module.exports = function(supabase, supabaseAdmin) {
     res.render('health_screening', { error: null });
   });
 
-  // POST /health-screening
+  // POST /health-screening (Health Appraisal Record)
   router.post('/health-screening', async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-    const { injury_history, health_conditions } = req.body;
-    const conditions = Array.isArray(health_conditions)
-      ? health_conditions.join(', ')
-      : (health_conditions || '');
+    
+    const {
+      name, gender, age,
+      height_kg, weight_cm, resting_pulse_rate, waistline_inches, ideal_weight, bmi_classification,
+      q1_hospitalization, q1_details,
+      q2_injury, q2_details,
+      q3_diagnosed, q3_conditions,
+      q4_lower_back_pain,
+      q5_movement_restriction,
+      q6_medical_treatment,
+      q7_regular_exercise, q7_details,
+      q8_smoke, q8_details,
+      q9_alcohol, q9_details,
+      certify_correctness
+    } = req.body;
+
+    // Validation
+    if (!name || !gender || !age) {
+      return res.render('health_screening', { error: 'Please fill in all required fields (Name, Gender, Age).' });
+    }
+
+    if (!certify_correctness) {
+      return res.render('health_screening', { error: 'You must certify the correctness of your answers.' });
+    }
 
     try {
-      const { error } = await supabaseAdmin.from('health_screening').insert({
-        student_id:        req.session.user.user_id,
-        injury_history:    injury_history || '',
-        health_conditions: conditions,
-        cleared:           false,
-      });
+      // Parse Q3 conditions (checkboxes)
+      const q3ConditionsArray = Array.isArray(q3_conditions) ? q3_conditions : (q3_conditions ? [q3_conditions] : []);
+      
+      const insertData = {
+        student_id: req.session.user.user_id,
+        name: name.trim(),
+        gender,
+        age: parseInt(age),
+        
+        // Physical check-up (optional fields)
+        height_kg: height_kg ? parseFloat(height_kg) : null,
+        weight_cm: weight_cm ? parseFloat(weight_cm) : null,
+        resting_pulse_rate: resting_pulse_rate ? parseInt(resting_pulse_rate) : null,
+        waistline_inches: waistline_inches ? parseFloat(waistline_inches) : null,
+        ideal_weight: ideal_weight || null,
+        bmi_classification: bmi_classification || null,
+        
+        // Questionnaire
+        q1_hospitalization: q1_hospitalization === 'yes',
+        q1_details: q1_hospitalization === 'yes' ? (q1_details || '') : null,
+        
+        q2_injury: q2_injury === 'yes',
+        q2_details: q2_injury === 'yes' ? (q2_details || '') : null,
+        
+        q3_diagnosed: q3_diagnosed === 'yes',
+        q3_1_chest_pain: q3ConditionsArray.includes('3.1 Chest pain'),
+        q3_2_breathing: q3ConditionsArray.includes('3.2 Difficulty breathing'),
+        q3_3_dizziness: q3ConditionsArray.includes('3.3 Dizziness or fainting spell'),
+        q3_4_hypertension: q3ConditionsArray.includes('3.4 Hypertension (High Blood Pressure)'),
+        q3_5_anemia: q3ConditionsArray.includes('3.5 Anemia'),
+        q3_6_kidney: q3ConditionsArray.includes('3.6 Kidney problem'),
+        q3_7_arthritis: q3ConditionsArray.includes('3.7 Arthritis'),
+        q3_8_gout: q3ConditionsArray.includes('3.8 Gout'),
+        q3_9_dislocation: q3ConditionsArray.includes('3.9 Dislocation'),
+        q3_10_fracture: q3ConditionsArray.includes('3.10 Fracture'),
+        
+        q4_lower_back_pain: q4_lower_back_pain === 'yes',
+        q5_movement_restriction: q5_movement_restriction === 'yes',
+        q6_medical_treatment: q6_medical_treatment === 'yes',
+        
+        q7_regular_exercise: q7_regular_exercise === 'yes',
+        q7_details: q7_regular_exercise === 'yes' ? (q7_details || '') : null,
+        
+        q8_smoke: q8_smoke === 'yes',
+        q8_details: q8_smoke === 'yes' ? (q8_details || '') : null,
+        
+        q9_alcohol: q9_alcohol === 'yes',
+        q9_details: q9_alcohol === 'yes' ? (q9_details || '') : null,
+        
+        certify_correctness: true,
+        cleared: false,
+      };
 
-      if (error) return res.render('health_screening', { error: 'Could not save screening. Please try again.' });
+      const { error } = await supabaseAdmin.from('health_appraisal_record').insert(insertData);
+
+      if (error) {
+        console.error('[health-screening] insert error:', error);
+        // Check if table doesn't exist
+        if (error.message && error.message.includes('does not exist')) {
+          return res.render('health_screening', {
+            error: 'The Health Appraisal Record table is not set up yet. Please ask your instructor to run the database setup script (add_health_appraisal_record.sql).'
+          });
+        }
+        return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
+      }
+
       res.redirect('/student/dashboard');
     } catch (err) {
-      console.error(err);
-      res.render('health_screening', { error: 'Server error. Please try again.' });
+      console.error('[health-screening] catch error:', err);
+      res.render('health_screening', { error: 'Server error: ' + (err.message || 'Please try again.') });
     }
   });
 
