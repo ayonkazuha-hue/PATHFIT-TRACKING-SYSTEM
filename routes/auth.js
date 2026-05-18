@@ -82,7 +82,7 @@ module.exports = function(supabase, supabaseAdmin) {
   // POST /register
   router.post('/register', async (req, res) => {
     const { name, student_id, email, password, confirm_pass,
-            section, course, gender, year_level, pathfit_level } = req.body;
+            section, course, gender, year_level, pathfit_level, age } = req.body;
     const old = req.body;
 
     if (!name || !email || !password || !student_id) {
@@ -99,6 +99,9 @@ module.exports = function(supabase, supabaseAdmin) {
     }
     if (!['1','2'].includes(String(pathfit_level))) {
       return res.render('register', { error: 'Please select PATHFit level 1 or 2.', success: null, old });
+    }
+    if (!age || isNaN(parseInt(age)) || parseInt(age) < 1 || parseInt(age) > 120) {
+      return res.render('register', { error: 'Please enter a valid age.', success: null, old });
     }
 
     try {
@@ -150,6 +153,7 @@ module.exports = function(supabase, supabaseAdmin) {
         section,
         course,
         gender,
+        age:           parseInt(age),
         year_level:    parseInt(year_level),
         pathfit_level: parseInt(pathfit_level),
         role:          'student',

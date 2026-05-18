@@ -138,6 +138,7 @@
                 year_level:    '<%= s.year_level || "—" %>',
                 pathfit_level: '<%= s.pathfit_level %>',
                 gender:        '<%= s.gender || "—" %>',
+                age:           '<%= s.age || "—" %>',
                 created_at:    '<%= new Date(s.created_at).toLocaleDateString("en-PH", { month:"short", day:"numeric", year:"numeric" }) %>'
               })">
               <div class="notif-icon">👤</div>
@@ -211,6 +212,7 @@
       <div class="modal-grid">
         <div class="modal-field"><span class="modal-label">Student ID</span><span class="modal-val" id="modalStudentId"></span></div>
         <div class="modal-field"><span class="modal-label">Gender</span><span class="modal-val" id="modalGender"></span></div>
+        <div class="modal-field"><span class="modal-label">Age</span><span class="modal-val" id="modalAge"></span></div>
         <div class="modal-field"><span class="modal-label">Course</span><span class="modal-val" id="modalCourse"></span></div>
         <div class="modal-field"><span class="modal-label">Section</span><span class="modal-val" id="modalSection"></span></div>
         <div class="modal-field"><span class="modal-label">Year Level</span><span class="modal-val" id="modalYear"></span></div>
@@ -324,6 +326,7 @@
     document.getElementById('modalEmail').textContent     = s.email;
     document.getElementById('modalStudentId').textContent = s.student_id || '—';
     document.getElementById('modalGender').textContent    = s.gender ? s.gender.charAt(0).toUpperCase() + s.gender.slice(1) : '—';
+    document.getElementById('modalAge').textContent       = s.age || '—';
     document.getElementById('modalCourse').textContent    = s.course;
     document.getElementById('modalSection').textContent   = s.section;
     document.getElementById('modalYear').textContent      = s.year_level

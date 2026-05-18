@@ -62,12 +62,10 @@ module.exports = function(supabaseAdmin) {
     }
 
     // Auto-rating rubric
-    function getRating(testType, g, value) {
+    function getRating(testType, g, age, value) {
       const v = parseFloat(value);
       const rubrics = {
         push_ups:    {
-          // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
-          // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
           male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
           female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
         },
@@ -76,20 +74,55 @@ module.exports = function(supabaseAdmin) {
         juggling:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
         sprint_40m:  { male: [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']], female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']] },
       };
-      // 3-Minute Step Test: rated by post-exercise HR (lower = better), age 18-25 bracket
+      
       if (testType === 'step_test_3min') {
+        const studentAge = age || 18;
         if (g === 'female') {
-          if (v <= 81)  return 'excellent';
-          if (v <= 102) return 'good';
-          if (v <= 110) return 'fair';
-          if (v <= 120) return 'needs_improvement';
-          return 'poor';
-        } else {
-          if (v <= 76)  return 'excellent';
-          if (v <= 93)  return 'good';
-          if (v <= 100) return 'fair';
-          if (v <= 107) return 'needs_improvement';
-          return 'poor';
+          if (studentAge >= 18 && studentAge <= 25) {
+            if (v <= 81) return 'excellent';
+            if (v <= 102) return 'very_good';
+            if (v <= 110) return 'good';
+            if (v <= 120) return 'fair';
+            if (v <= 169) return 'needs_improvement';
+            return 'poor';
+          } else if (studentAge >= 26 && studentAge <= 35) {
+            if (v <= 80) return 'excellent';
+            if (v <= 101) return 'very_good';
+            if (v <= 110) return 'good';
+            if (v <= 119) return 'fair';
+            if (v <= 171) return 'needs_improvement';
+            return 'poor';
+          } else { // 36 and above
+            if (v <= 84) return 'excellent';
+            if (v <= 104) return 'very_good';
+            if (v <= 112) return 'good';
+            if (v <= 120) return 'fair';
+            if (v <= 169) return 'needs_improvement';
+            return 'poor';
+          }
+        } else { // male
+          if (studentAge >= 18 && studentAge <= 25) {
+            if (v <= 76) return 'excellent';
+            if (v <= 93) return 'very_good';
+            if (v <= 100) return 'good';
+            if (v <= 107) return 'fair';
+            if (v <= 157) return 'needs_improvement';
+            return 'poor';
+          } else if (studentAge >= 26 && studentAge <= 35) {
+            if (v <= 67) return 'excellent';
+            if (v <= 94) return 'very_good';
+            if (v <= 102) return 'good';
+            if (v <= 110) return 'fair';
+            if (v <= 161) return 'needs_improvement';
+            return 'poor';
+          } else { // 36 and above
+            if (v <= 76) return 'excellent';
+            if (v <= 88) return 'very_good';
+            if (v <= 105) return 'good';
+            if (v <= 133) return 'fair';
+            if (v <= 163) return 'needs_improvement';
+            return 'poor';
+          }
         }
       }
       const table = rubrics[testType]?.[g];
@@ -106,7 +139,13 @@ module.exports = function(supabaseAdmin) {
       return 'needs_improvement';
     }
 
-    const rating = getRating(test_type, gender, parseFloat(reps_or_cm));
+    let age = req.session.user.age;
+    if (age === undefined) {
+      const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).single();
+      age = userProfile ? userProfile.age : null;
+      req.session.user.age = age;
+    }
+    const rating = getRating(test_type, gender, age, parseFloat(reps_or_cm));
 
     try {
       const insertData = {

@@ -115,7 +115,7 @@
     <div class="table-wrap">
       <table id="studentTable">
         <thead>
-          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>PATHFit</th><th></th></tr>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>Age</th><th>PATHFit</th><th></th></tr>
         </thead>
         <tbody>
           <% students.forEach(s => { %>
@@ -127,6 +127,7 @@
             <td><%= s.course||'—' %></td>
             <td><%= s.year_level ? s.year_level + (s.year_level==1?'st':s.year_level==2?'nd':s.year_level==3?'rd':'th') + ' Year' : '—' %></td>
             <td><span class="badge badge-<%= s.gender %>"><%= (s.gender||'').charAt(0).toUpperCase()+(s.gender||'').slice(1) %></span></td>
+            <td><%= s.age||'—' %></td>
             <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
             <td>
               <button type="button"
@@ -136,6 +137,7 @@
                 data-student-id="<%= s.student_id||'' %>"
                 data-email="<%= s.email||'' %>"
                 data-gender="<%= s.gender||'' %>"
+                data-age="<%= s.age||'' %>"
                 data-course="<%= s.course||'' %>"
                 data-section="<%= s.section||'' %>"
                 data-year-level="<%= s.year_level||'' %>"
@@ -171,6 +173,7 @@ const EXPORT_STUDENTS = <%- JSON.stringify(students.map((s, i) => ({
     : '—',
   year_sort:  s.year_level || 99,
   gender:     s.gender ? s.gender.charAt(0).toUpperCase() + s.gender.slice(1) : '—',
+  age:        s.age || '—',
   pathfit:    s.pathfit_level ? 'PATHFit ' + s.pathfit_level : '—',
 }))) %>;
 
@@ -187,8 +190,8 @@ function exportToExcel() {
     ['PATHFIT TRACKING SYSTEM — Student List'],
     ['NBSC · Generated: ' + new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })],
     [],
-    ['No.', 'Student ID', 'Full Name', 'Email', 'Section', 'Course', 'Year Level', 'Gender', 'PATHFit Level'],
-    ...sorted.map(s => [s.no, s.student_id, s.name, s.email, s.section, s.course, s.year_level, s.gender, s.pathfit]),
+    ['No.', 'Student ID', 'Full Name', 'Email', 'Section', 'Course', 'Year Level', 'Gender', 'Age', 'PATHFit Level'],
+    ...sorted.map(s => [s.no, s.student_id, s.name, s.email, s.section, s.course, s.year_level, s.gender, s.age, s.pathfit]),
     [],
     ['Total Students: ' + sorted.length],
   ];
@@ -196,11 +199,11 @@ function exportToExcel() {
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [
     { wch: 5  }, { wch: 14 }, { wch: 30 }, { wch: 28 },
-    { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 14 },
+    { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 6 }, { wch: 14 },
   ];
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } },
   ];
 
   const wb = XLSX.utils.book_new();
@@ -268,6 +271,11 @@ function exportToExcel() {
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Age</label>
+            <input type="number" name="age" id="editAge" min="1" max="120" placeholder="e.g. 18"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
           </div>
         </div>
 
@@ -342,6 +350,7 @@ function exportToExcel() {
     document.getElementById('editStudentId').value    = btn.dataset.studentId;
     document.getElementById('editEmail').value        = btn.dataset.email;
     document.getElementById('editGender').value       = btn.dataset.gender;
+    document.getElementById('editAge').value          = btn.dataset.age;
     document.getElementById('editCourse').value       = btn.dataset.course;
     document.getElementById('editSection').value      = btn.dataset.section;
     document.getElementById('editYearLevel').value    = btn.dataset.yearLevel;

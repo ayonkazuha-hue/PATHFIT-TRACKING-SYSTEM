@@ -20,7 +20,7 @@
         <td><%= (s.users && s.users.section) ? s.users.section : '—' %></td>
         <td><%= s.age || '—' %></td>
         <td><%= s.gender || '—' %></td>
-        <td><%= new Date(s.submitted_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></td>
+        <td><%= new Date(s.submitted_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>, <%= new Date(s.submitted_at).toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit', hour12:true }) %></td>
         <td>
           <span class="badge" style="background:<%= s.cleared ? '#2e7d32' : '#f57f17' %>; color:#fff; padding:4px 10px; border-radius:12px; font-size:.78rem; font-weight:700;">
             <%= s.cleared ? '✔ Cleared' : '⏳ Pending' %>

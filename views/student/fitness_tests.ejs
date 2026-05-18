@@ -10,7 +10,7 @@
 .pdf-btn:hover    { background: #b71c1c; }
 .pdf-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-/* Rating preview chip */
+/* ── Rating preview chip */
 .rating-preview {
   display: none; margin-top: 10px; padding: 10px 14px;
   border-radius: 8px; font-size: .88rem; font-weight: 600;
@@ -21,84 +21,6 @@
 .rating-good             { background:#e3f2fd; color:#1565c0; border-color:#90caf9; }
 .rating-fair             { background:#fff3e0; color:#e65100; border-color:#ffcc80; }
 .rating-needs_improvement{ background:#ffebee; color:#c62828; border-color:#ef9a9a; }
-
-/* ── Exercise Counter ── */
-.counter-card {
-  background: rgba(255,255,255,.93);
-  border-radius: 14px;
-  padding: 24px 28px;
-  box-shadow: 0 8px 32px rgba(4,44,83,.18);
-  border: 1px solid rgba(255,255,255,.5);
-  margin-bottom: 24px;
-}
-.counter-title {
-  font-size: .75rem; text-transform: uppercase; letter-spacing: 1px;
-  color: #185FA5; font-weight: 700; margin-bottom: 16px;
-  display: flex; align-items: center; gap: 8px;
-}
-.counter-body {
-  display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap;
-}
-.counter-display {
-  flex: 0 0 auto; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #042C53, #185FA5);
-  border-radius: 12px; padding: 20px 32px; min-width: 140px;
-}
-.counter-number {
-  font-size: 4rem; font-weight: 900; color: #fff; line-height: 1;
-  font-variant-numeric: tabular-nums; letter-spacing: -2px;
-}
-.counter-label {
-  font-size: .75rem; color: rgba(255,255,255,.7); margin-top: 6px;
-  text-transform: uppercase; letter-spacing: 1px;
-}
-.counter-timer {
-  font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,.9);
-  margin-top: 8px; font-variant-numeric: tabular-nums;
-}
-.counter-controls {
-  flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 180px;
-}
-.tap-btn {
-  flex: 1; background: #185FA5; color: #fff; border: none;
-  border-radius: 10px; font-size: 1.1rem; font-weight: 700;
-  cursor: pointer; transition: background .1s, transform .08s;
-  padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
-  user-select: none; -webkit-user-select: none;
-  min-height: 64px;
-}
-.tap-btn:active { transform: scale(.96); background: #042C53; }
-.tap-btn.running { background: #2e7d32; }
-.tap-btn.running:active { background: #1b5e20; }
-.counter-row { display: flex; gap: 8px; }
-.counter-btn {
-  flex: 1; padding: 9px 10px; border: none; border-radius: 8px;
-  font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s;
-}
-.btn-start  { background: #e8f5e9; color: #2e7d32; }
-.btn-start:hover  { background: #c8e6c9; }
-.btn-pause  { background: #fff3e0; color: #e65100; }
-.btn-pause:hover  { background: #ffe0b2; }
-.btn-reset  { background: #ffebee; color: #c62828; }
-.btn-reset:hover  { background: #ffcdd2; }
-.btn-minus  { background: #f5f8fc; color: #042C53; border: 1.5px solid #cdd5e0; }
-.btn-minus:hover  { background: #e8ecf0; }
-.counter-hint {
-  font-size: .78rem; color: #888; text-align: center; margin-top: 4px;
-}
-.counter-type-label {
-  font-size: .82rem; font-weight: 600; color: #042C53;
-  background: #e8f0fb; border-radius: 6px; padding: 5px 12px;
-  text-align: center;
-}
-/* pulse animation on tap */
-@keyframes tap-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(24,95,165,.5); }
-  70%  { box-shadow: 0 0 0 14px rgba(24,95,165,0); }
-  100% { box-shadow: 0 0 0 0 rgba(24,95,165,0); }
-}
-.tap-pulse { animation: tap-pulse .3s ease-out; }
 </style>
 
 <!-- jsPDF + AutoTable -->
@@ -109,126 +31,6 @@
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
   <div class="page-title">My Fitness Tests</div>
   <div class="page-sub">Record your fitness test scores and view your history.</div>
-
-  <!-- ── Exercise Counter Widget ── -->
-  <div class="counter-card">
-    <div class="counter-title">
-      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Exercise Counter &amp; Timer
-    </div>
-
-    <div style="margin-bottom:14px;">
-      <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:6px;">Select Exercise</label>
-      <select id="counterExType" onchange="updateCounterType()" style="padding:8px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.9rem;color:#0a0a0a;background:#fff;min-width:220px;">
-        <option value="push_ups">Push-Ups</option>
-        <option value="sit_reach">Sit &amp; Reach</option>
-        <option value="zipper_test">Zipper Test</option>
-        <option value="juggling">Juggling</option>
-        <option value="sprint_40m">40 Meter Sprint</option>
-        <option value="step_test_3min">Cardiovascular Endurance (3-Min Step Test)</option>
-      </select>
-    </div>
-
-    <div class="counter-body" id="counterBody">
-      <!-- Display -->
-      <div class="counter-display">
-        <div class="counter-number" id="counterNum">0</div>
-        <div class="counter-label" id="counterUnitLabel">reps</div>
-        <div class="counter-timer" id="counterTimer">00:00</div>
-      </div>
-
-      <!-- Controls -->
-      <div class="counter-controls">
-        <div class="counter-type-label" id="counterTypeLabel">Push-Ups</div>
-
-        <!-- Big tap button -->
-        <button class="tap-btn" id="tapBtn" onclick="handleTap()">
-          👊 Tap to Count Rep
-        </button>
-
-        <!-- Start / Pause / Reset row -->
-        <div class="counter-row">
-          <button class="counter-btn btn-start" id="startBtn" onclick="startTimer()">▶ Start</button>
-          <button class="counter-btn btn-pause" id="pauseBtn" onclick="pauseTimer()" disabled>⏸ Pause</button>
-          <button class="counter-btn btn-reset" onclick="resetCounter()">↺ Reset</button>
-        </div>
-
-        <!-- Undo last tap -->
-        <div class="counter-row">
-          <button class="counter-btn btn-minus" onclick="undoRep()" style="flex:1;">− Undo Last Rep</button>
-        </div>
-
-        <div class="counter-hint" id="counterHint">Press Start, then tap the button each rep.</div>
-      </div>
-
-      <!-- Use score button -->
-      <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;min-width:140px;">
-        <button onclick="useCounterScore()" style="padding:10px 16px;background:#042C53;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#185FA5'" onmouseout="this.style.background='#042C53'">
-          ✓ Use This Score
-        </button>
-        <div style="font-size:.75rem;color:#888;text-align:center;">Fills the score field below</div>
-      </div>
-    </div>
-
-    <!-- ── 3-Minute Step Test HR Panel (shown only for step_test_3min) ── -->
-    <div id="stepTestPanel" style="display:none;margin-top:18px;padding:18px;background:#f0f6ff;border-radius:10px;border:1.5px solid #90caf9;">
-      <div style="font-size:.8rem;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;">❤️ Heart Rate Measurement</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
-        <div style="flex:1;min-width:160px;">
-          <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:5px;">HR Before Activity <span style="color:#e53935;">*</span></label>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input type="number" id="hrBeforeInput" min="40" max="220" placeholder="e.g. 72"
-              style="width:100%;padding:9px 12px;border:1.5px solid #90caf9;border-radius:7px;font-size:1rem;font-weight:700;color:#042C53;background:#fff;"
-              oninput="updateStepTestPreview()">
-            <span style="font-size:.8rem;color:#666;white-space:nowrap;">bpm</span>
-          </div>
-        </div>
-        <div style="flex:1;min-width:160px;">
-          <label style="font-size:.82rem;font-weight:600;color:#042C53;display:block;margin-bottom:5px;">HR After Activity <span style="color:#e53935;">*</span></label>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <input type="number" id="hrAfterInput" min="40" max="220" placeholder="e.g. 120"
-              style="width:100%;padding:9px 12px;border:1.5px solid #90caf9;border-radius:7px;font-size:1rem;font-weight:700;color:#042C53;background:#fff;"
-              oninput="updateStepTestPreview()">
-            <span style="font-size:.8rem;color:#666;white-space:nowrap;">bpm</span>
-          </div>
-        </div>
-        <div>
-          <button onclick="useStepTestScore()" style="padding:10px 18px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">
-            ✓ Use These Values
-          </button>
-        </div>
-      </div>
-      <div id="stepTestPreview" style="margin-top:12px;display:none;padding:10px 14px;border-radius:8px;font-size:.85rem;font-weight:600;border:1.5px solid;"></div>
-      <!-- Rating table reference -->
-      <div style="margin-top:14px;">
-        <div style="font-size:.78rem;font-weight:700;color:#1565c0;margin-bottom:8px;">📊 Rating Reference (Age 18–25)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <div style="font-size:.72rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Men (Post-Exercise HR)</div>
-            <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
-              <tr style="background:#e3f2fd;"><td style="padding:3px 8px;font-weight:700;color:#2e7d32;">Excellent</td><td style="padding:3px 8px;">≤ 76 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#1565c0;">Very Good</td><td style="padding:3px 8px;">77–93 bpm</td></tr>
-              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#e65100;">Good</td><td style="padding:3px 8px;">94–100 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#c62828;">Fair</td><td style="padding:3px 8px;">101–107 bpm</td></tr>
-              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#880e4f;">Needs Improvement</td><td style="padding:3px 8px;">108–157 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#4a148c;">Poor</td><td style="padding:3px 8px;">≥ 158 bpm</td></tr>
-            </table>
-          </div>
-          <div>
-            <div style="font-size:.72rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Women (Post-Exercise HR)</div>
-            <table style="width:100%;font-size:.78rem;border-collapse:collapse;">
-              <tr style="background:#fce4ec;"><td style="padding:3px 8px;font-weight:700;color:#2e7d32;">Excellent</td><td style="padding:3px 8px;">≤ 81 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#1565c0;">Very Good</td><td style="padding:3px 8px;">82–102 bpm</td></tr>
-              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#e65100;">Good</td><td style="padding:3px 8px;">103–110 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#c62828;">Fair</td><td style="padding:3px 8px;">111–120 bpm</td></tr>
-              <tr style="background:#f5f8fc;"><td style="padding:3px 8px;font-weight:700;color:#880e4f;">Needs Improvement</td><td style="padding:3px 8px;">121–169 bpm</td></tr>
-              <tr><td style="padding:3px 8px;font-weight:700;color:#4a148c;">Poor</td><td style="padding:3px 8px;">≥ 170 bpm</td></tr>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="grid-2-asym">
 
@@ -527,144 +329,6 @@ function updateRubricRef(testType) {
   ).join('');
 }
 
-/* ── Exercise Counter ── */
-let counterCount  = 0;
-let counterSeconds = 0;
-let counterRunning = false;
-let counterInterval = null;
-
-const COUNTER_TYPES = {
-  push_ups:       { label: 'Push-Ups',                           unit: 'reps',    tapMode: true,  manualOnly: true },
-  sit_reach:      { label: 'Sit & Reach',                        unit: 'cm',      tapMode: false },
-  zipper_test:    { label: 'Zipper Test',                        unit: 'seconds', tapMode: false },
-  juggling:       { label: 'Juggling',                           unit: 'reps',    tapMode: true  },
-  sprint_40m:     { label: '40 Meter Sprint',                    unit: 'seconds', tapMode: false },
-  step_test_3min: { label: 'Cardio Endurance — 3-Min Step Test', unit: 'bpm',     tapMode: false, isStepTest: true },
-};
-
-function updateCounterType() {
-  const type = document.getElementById('counterExType').value;
-  const cfg  = COUNTER_TYPES[type] || COUNTER_TYPES['push_ups'];
-  document.getElementById('counterTypeLabel').textContent = cfg.label;
-  document.getElementById('counterUnitLabel').textContent = cfg.unit;
-  const tapBtn    = document.getElementById('tapBtn');
-  const stepPanel = document.getElementById('stepTestPanel');
-  const counterBody = document.getElementById('counterBody');
-
-  if (cfg.manualOnly) {
-    // Push-Ups: hide the entire counter body — manual form entry only
-    counterBody.style.display = 'none';
-    stepPanel.style.display   = 'none';
-    document.getElementById('counterHint').textContent = 'Enter your Push-Up count directly in the form below.';
-    document.getElementById('counterHint').style.display = 'block';
-  } else if (cfg.isStepTest) {
-    counterBody.style.display = '';
-    tapBtn.style.display      = 'none';
-    stepPanel.style.display   = '';
-    document.getElementById('counterHint').textContent = 'Enter your heart rate before and after the 3-minute step test.';
-    document.getElementById('counterNum').textContent  = '—';
-    document.getElementById('counterTimer').textContent = '03:00';
-  } else {
-    counterBody.style.display = '';
-    stepPanel.style.display   = 'none';
-    if (cfg.tapMode) {
-      tapBtn.style.display = 'flex';
-      document.getElementById('counterHint').textContent = 'Press Start, then tap each rep.';
-    } else {
-      tapBtn.style.display = 'none';
-      document.getElementById('counterHint').textContent = 'Press Start to begin timing. Press Pause when done.';
-    }
-  }
-  resetCounter();
-}
-
-function formatTime(s) {
-  const m = Math.floor(s / 60).toString().padStart(2, '0');
-  const sec = (s % 60).toString().padStart(2, '0');
-  return m + ':' + sec;
-}
-
-function startTimer() {
-  if (counterRunning) return;
-  counterRunning = true;
-  document.getElementById('startBtn').disabled = true;
-  document.getElementById('pauseBtn').disabled = false;
-  const tapBtn = document.getElementById('tapBtn');
-  tapBtn.classList.add('running');
-  tapBtn.innerHTML = '👊 Tap to Count Rep';
-  counterInterval = setInterval(() => {
-    counterSeconds++;
-    document.getElementById('counterTimer').textContent = formatTime(counterSeconds);
-    // For timed exercises, update the count display with elapsed seconds
-    const type = document.getElementById('counterExType').value;
-    if (!COUNTER_TYPES[type].tapMode) {
-      counterCount = counterSeconds;
-      document.getElementById('counterNum').textContent = counterCount;
-    }
-  }, 1000);
-}
-
-function pauseTimer() {
-  if (!counterRunning) return;
-  counterRunning = false;
-  clearInterval(counterInterval);
-  document.getElementById('startBtn').disabled = false;
-  document.getElementById('pauseBtn').disabled = true;
-  document.getElementById('tapBtn').classList.remove('running');
-}
-
-function resetCounter() {
-  pauseTimer();
-  counterCount   = 0;
-  counterSeconds = 0;
-  document.getElementById('counterNum').textContent   = '0';
-  document.getElementById('counterTimer').textContent = '00:00';
-  document.getElementById('startBtn').disabled  = false;
-  document.getElementById('pauseBtn').disabled  = true;
-}
-
-function handleTap() {
-  if (!counterRunning) {
-    // Auto-start on first tap
-    startTimer();
-  }
-  const type = document.getElementById('counterExType').value;
-  if (!COUNTER_TYPES[type].tapMode) return;
-  counterCount++;
-  document.getElementById('counterNum').textContent = counterCount;
-  // Pulse animation
-  const btn = document.getElementById('tapBtn');
-  btn.classList.remove('tap-pulse');
-  void btn.offsetWidth; // reflow
-  btn.classList.add('tap-pulse');
-}
-
-function undoRep() {
-  const type = document.getElementById('counterExType').value;
-  if (!COUNTER_TYPES[type].tapMode) return;
-  if (counterCount > 0) {
-    counterCount--;
-    document.getElementById('counterNum').textContent = counterCount;
-  }
-}
-
-function useCounterScore() {
-  const type  = document.getElementById('counterExType').value;
-  const score = counterCount;
-  if (score === 0) { alert('Start the counter first and record some reps or time.'); return; }
-  // Fill in the form fields
-  const testTypeSelect = document.getElementById('testType');
-  testTypeSelect.value = type;
-  testTypeSelect.dispatchEvent(new Event('change'));
-  document.getElementById('scoreInput').value = score;
-  document.getElementById('scoreInput').dispatchEvent(new Event('input'));
-  // Scroll to form
-  document.getElementById('testForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-// Init on load
-document.addEventListener('DOMContentLoaded', updateCounterType);
-
 /* ── Step Test (3-Min) specific functions ── */
 function getStepRating(gender, hrAfter) {
   const v = parseFloat(hrAfter);
@@ -734,17 +398,9 @@ function onTestTypeChange() {
     previewRating();
   } else {
     document.getElementById('rubricRef').innerHTML =
-      'See the Heart Rate rating table in the Exercise Counter above.';
+      'Heart Rate After Activity is used for rating. See the reference table in the form below.';
     document.getElementById('ratingPreview').className = 'rating-preview';
   }
-  // Sync counter widget
-  const counterSelect = document.getElementById('counterExType');
-  if (counterSelect.value !== type) {
-    counterSelect.value = type;
-    updateCounterType();
-  }
-  // Show/hide step test panel in counter
-  document.getElementById('stepTestPanel').style.display = isStep ? '' : 'none';
 }
 
 function prepareStepSubmit() {

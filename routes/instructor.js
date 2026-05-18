@@ -1,6 +1,6 @@
 const express = require('express');
 
-function getRating(testType, gender, value) {
+function getRating(testType, gender, age, value) {
   const v = parseFloat(value);
   const rubrics = {
     push_ups:      {
@@ -15,18 +15,53 @@ function getRating(testType, gender, value) {
   };
   
   if (testType === 'step_test_3min') {
+    const studentAge = age || 18;
     if (gender === 'female') {
-      if (v <= 81)  return 'excellent';
-      if (v <= 102) return 'good';
-      if (v <= 110) return 'fair';
-      if (v <= 120) return 'needs_improvement';
-      return 'poor';
-    } else {
-      if (v <= 76)  return 'excellent';
-      if (v <= 93)  return 'good';
-      if (v <= 100) return 'fair';
-      if (v <= 107) return 'needs_improvement';
-      return 'poor';
+      if (studentAge >= 18 && studentAge <= 25) {
+        if (v <= 81) return 'excellent';
+        if (v <= 102) return 'very_good';
+        if (v <= 110) return 'good';
+        if (v <= 120) return 'fair';
+        if (v <= 169) return 'needs_improvement';
+        return 'poor';
+      } else if (studentAge >= 26 && studentAge <= 35) {
+        if (v <= 80) return 'excellent';
+        if (v <= 101) return 'very_good';
+        if (v <= 110) return 'good';
+        if (v <= 119) return 'fair';
+        if (v <= 171) return 'needs_improvement';
+        return 'poor';
+      } else { // 36 and above
+        if (v <= 84) return 'excellent';
+        if (v <= 104) return 'very_good';
+        if (v <= 112) return 'good';
+        if (v <= 120) return 'fair';
+        if (v <= 169) return 'needs_improvement';
+        return 'poor';
+      }
+    } else { // male
+      if (studentAge >= 18 && studentAge <= 25) {
+        if (v <= 76) return 'excellent';
+        if (v <= 93) return 'very_good';
+        if (v <= 100) return 'good';
+        if (v <= 107) return 'fair';
+        if (v <= 157) return 'needs_improvement';
+        return 'poor';
+      } else if (studentAge >= 26 && studentAge <= 35) {
+        if (v <= 67) return 'excellent';
+        if (v <= 94) return 'very_good';
+        if (v <= 102) return 'good';
+        if (v <= 110) return 'fair';
+        if (v <= 161) return 'needs_improvement';
+        return 'poor';
+      } else { // 36 and above
+        if (v <= 76) return 'excellent';
+        if (v <= 88) return 'very_good';
+        if (v <= 105) return 'good';
+        if (v <= 133) return 'fair';
+        if (v <= 163) return 'needs_improvement';
+        return 'poor';
+      }
     }
   }
   const table = rubrics[testType]?.[gender];
@@ -130,7 +165,7 @@ module.exports = function(supabaseAdmin) {
   router.post('/edit-student', async (req, res) => {
     const {
       user_id, name, student_id, email,
-      section, course, year_level, gender, pathfit_level,
+      section, course, year_level, gender, pathfit_level, age,
     } = req.body;
 
     if (!user_id || !name || !email) {
@@ -144,10 +179,11 @@ module.exports = function(supabaseAdmin) {
           name:          name.trim(),
           student_id:    student_id ? student_id.trim() : null,
           email:         email.trim(),
-          section:       section   || null,
-          course:        course    || null,
+          section:       section       || null,
+          course:        course        || null,
           year_level:    year_level    ? parseInt(year_level)    : null,
-          gender:        gender    || null,
+          gender:        gender        || null,
+          age:           age           ? parseInt(age)           : null,
           pathfit_level: pathfit_level ? parseInt(pathfit_level) : null,
         })
         .eq('user_id', user_id);
@@ -228,7 +264,9 @@ module.exports = function(supabaseAdmin) {
       return res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&error=Please fill in all fields.`);
     }
 
-    const rating = getRating(test_type, student_gender, parseFloat(reps_or_cm));
+    const { data: stProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', target_student_id).single();
+    const age = stProfile ? stProfile.age : null;
+    const rating = getRating(test_type, student_gender, age, parseFloat(reps_or_cm));
 
     try {
       await supabaseAdmin.from('fitness_tests').insert({
