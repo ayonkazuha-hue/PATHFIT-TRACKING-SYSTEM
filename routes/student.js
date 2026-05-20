@@ -66,8 +66,8 @@ module.exports = function(supabaseAdmin) {
       const v = parseFloat(value);
       const rubrics = {
         push_ups:    {
-          male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
-          female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement']],
+          male:   [[30,'excellent'],[20,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
+          female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
         },
         sit_reach:   { male: [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],  female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']] },
         zipper_test: { male: [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']], female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']] },

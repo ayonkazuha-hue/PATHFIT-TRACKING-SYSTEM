@@ -18,9 +18,11 @@
 }
 .rating-preview.show { display: flex; }
 .rating-excellent        { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+.rating-very_good        { background:#e1f5fe; color:#0277bd; border-color:#81d4fa; }
 .rating-good             { background:#e3f2fd; color:#1565c0; border-color:#90caf9; }
 .rating-fair             { background:#fff3e0; color:#e65100; border-color:#ffcc80; }
 .rating-needs_improvement{ background:#ffebee; color:#c62828; border-color:#ef9a9a; }
+.rating-poor             { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
 </style>
 
 <!-- jsPDF + AutoTable -->
@@ -190,8 +192,8 @@ const RUBRICS = {
   push_ups: {
     // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
     // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
-    male:   [[30,'excellent'],[20,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement'],[0,'needs_improvement']],
-    female: [[20,'excellent'],[15,'good'],[10,'fair'],[5,'needs_improvement'],[1,'needs_improvement'],[0,'needs_improvement']],
+    male:   [[30,'excellent'],[20,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
+    female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
   },
   sit_reach: {
     male:   [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],
@@ -222,12 +224,14 @@ const RUBRIC_LABELS = {
 };
 
 const RATING_NAMES  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
-const RATING_KEYS   = ['excellent','good','fair','needs_improvement'];
+const RATING_KEYS   = ['excellent','very_good','good','fair','needs_improvement','poor'];
 const RATING_COLORS_CSS = {
   excellent:         'rating-excellent',
+  very_good:         'rating-very_good',
   good:              'rating-good',
   fair:              'rating-fair',
   needs_improvement: 'rating-needs_improvement',
+  poor:              'rating-poor',
 };
 
 function updateRubricRef(testType) {
@@ -292,7 +296,7 @@ function previewRating() {
   const rating = getRating(testType, STUDENT_GENDER, score);
   if (!rating) { preview.className = 'rating-preview'; return; }
 
-  const ratingLabels = { excellent:'Excellent ⭐', good:'Good 👍', fair:'Fair 📊', needs_improvement:'Needs Improvement 💪' };
+  const ratingLabels = { excellent:'Excellent ⭐', very_good:'Very Good 👍', good:'Good 📊', fair:'Fair 💪', needs_improvement:'Needs Improvement ⚠️', poor:'Poor 👎' };
   preview.textContent = 'Estimated Rating: ' + (ratingLabels[rating] || rating);
   preview.className   = 'rating-preview show ' + RATING_COLORS_CSS[rating];
 }
