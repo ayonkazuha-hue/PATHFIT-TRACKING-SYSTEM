@@ -13,16 +13,37 @@
   </div>
 
   <div class="week-grid">
+    <% 
+      const currIdx = plans.findIndex(p => p.objectives === 'CURRENT');
+      const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
+    %>
     <% plans.forEach((plan, i) => { %>
-    <div class="week-card <%= i===0?'current':'' %>" id="card-<%= plan.plan_id %>">
-      <div class="week-tag">Week <%= plan.week_number %><% if(i===0){ %><span class="current-badge">Current</span><% } %></div>
+    <div class="week-card <%= i===currentWeekIndex?'current':'' %>" id="card-<%= plan.plan_id %>">
+      <div class="week-tag">
+        Week <%= plan.week_number %>
+        <% if(i===currentWeekIndex){ %><span class="current-badge">Current</span><% } %>
+      </div>
       <h4><%= plan.topic %></h4>
-      <p>📋 <%= plan.activity %></p>
-      <p style="font-style:italic;color:#777;font-size:.8rem;">🎯 <%= plan.objectives %></p>
-      <button class="btn btn-sm btn-outline" style="margin-top:10px;" onclick="toggleEdit('<%= plan.plan_id %>')">✏ Edit</button>
+      <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
+        <div style="margin: 10px 0;">
+          <a href="<%= plan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0;">📄 View / Download Module</a>
+        </div>
+      <% } else { %>
+        <p style="font-style:italic;color:#777;font-size:.8rem;">No module uploaded yet.</p>
+      <% } %>
+      <div style="margin-top: 10px; display: flex; gap: 8px;">
+        <button class="btn btn-sm btn-outline" onclick="toggleEdit('<%= plan.plan_id %>')">✏ Edit</button>
+        <% if (i !== currentWeekIndex) { %>
+          <form method="POST" action="/instructor/lesson-plans/set-current" style="display:inline;">
+            <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
+            <input type="hidden" name="level" value="<%= level %>">
+            <button type="submit" class="btn btn-sm" style="background-color: #27ae60; color: white; border: none;">📍 Set as Current Week</button>
+          </form>
+        <% } %>
+      </div>
 
       <div id="edit-<%= plan.plan_id %>" style="display:none;margin-top:12px;border-top:1px solid #e8ecf0;padding-top:12px;">
-        <form method="POST" action="/instructor/lesson-plans">
+        <form method="POST" action="/instructor/lesson-plans" enctype="multipart/form-data">
           <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
           <input type="hidden" name="level" value="<%= level %>">
           <div class="form-group">
@@ -30,12 +51,9 @@
             <input type="text" name="topic" value="<%= plan.topic %>" required style="font-size:.82rem;padding:7px 10px;">
           </div>
           <div class="form-group">
-            <label style="font-size:.78rem;">Activity</label>
-            <textarea name="activity" style="min-height:55px;font-size:.82rem;padding:7px 10px;"><%= plan.activity %></textarea>
-          </div>
-          <div class="form-group">
-            <label style="font-size:.78rem;">Objectives</label>
-            <textarea name="objectives" style="min-height:55px;font-size:.82rem;padding:7px 10px;"><%= plan.objectives %></textarea>
+            <label style="font-size:.78rem;">Upload Module (PDF, DOCX, etc.)</label>
+            <input type="file" name="module_file" accept=".pdf,.doc,.docx,.ppt,.pptx" style="font-size:.82rem;padding:7px 10px;">
+            <small style="color:#666; display:block; margin-top:4px;">Uploading a new file will replace the current module.</small>
           </div>
           <button type="submit" class="btn btn-sm">Save Changes</button>
         </form>

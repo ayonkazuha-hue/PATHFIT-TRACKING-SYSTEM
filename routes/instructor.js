@@ -1,4 +1,17 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'public/uploads/modules');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 function getRating(testType, gender, age, value) {
   const v = parseFloat(value);
@@ -307,13 +320,40 @@ module.exports = function(supabaseAdmin) {
   });
 
   // POST /instructor/lesson-plans
-  router.post('/lesson-plans', async (req, res) => {
-    const { plan_id, topic, activity, objectives, level } = req.body;
+  router.post('/lesson-plans', upload.single('module_file'), async (req, res) => {
+    const { plan_id, topic, level } = req.body;
     try {
+      const updateData = { topic };
+      
+      if (req.file) {
+        // Save the file path in the activity field
+        updateData.activity = '/uploads/modules/' + req.file.filename;
+      }
+      
       await supabaseAdmin.from('lesson_plans')
-        .update({ topic, activity, objectives })
+        .update(updateData)
         .eq('plan_id', plan_id);
       res.redirect(`/instructor/lesson-plans?level=${level}&success=Lesson plan updated.`);
+    } catch (err) {
+      res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
+    }
+  });
+
+  // POST /instructor/lesson-plans/set-current
+  router.post('/lesson-plans/set-current', async (req, res) => {
+    const { plan_id, level } = req.body;
+    try {
+      // Clear current flag for all plans in this level
+      await supabaseAdmin.from('lesson_plans')
+        .update({ objectives: '' })
+        .eq('pathfit_level', level);
+        
+      // Set current flag for the selected plan
+      await supabaseAdmin.from('lesson_plans')
+        .update({ objectives: 'CURRENT' })
+        .eq('plan_id', plan_id);
+        
+      res.redirect(`/instructor/lesson-plans?level=${level}&success=Current week updated.`);
     } catch (err) {
       res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
     }

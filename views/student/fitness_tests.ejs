@@ -432,7 +432,10 @@ function onTestTypeChange() {
   const scoreInput = document.getElementById('scoreInput');
   const scoreLabel = document.getElementById('scoreLabel');
   
-  if (type === 'sit_reach' || type === 'zipper_test' || type === 'stick_drop') {
+  if (type === 'zipper_test') {
+    scoreLabel.innerHTML = 'Your Score (cm) <small style="font-weight:normal;color:#666;">(Use minus "-" for gaps)</small> *';
+    scoreInput.placeholder = 'e.g. 5.5 or -1.5';
+  } else if (type === 'sit_reach' || type === 'stick_drop') {
     scoreLabel.innerHTML = 'Your Score (cm) *';
     scoreInput.placeholder = 'e.g. 15.5';
   } else if (type === 'push_ups' || type === 'juggling') {

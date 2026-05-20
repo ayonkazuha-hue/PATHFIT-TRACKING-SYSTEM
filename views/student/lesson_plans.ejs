@@ -10,15 +10,26 @@
   </div>
 
   <div class="week-grid">
+    <% 
+      const currIdx = plans.findIndex(p => p.objectives === 'CURRENT');
+      const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
+    %>
     <% plans.forEach((plan, i) => { %>
-    <div class="week-card <%= i===0?'current':'' %>">
+    <div class="week-card <%= i===currentWeekIndex?'current':'' %>">
       <div class="week-tag">
         Week <%= plan.week_number %>
-        <% if(i===0){ %><span class="current-badge">Current</span><% } %>
+        <% if(i===currentWeekIndex){ %><span class="current-badge">Current</span><% } %>
       </div>
       <h4><%= plan.topic %></h4>
-      <p>📋 <%= plan.activity %></p>
-      <p class="objectives" style="font-style:italic;color:#777;">🎯 <%= plan.objectives %></p>
+      <% if (i > currentWeekIndex) { %>
+        <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">🔒 This module is currently locked.</p>
+      <% } else if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
+        <div style="margin: 15px 0;">
+          <a href="<%= plan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0; text-decoration: none; display: inline-block;">📄 Download Module</a>
+        </div>
+      <% } else { %>
+        <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">No module uploaded yet.</p>
+      <% } %>
     </div>
     <% }) %>
   </div>
