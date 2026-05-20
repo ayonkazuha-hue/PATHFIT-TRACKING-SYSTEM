@@ -54,7 +54,7 @@
             <option value="">— Select Test —</option>
             <option value="push_ups">Push-Ups (reps)</option>
             <option value="sit_reach">Sit & Reach (cm)</option>
-            <option value="zipper_test">Zipper Test (bpm)</option>
+            <option value="zipper_test">Zipper Test (cm)</option>
             <option value="juggling">Juggling (reps)</option>
             <option value="sprint_40m">40 Meter Sprint (seconds)</option>
             <option value="step_test_3min">Cardiovascular Endurance — 3-Min Step Test</option>
@@ -74,7 +74,7 @@
         <div class="form-group" id="scoreGroup">
           <label id="scoreLabel">Your Score *</label>
           <input type="number" name="reps_or_cm" id="scoreInput"
-                 step="0.01" min="0" placeholder="e.g. 25"
+                 step="0.01" placeholder="e.g. 25"
                  oninput="previewRating()">
           <div class="rating-preview" id="ratingPreview"></div>
         </div>
@@ -131,7 +131,7 @@
             <% const labels = {
                  push_ups:       'Push-Ups',
                  sit_reach:      'Sit & Reach (cm)',
-                 zipper_test:    'Zipper Test (bpm)',
+                 zipper_test:    'Zipper Test (cm)',
                  juggling:       'Juggling',
                  sprint_40m:     '40 Meter Sprint (sec)',
                  step_test_3min: 'Cardio Endurance — 3-Min Step Test'
@@ -186,6 +186,7 @@
 <!-- Embed data for JS -->
 <script>
 const STUDENT_GENDER = '<%= gender %>';
+const STUDENT_AGE = parseInt('<%= age %>') || 18;
 
 /* ── Rubric data (mirrors server-side getRating) ── */
 const RUBRICS = {
@@ -196,31 +197,30 @@ const RUBRICS = {
     female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
   },
   sit_reach: {
-    male:   [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],
-    female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']],
+    male:   [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']],
+    female: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']],
   },
   zipper_test: {
-    male:   [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']],
-    female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']],
-    lowerIsBetter: true,
+    male:   [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']],
+    female: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']],
   },
   juggling: {
-    male:   [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']],
-    female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']],
+    male:   [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']],
+    female: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']],
   },
   sprint_40m: {
-    male:   [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']],
-    female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']],
+    male:   [[0,'excellent'],[4.1,'very_good'],[5.5,'good'],[6.6,'fair'],[7.6,'needs_improvement']],
+    female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']],
     lowerIsBetter: true,
   },
 };
 
 const RUBRIC_LABELS = {
   push_ups:    { unit:'reps', male:  ['≥ 30','20–29','10–19','5–9','1–4','0'],   female: ['≥ 20','15–19','10–14','5–9','1–4','0'] },
-  sit_reach:   { unit:'cm',   male:  ['≥ 27','17–26','6–16','< 6'],     female: ['≥ 30','21–29','11–20','< 11'] },
-  zipper_test: { unit:'bpm',  male:  ['< 80','80–89','90–99','≥ 100'],  female: ['< 85','85–94','95–104','≥ 105'] },
-  juggling:    { unit:'reps', male:  ['≥ 36','29–35','22–28','< 22'],   female: ['≥ 20','15–19','10–14','< 10'] },
-  sprint_40m:  { unit:'sec',  male:  ['< 6','6–6.9','7–7.9','≥ 8'],    female: ['< 7','7–7.9','8–8.9','≥ 9'] },
+  sit_reach:   { unit:'cm',   male:  ['≥ 61','46–60.9','31–45.9','16–30.9','5–15.9','< 5'], female: ['≥ 61','46–60.9','31–45.9','16–30.9','5–15.9','< 5'] },
+  zipper_test: { unit:'cm',   male:  ['≥ 6','4–5.9','2–3.9','0.1–1.9','0','< 0'], female: ['≥ 6','4–5.9','2–3.9','0.1–1.9','0','< 0'] },
+  juggling:    { unit:'reps', male:  ['≥ 41','31–40','21–30','11–20','1–10','0'], female: ['≥ 41','31–40','21–30','11–20','1–10','0'] },
+  sprint_40m:  { unit:'sec',  male:  ['< 4.1','4.1–5.4','5.5–6.5','6.6–7.5','≥ 7.6','0'],    female: ['< 4.6','4.6–5.9','6.0–7.0','7.1–8.1','≥ 8.2','0'] },
 };
 
 const RATING_NAMES  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
@@ -236,19 +236,6 @@ const RATING_COLORS_CSS = {
 
 function updateRubricRef(testType) {
   const el = document.getElementById('rubricRef');
-  if (testType === 'push_ups') {
-    const g = STUDENT_GENDER || 'male';
-    const arr = RUBRIC_LABELS.push_ups[g];
-    const names  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
-    const colors = ['#2e7d32','#1565c0','#388e3c','#e65100','#c62828','#4a148c'];
-    el.innerHTML = names.map((name, i) =>
-      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
-         <span style="color:${colors[i]};font-weight:600;">${name}</span>
-         <span>${arr[i]} reps</span>
-       </div>`
-    ).join('');
-    return;
-  }
   if (!testType || !RUBRIC_LABELS[testType]) {
     el.innerHTML = 'Select a test type above to see the rating guide.';
     return;
@@ -256,9 +243,17 @@ function updateRubricRef(testType) {
   const r   = RUBRIC_LABELS[testType];
   const g   = STUDENT_GENDER || 'male';
   const arr = r[g] || r['male'];
-  const stdNames  = ['Excellent','Good','Fair','Needs Improvement'];
-  const colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
-  el.innerHTML = stdNames.map((name, i) =>
+  
+  let names, colors;
+  if (arr.length === 6) {
+    names  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
+    colors = ['#2e7d32','#1565c0','#388e3c','#e65100','#c62828','#4a148c'];
+  } else {
+    names  = ['Excellent','Good','Fair','Needs Improvement'];
+    colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
+  }
+
+  el.innerHTML = names.map((name, i) =>
     `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
        <span style="color:${colors[i]};font-weight:600;">${name}</span>
        <span>${arr[i]} ${r.unit}</span>
@@ -273,6 +268,7 @@ function getRating(testType, gender, value) {
   if (!rubric) return null;
   const table = rubric[gender] || rubric['male'];
   if (rubric.lowerIsBetter) {
+    if (testType === 'sprint_40m' && v <= 0) return 'poor';
     const rev = [...table].reverse();
     for (const [threshold, rating] of rev) {
       if (v >= threshold) return rating;
@@ -301,55 +297,71 @@ function previewRating() {
   preview.className   = 'rating-preview show ' + RATING_COLORS_CSS[rating];
 }
 
-function updateRubricRef(testType) {
-  const el = document.getElementById('rubricRef');
-  if (testType === 'push_ups') {
-    const g = STUDENT_GENDER || 'male';
-    const arr = RUBRIC_LABELS.push_ups[g];
-    const names  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
-    const colors = ['#2e7d32','#1565c0','#388e3c','#e65100','#c62828','#4a148c'];
-    el.innerHTML = names.map((name, i) =>
-      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
-         <span style="color:${colors[i]};font-weight:600;">${name}</span>
-         <span>${arr[i]} reps</span>
-       </div>`
-    ).join('');
-    return;
-  }
-  if (!testType || !RUBRIC_LABELS[testType]) {
-    el.innerHTML = 'Select a test type above to see the rating guide.';
-    return;
-  }
-  const r   = RUBRIC_LABELS[testType];
-  const g   = STUDENT_GENDER || 'male';
-  const arr = r[g] || r['male'];
-  const stdNames  = ['Excellent','Good','Fair','Needs Improvement'];
-  const colors = ['#2e7d32','#1565c0','#e65100','#c62828'];
-  el.innerHTML = stdNames.map((name, i) =>
-    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8ecf0;">
-       <span style="color:${colors[i]};font-weight:600;">${name}</span>
-       <span>${arr[i]} ${r.unit}</span>
-     </div>`
-  ).join('');
-}
+
 
 /* ── Step Test (3-Min) specific functions ── */
 function getStepRating(gender, hrAfter) {
   const v = parseFloat(hrAfter);
   if (isNaN(v)) return null;
+  const studentAge = STUDENT_AGE;
+  
+  let key = 'poor';
   if (gender === 'female') {
-    if (v <= 81)  return { key:'excellent',        label:'Excellent ⭐',         css:'rating-excellent' };
-    if (v <= 102) return { key:'good',             label:'Very Good 👍',         css:'rating-good' };
-    if (v <= 110) return { key:'fair',             label:'Good 📊',              css:'rating-fair' };
-    if (v <= 120) return { key:'needs_improvement',label:'Fair 💪',              css:'rating-needs_improvement' };
-    return                { key:'needs_improvement',label:'Needs Improvement ⚠️', css:'rating-needs_improvement' };
-  } else {
-    if (v <= 76)  return { key:'excellent',        label:'Excellent ⭐',         css:'rating-excellent' };
-    if (v <= 93)  return { key:'good',             label:'Very Good 👍',         css:'rating-good' };
-    if (v <= 100) return { key:'fair',             label:'Good 📊',              css:'rating-fair' };
-    if (v <= 107) return { key:'needs_improvement',label:'Fair 💪',              css:'rating-needs_improvement' };
-    return                { key:'needs_improvement',label:'Needs Improvement ⚠️', css:'rating-needs_improvement' };
+    if (studentAge >= 18 && studentAge <= 25) {
+      if (v <= 81) key = 'excellent';
+      else if (v <= 102) key = 'very_good';
+      else if (v <= 110) key = 'good';
+      else if (v <= 120) key = 'fair';
+      else if (v <= 169) key = 'needs_improvement';
+    } else if (studentAge >= 26 && studentAge <= 35) {
+      if (v <= 80) key = 'excellent';
+      else if (v <= 101) key = 'very_good';
+      else if (v <= 110) key = 'good';
+      else if (v <= 119) key = 'fair';
+      else if (v <= 171) key = 'needs_improvement';
+    } else { // 36 and above
+      if (v <= 84) key = 'excellent';
+      else if (v <= 104) key = 'very_good';
+      else if (v <= 112) key = 'good';
+      else if (v <= 120) key = 'fair';
+      else if (v <= 169) key = 'needs_improvement';
+    }
+  } else { // male
+    if (studentAge >= 18 && studentAge <= 25) {
+      if (v <= 76) key = 'excellent';
+      else if (v <= 93) key = 'very_good';
+      else if (v <= 100) key = 'good';
+      else if (v <= 107) key = 'fair';
+      else if (v <= 157) key = 'needs_improvement';
+    } else if (studentAge >= 26 && studentAge <= 35) {
+      if (v <= 67) key = 'excellent';
+      else if (v <= 94) key = 'very_good';
+      else if (v <= 102) key = 'good';
+      else if (v <= 110) key = 'fair';
+      else if (v <= 161) key = 'needs_improvement';
+    } else { // 36 and above
+      if (v <= 76) key = 'excellent';
+      else if (v <= 88) key = 'very_good';
+      else if (v <= 105) key = 'good';
+      else if (v <= 133) key = 'fair';
+      else if (v <= 163) key = 'needs_improvement';
+    }
   }
+  
+  const labels = {
+    excellent: 'Excellent ⭐',
+    very_good: 'Very Good 👍',
+    good: 'Good 📊',
+    fair: 'Fair 💪',
+    needs_improvement: 'Needs Improvement ⚠️',
+    poor: 'Poor 👎'
+  };
+  
+  return {
+    key: key,
+    label: labels[key],
+    css: 'rating-' + key
+  };
 }
 
 function updateStepTestPreview() {
@@ -395,6 +407,22 @@ function onTestTypeChange() {
   document.getElementById('stepFormFields').style.display = isStep ? '' : 'none';
   // Toggle required attributes
   const scoreInput = document.getElementById('scoreInput');
+  const scoreLabel = document.getElementById('scoreLabel');
+  
+  if (type === 'sit_reach' || type === 'zipper_test') {
+    scoreLabel.innerHTML = 'Your Score (cm) *';
+    scoreInput.placeholder = 'e.g. 15.5';
+  } else if (type === 'push_ups' || type === 'juggling') {
+    scoreLabel.innerHTML = 'Your Score (reps) *';
+    scoreInput.placeholder = 'e.g. 25';
+  } else if (type === 'sprint_40m') {
+    scoreLabel.innerHTML = 'Your Score (seconds) *';
+    scoreInput.placeholder = 'e.g. 6.5';
+  } else {
+    scoreLabel.innerHTML = 'Your Score *';
+    scoreInput.placeholder = 'e.g. 25';
+  }
+
   scoreInput.required = !isStep;
   if (isStep) scoreInput.value = '';
   // Update rubric ref
@@ -425,7 +453,7 @@ function prepareStepSubmit() {
 /* ── PDF generation (same as before) ── */
 const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
   num:    i + 1,
-  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (bpm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)', step_test_3min:'Cardio Endurance — 3-Min Step Test' }[t.test_type] || t.test_type,
+  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (cm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)', step_test_3min:'Cardio Endurance — 3-Min Step Test' }[t.test_type] || t.test_type,
   period: t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1),
   score:  t.test_type === 'step_test_3min'
     ? (t.hr_before ? 'Before: ' + t.hr_before + ' / After: ' + t.reps_or_cm + ' bpm' : 'After: ' + t.reps_or_cm + ' bpm')

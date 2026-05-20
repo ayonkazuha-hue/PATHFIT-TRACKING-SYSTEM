@@ -37,12 +37,19 @@ module.exports = function(supabaseAdmin) {
   router.get('/fitness-tests', async (req, res) => {
     const uid    = req.session.user.user_id;
     const gender = req.session.user.gender || '';
+    let age = req.session.user.age;
+    if (age === undefined) {
+      const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).single();
+      age = userProfile ? userProfile.age : null;
+      req.session.user.age = age;
+    }
     try {
       const { data: tests } = await supabaseAdmin
         .from('fitness_tests').select('*').eq('student_id', uid).order('created_at', { ascending: false });
       res.render('student/fitness_tests', {
         tests: tests || [],
         gender,
+        age,
         error:   req.query.error   || null,
         success: req.query.success || null,
       });
@@ -69,10 +76,10 @@ module.exports = function(supabaseAdmin) {
           male:   [[30,'excellent'],[20,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
           female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
         },
-        sit_reach:   { male: [[27,'excellent'],[17,'good'],[6,'fair'],[0,'needs_improvement']],  female: [[30,'excellent'],[21,'good'],[11,'fair'],[0,'needs_improvement']] },
-        zipper_test: { male: [[0,'excellent'],[80,'good'],[90,'fair'],[100,'needs_improvement']], female: [[0,'excellent'],[85,'good'],[95,'fair'],[105,'needs_improvement']] },
-        juggling:    { male: [[36,'excellent'],[29,'good'],[22,'fair'],[0,'needs_improvement']], female: [[20,'excellent'],[15,'good'],[10,'fair'],[0,'needs_improvement']] },
-        sprint_40m:  { male: [[0,'excellent'],[6.0,'good'],[7.0,'fair'],[8.0,'needs_improvement']], female: [[0,'excellent'],[7.0,'good'],[8.0,'fair'],[9.0,'needs_improvement']] },
+        sit_reach:   { male: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']], female: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']] },
+        zipper_test: { male: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']], female: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']] },
+        juggling:    { male: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']], female: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']] },
+        sprint_40m:  { male: [[0,'excellent'],[4.1,'very_good'],[5.5,'good'],[6.6,'fair'],[7.6,'needs_improvement']], female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']] },
       };
       
       if (testType === 'step_test_3min') {
@@ -127,7 +134,8 @@ module.exports = function(supabaseAdmin) {
       }
       const table = rubrics[testType]?.[g];
       if (!table) return 'fair';
-      if (['zipper_test','sprint_40m'].includes(testType)) {
+      if (['sprint_40m'].includes(testType)) {
+        if (v <= 0) return 'poor';
         for (const [threshold, rating] of table.slice().reverse()) {
           if (v >= threshold) return rating;
         }
