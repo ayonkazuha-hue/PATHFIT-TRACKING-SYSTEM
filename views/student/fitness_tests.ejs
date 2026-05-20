@@ -57,6 +57,9 @@
             <option value="zipper_test">Zipper Test (cm)</option>
             <option value="juggling">Juggling (reps)</option>
             <option value="sprint_40m">40 Meter Sprint (seconds)</option>
+            <option value="stork_balance">Stork Balance Test (Seconds)</option>
+            <option value="stick_drop">Stick Drop Test (cm)</option>
+            <option value="agility_test">Agility Test (Seconds)</option>
             <option value="step_test_3min">Cardiovascular Endurance — 3-Min Step Test</option>
           </select>
         </div>
@@ -134,6 +137,9 @@
                  zipper_test:    'Zipper Test (cm)',
                  juggling:       'Juggling',
                  sprint_40m:     '40 Meter Sprint (sec)',
+                 stork_balance:  'Stork Balance Test (Seconds)',
+                 stick_drop:     'Stick Drop Test (cm)',
+                 agility_test:   'Agility Test (Seconds)',
                  step_test_3min: 'Cardio Endurance — 3-Min Step Test'
                }; %>
             <% tests.forEach((t, i) => { %>
@@ -213,6 +219,20 @@ const RUBRICS = {
     female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']],
     lowerIsBetter: true,
   },
+  stork_balance: {
+    male:   [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']],
+    female: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']],
+  },
+  stick_drop: {
+    male:   [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']],
+    female: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']],
+    lowerIsBetter: true,
+  },
+  agility_test: {
+    male:   [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']],
+    female: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']],
+    lowerIsBetter: true,
+  },
 };
 
 const RUBRIC_LABELS = {
@@ -221,6 +241,9 @@ const RUBRIC_LABELS = {
   zipper_test: { unit:'cm',   male:  ['≥ 6','4–5.9','2–3.9','0.1–1.9','0','< 0'], female: ['≥ 6','4–5.9','2–3.9','0.1–1.9','0','< 0'] },
   juggling:    { unit:'reps', male:  ['≥ 41','31–40','21–30','11–20','1–10','0'], female: ['≥ 41','31–40','21–30','11–20','1–10','0'] },
   sprint_40m:  { unit:'sec',  male:  ['< 4.1','4.1–5.4','5.5–6.5','6.6–7.5','≥ 7.6','0'],    female: ['< 4.6','4.6–5.9','6.0–7.0','7.1–8.1','≥ 8.2','0'] },
+  stork_balance:{ unit:'sec', male:  ['≥ 161','121–160','81–120','41–80','21–40','< 21'], female: ['≥ 161','121–160','81–120','41–80','21–40','< 21'] },
+  stick_drop:  { unit:'cm',   male:  ['0–2.4','5.8–10.16','12.7–17.78','20.32–25.4','27.94–30.48','> 30.48 (or Miss)'], female: ['0–2.4','5.8–10.16','12.7–17.78','20.32–25.4','27.94–30.48','> 30.48 (or Miss)'] },
+  agility_test:{ unit:'sec',  male:  ['≤ 5','6–10','11–15','16–20','21–25','> 25'], female: ['≤ 5','6–10','11–15','16–20','21–25','> 25'] },
 };
 
 const RATING_NAMES  = ['Excellent','Very Good','Good','Fair','Needs Improvement','Poor'];
@@ -409,13 +432,13 @@ function onTestTypeChange() {
   const scoreInput = document.getElementById('scoreInput');
   const scoreLabel = document.getElementById('scoreLabel');
   
-  if (type === 'sit_reach' || type === 'zipper_test') {
+  if (type === 'sit_reach' || type === 'zipper_test' || type === 'stick_drop') {
     scoreLabel.innerHTML = 'Your Score (cm) *';
     scoreInput.placeholder = 'e.g. 15.5';
   } else if (type === 'push_ups' || type === 'juggling') {
     scoreLabel.innerHTML = 'Your Score (reps) *';
     scoreInput.placeholder = 'e.g. 25';
-  } else if (type === 'sprint_40m') {
+  } else if (type === 'sprint_40m' || type === 'stork_balance' || type === 'agility_test') {
     scoreLabel.innerHTML = 'Your Score (seconds) *';
     scoreInput.placeholder = 'e.g. 6.5';
   } else {
@@ -453,7 +476,7 @@ function prepareStepSubmit() {
 /* ── PDF generation (same as before) ── */
 const TEST_DATA = <%- JSON.stringify(tests.map((t, i) => ({
   num:    i + 1,
-  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (cm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)', step_test_3min:'Cardio Endurance — 3-Min Step Test' }[t.test_type] || t.test_type,
+  type:   { push_ups:'Push-Ups', sit_reach:'Sit & Reach (cm)', zipper_test:'Zipper Test (cm)', juggling:'Juggling', sprint_40m:'40 Meter Sprint (sec)', stork_balance:'Stork Balance Test (Seconds)', stick_drop:'Stick Drop Test (cm)', agility_test:'Agility Test (Seconds)', step_test_3min:'Cardio Endurance — 3-Min Step Test' }[t.test_type] || t.test_type,
   period: t.test_period.charAt(0).toUpperCase() + t.test_period.slice(1),
   score:  t.test_type === 'step_test_3min'
     ? (t.hr_before ? 'Before: ' + t.hr_before + ' / After: ' + t.reps_or_cm + ' bpm' : 'After: ' + t.reps_or_cm + ' bpm')

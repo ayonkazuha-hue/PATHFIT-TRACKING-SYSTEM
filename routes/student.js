@@ -80,6 +80,9 @@ module.exports = function(supabaseAdmin) {
         zipper_test: { male: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']], female: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']] },
         juggling:    { male: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']], female: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']] },
         sprint_40m:  { male: [[0,'excellent'],[4.1,'very_good'],[5.5,'good'],[6.6,'fair'],[7.6,'needs_improvement']], female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']] },
+        stork_balance: { male: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']], female: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']] },
+        stick_drop:  { male: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']], female: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']] },
+        agility_test: { male: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']], female: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']] },
       };
       
       if (testType === 'step_test_3min') {
@@ -134,8 +137,8 @@ module.exports = function(supabaseAdmin) {
       }
       const table = rubrics[testType]?.[g];
       if (!table) return 'fair';
-      if (['sprint_40m'].includes(testType)) {
-        if (v <= 0) return 'poor';
+      if (['sprint_40m', 'stick_drop', 'agility_test'].includes(testType)) {
+        if (testType === 'sprint_40m' && v <= 0) return 'poor';
         for (const [threshold, rating] of table.slice().reverse()) {
           if (v >= threshold) return rating;
         }
@@ -281,7 +284,7 @@ module.exports = function(supabaseAdmin) {
         .from('fitness_tests').select('*').eq('student_id', uid).order('created_at');
 
       const grouped = {};
-      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','step_test_3min'];
+      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min'];
       testTypes.forEach(t => { grouped[t] = { pre: null, post: null }; });
 
       (tests || []).forEach(t => {
