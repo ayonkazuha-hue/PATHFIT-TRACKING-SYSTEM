@@ -1,9 +1,9 @@
 <%- include('../partials/header', { title: 'Modules' }) %>
 <div class="container">
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">15-Week Modules</div>
-  <div class="page-sub">CHED-aligned PATHFit curriculum for the full semester.</div>
-
+  <% const lessonSubtitle = level === 2 ? 'Path-fit 2 Fitness Training.' : 'Path-fit 1 Movement Competency Training.'; %>
+  <div class="page-title">Weekly Course Outline</div>
+  <div class="page-sub"><%= lessonSubtitle %></div>
 
 
   <div class="week-grid">
@@ -19,10 +19,12 @@
     <% } %>
     <% publishedPlans.forEach((plan) => { %>
     <% const isCurrent = plan.plan_id === currentPlanId; %>
+    <% const isFinished = currentPlanObj && plan.week_number < currentPlanObj.week_number; %>
     <div class="week-card <%= isCurrent ? 'current' : '' %>">
       <div class="week-tag">
         Week <%= plan.week_number %>
         <% if (isCurrent) { %><span class="current-badge">Current</span><% } %>
+        <% if (isFinished) { %><span class="badge" style="background-color: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 8px;">Finished</span><% } %>
       </div>
       <h4><%= plan.topic %></h4>
       <% if (plan.activity && plan.activity.includes('/modules/')) { %>

@@ -1,8 +1,9 @@
 <%- include('../partials/header', { title: 'Modules' }) %>
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">15-Week Modules</div>
-  <div class="page-sub">CHED-aligned PATHFit curriculum. Click "Edit" on any card to update.</div>
+  <% const lessonSubtitle = level === 2 ? 'Path-fit 2 Fitness Training.' : 'Path-fit 1 Movement Competency Training.'; %>
+  <div class="page-title">Weekly Course Outline</div>
+  <div class="page-sub"><%= lessonSubtitle %></div>
 
   <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
   <% if (success) { %><div class="alert alert-success"><%= success %></div><% } %>
