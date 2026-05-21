@@ -336,35 +336,48 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
+  // POST /instructor/lesson-plans/get-upload-url
+  router.post('/lesson-plans/get-upload-url', async (req, res) => {
+    const { filename } = req.body;
+    if (!filename) return res.status(400).json({ error: 'Filename is required' });
+
+    try {
+      const ext = path.extname(filename);
+      const uniqueFilename = `module_file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const storagePath = `modules/${uniqueFilename}`;
+
+      const { data, error } = await supabaseAdmin
+        .storage
+        .from('modules')
+        .createSignedUploadUrl(storagePath);
+
+      if (error) throw error;
+
+      // Also generate the public URL to return so frontend knows what to save
+      const { data: urlData } = supabaseAdmin
+        .storage
+        .from('modules')
+        .getPublicUrl(storagePath);
+
+      res.json({
+        signedUrl: data.signedUrl,
+        path: storagePath,
+        publicUrl: urlData.publicUrl
+      });
+    } catch (err) {
+      console.error('[get-upload-url]', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST /instructor/lesson-plans
-  router.post('/lesson-plans', upload.single('module_file'), async (req, res) => {
-    const { plan_id, topic, level } = req.body;
+  router.post('/lesson-plans', async (req, res) => {
+    const { plan_id, topic, level, activity_url } = req.body;
     try {
       const updateData = { topic };
 
-      if (req.file) {
-        // Upload to Supabase Storage (works on Vercel — no local filesystem needed)
-        const ext = path.extname(req.file.originalname);
-        const filename = `module_file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-        const storagePath = `modules/${filename}`;
-
-        const { error: uploadErr } = await supabaseAdmin
-          .storage
-          .from('modules')
-          .upload(storagePath, req.file.buffer, {
-            contentType: req.file.mimetype,
-            upsert: false,
-          });
-
-        if (uploadErr) throw new Error('File upload failed: ' + uploadErr.message);
-
-        // Get the public URL
-        const { data: urlData } = supabaseAdmin
-          .storage
-          .from('modules')
-          .getPublicUrl(storagePath);
-
-        updateData.activity = urlData.publicUrl;
+      if (activity_url) {
+        updateData.activity = activity_url;
       }
 
       await supabaseAdmin.from('lesson_plans')
@@ -373,7 +386,7 @@ module.exports = function(supabaseAdmin) {
 
       res.redirect(`/instructor/lesson-plans?level=${level}&success=Lesson plan updated.`);
     } catch (err) {
-      console.error('[lesson-plans upload]', err);
+      console.error('[lesson-plans update]', err);
       res.redirect(`/instructor/lesson-plans?level=${level}&error=${encodeURIComponent(err.message)}`);
     }
   });
