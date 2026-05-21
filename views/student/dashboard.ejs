@@ -33,7 +33,7 @@
     <h3><%= currentPlan.topic %></h3>
     <% if (currentPlan.activity && currentPlan.activity.includes('/uploads/modules/')) { %>
       <div style="margin-top: 12px;">
-        <a href="<%= currentPlan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); color: white;">📄 View / Download Module</a>
+        <a href="/student/view-module?file=<%= encodeURIComponent(currentPlan.activity) %>&title=<%= encodeURIComponent(currentPlan.topic) %>" class="btn btn-sm btn-outline" style="background-color: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); color: white;">👁️ View Module</a>
       </div>
     <% } else { %>
       <p style="margin-top: 12px; font-style: italic; opacity: .8;">No module uploaded yet.</p>

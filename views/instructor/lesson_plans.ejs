@@ -1,7 +1,7 @@
-<%- include('../partials/header', { title: 'Lesson Plans' }) %>
+<%- include('../partials/header', { title: 'Modules' }) %>
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">15-Week Lesson Plans</div>
+  <div class="page-title">15-Week Modules</div>
   <div class="page-sub">CHED-aligned PATHFit curriculum. Click "Edit" on any card to update.</div>
 
   <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
@@ -25,8 +25,13 @@
       </div>
       <h4><%= plan.topic %></h4>
       <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
-        <div style="margin: 10px 0;">
+        <div style="margin: 10px 0; display: flex; gap: 8px; align-items: center;">
           <a href="<%= plan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0;">📄 View / Download Module</a>
+          <form method="POST" action="/instructor/lesson-plans/remove-file" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove this module file?');">
+            <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
+            <input type="hidden" name="level" value="<%= level %>">
+            <button type="submit" class="btn btn-sm" style="background-color: #e74c3c; color: white; border: none; padding: 4.5px 8px;" title="Remove File">🗑 Remove</button>
+          </form>
         </div>
       <% } else { %>
         <p style="font-style:italic;color:#777;font-size:.8rem;">No module uploaded yet.</p>

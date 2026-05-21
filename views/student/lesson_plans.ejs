@@ -1,7 +1,7 @@
-<%- include('../partials/header', { title: 'Lesson Plans' }) %>
+<%- include('../partials/header', { title: 'Modules' }) %>
 <div class="container">
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">15-Week Lesson Plans</div>
+  <div class="page-title">15-Week Modules</div>
   <div class="page-sub">CHED-aligned PATHFit curriculum for the full semester.</div>
 
   <div class="level-tabs">
@@ -26,7 +26,7 @@
         <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">🔒 This module is currently locked.</p>
       <% } else if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
         <div style="margin: 15px 0;">
-          <a href="<%= plan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0; text-decoration: none; display: inline-block;">📄 Download Module</a>
+          <a href="/student/view-module?file=<%= encodeURIComponent(plan.activity) %>&title=<%= encodeURIComponent('Week ' + plan.week_number + ': ' + plan.topic) %>" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0; text-decoration: none; display: inline-block;">👁️ View Module</a>
         </div>
       <% } else { %>
         <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">No module uploaded yet.</p>

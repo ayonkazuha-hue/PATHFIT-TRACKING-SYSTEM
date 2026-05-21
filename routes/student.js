@@ -215,6 +215,14 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
+  // GET /student/view-module
+  router.get('/view-module', (req, res) => {
+    const fileUrl = req.query.file;
+    const title = req.query.title || 'Module Document';
+    if (!fileUrl) return res.redirect('/student/dashboard');
+    res.render('student/view_module', { fileUrl, title });
+  });
+
   // GET /student/portfolio
   router.get('/portfolio', async (req, res) => {
     const uid = req.session.user.user_id;

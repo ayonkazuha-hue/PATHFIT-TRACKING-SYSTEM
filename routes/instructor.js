@@ -339,6 +339,19 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
+  // POST /instructor/lesson-plans/remove-file
+  router.post('/lesson-plans/remove-file', async (req, res) => {
+    const { plan_id, level } = req.body;
+    try {
+      await supabaseAdmin.from('lesson_plans')
+        .update({ activity: null })
+        .eq('plan_id', plan_id);
+      res.redirect(`/instructor/lesson-plans?level=${level}&success=Module file removed.`);
+    } catch (err) {
+      res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
+    }
+  });
+
   // POST /instructor/lesson-plans/set-current
   router.post('/lesson-plans/set-current', async (req, res) => {
     const { plan_id, level } = req.body;

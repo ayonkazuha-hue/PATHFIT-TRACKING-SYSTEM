@@ -19,7 +19,7 @@
   <nav>
     <% if (user.role === 'instructor') { %>
       <a href="/instructor/dashboard">Dashboard</a>
-      <a href="/instructor/lesson-plans">Lesson Plans</a>
+      <a href="/instructor/lesson-plans">Modules</a>
       <a href="/instructor/report">Reports</a>
       <a href="/instructor/health-appraisal" style="position:relative;">
         Health Appraisal Record
@@ -184,7 +184,7 @@
     <% } else { %>
       <a href="/student/dashboard">Dashboard</a>
       <a href="/student/fitness-tests">Fitness Tests</a>
-      <a href="/student/lesson-plans">Lesson Plans</a>
+      <a href="/student/lesson-plans">Modules</a>
       <a href="/student/report">My Report</a>
     <% } %>
     <a href="/logout">Logout</a>
