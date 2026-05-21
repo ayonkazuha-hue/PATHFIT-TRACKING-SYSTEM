@@ -59,6 +59,7 @@ CREATE TABLE health_appraisal_record (
   cleared BOOLEAN DEFAULT FALSE,
   cleared_at TIMESTAMPTZ,
   cleared_by UUID REFERENCES users(user_id),
+  photo_url TEXT,
   
   UNIQUE(student_id)
 );

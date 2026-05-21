@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 
 module.exports = function(supabase, supabaseAdmin) {
   const router = express.Router();
@@ -189,6 +190,36 @@ module.exports = function(supabase, supabaseAdmin) {
     res.render('health_screening', { error: null });
   });
 
+  // POST /health-screening/get-upload-url
+  router.post('/health-screening/get-upload-url', async (req, res) => {
+    if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+    const { filename } = req.body;
+    if (!filename) return res.status(400).json({ error: 'Filename is required' });
+
+    try {
+      const ext = path.extname(filename);
+      const uniqueFilename = `health_appraisal_photo-${req.session.user.user_id}-${Date.now()}${ext}`;
+      const storagePath = `health_appraisal_photos/${uniqueFilename}`;
+
+      const { data, error } = await supabaseAdmin
+        .storage
+        .from('modules')
+        .createSignedUploadUrl(storagePath);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabaseAdmin
+        .storage
+        .from('modules')
+        .getPublicUrl(storagePath);
+
+      res.json({ signedUrl: data.signedUrl, path: storagePath, publicUrl: urlData.publicUrl });
+    } catch (err) {
+      console.error('[health-screening get-upload-url]', err);
+      res.status(500).json({ error: err.message || 'Unable to create upload URL' });
+    }
+  });
+
   // POST /health-screening (Health Appraisal Record)
   router.post('/health-screening', async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
@@ -205,17 +236,9 @@ module.exports = function(supabase, supabaseAdmin) {
       q7_regular_exercise, q7_details,
       q8_smoke, q8_details,
       q9_alcohol, q9_details,
+      photo_url,
       certify_correctness
     } = req.body;
-
-    // Validation
-    if (!name || !gender || !age) {
-      return res.render('health_screening', { error: 'Please fill in all required fields (Name, Gender, Age).' });
-    }
-
-    if (!certify_correctness) {
-      return res.render('health_screening', { error: 'You must certify the correctness of your answers.' });
-    }
 
     try {
       // Parse Q3 conditions (checkboxes)
@@ -266,44 +289,90 @@ module.exports = function(supabase, supabaseAdmin) {
         
         q9_alcohol: q9_alcohol === 'yes',
         q9_details: q9_alcohol === 'yes' ? (q9_details || '') : null,
-        
+
         certify_correctness: true,
         cleared: false,
+        cleared_at: null,
+        cleared_by: null,
+        submitted_at: new Date().toISOString(),
       };
 
-      const { error } = await supabaseAdmin.from('health_appraisal_record').insert(insertData);
+      if (photo_url) insertData.photo_url = photo_url;
 
-      if (error) {
-        console.error('[health-screening] insert error:', error);
-        // Check if table doesn't exist
-        if (error.message && error.message.includes('does not exist')) {
-          return res.render('health_screening', {
-            error: 'The Health Appraisal Record table is not set up yet. Please ask your instructor to run the database setup script (add_health_appraisal_record.sql).'
-          });
-        }
-        return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
-      }
-
-      // Get the inserted record ID
-      const { data: insertedRecord } = await supabaseAdmin
+      const { data: existingRecord, error: fetchError } = await supabaseAdmin
         .from('health_appraisal_record')
         .select('record_id')
         .eq('student_id', req.session.user.user_id)
         .single();
 
-      // Create notification for instructor
-      if (insertedRecord?.record_id) {
+      let recordId = null;
+
+      if (fetchError && !fetchError.message.includes('Results contain 0 rows')) {
+        console.error('[health-screening] fetch existing record error:', fetchError);
+        return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
+      }
+
+      async function saveHealthRecord(data, isUpdate) {
+        if (isUpdate) {
+          return await supabaseAdmin
+            .from('health_appraisal_record')
+            .update(data)
+            .eq('student_id', req.session.user.user_id);
+        }
+        return await supabaseAdmin
+          .from('health_appraisal_record')
+          .insert(data)
+          .select('record_id')
+          .single();
+      }
+
+      const attemptSave = async (data, isUpdate) => {
+        const response = await saveHealthRecord(data, isUpdate);
+        if (response.error && data.photo_url && response.error.message && response.error.message.includes('photo_url')) {
+          const fallbackData = { ...data };
+          delete fallbackData.photo_url;
+          return await saveHealthRecord(fallbackData, isUpdate);
+        }
+        return response;
+      };
+
+      if (existingRecord) {
+        const updateData = { ...insertData };
+        const { error: updateError } = await attemptSave(updateData, true);
+
+        if (updateError) {
+          console.error('[health-screening] update error:', updateError);
+          return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
+        }
+
+        recordId = existingRecord.record_id;
+      } else {
+        const { data: insertedRecord, error: insertError } = await attemptSave(insertData, false);
+
+        if (insertError) {
+          console.error('[health-screening] insert error:', insertError);
+          if (insertError.message && insertError.message.includes('does not exist')) {
+            return res.render('health_screening', {
+              error: 'The Health Appraisal Record table is not set up yet. Please ask your instructor to run the database setup script (add_health_appraisal_record.sql).'
+            });
+          }
+          return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
+        }
+
+        recordId = insertedRecord?.record_id;
+      }
+
+      if (recordId) {
         const { error: notifErr } = await supabaseAdmin
           .from('health_appraisal_notifications')
-          .insert({
+          .upsert({
             student_id: req.session.user.user_id,
-            record_id: insertedRecord.record_id,
+            record_id: recordId,
             is_read: false,
-          });
+          }, { onConflict: 'record_id' });
 
         if (notifErr) {
           console.error('[health-appraisal notification]', notifErr.message);
-          // Don't block the student if notification fails
         }
       }
 

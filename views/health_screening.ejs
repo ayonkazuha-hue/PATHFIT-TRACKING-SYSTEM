@@ -89,6 +89,16 @@
             <input type="number" name="age" min="15" max="100" required placeholder="e.g., 20">
           </div>
         </div>
+        <div class="har-row full">
+          <div class="har-field">
+            <label>2x2 Photo Upload</label>
+            <input type="file" id="photoFile" accept="image/png,image/jpeg" style="padding:9px 12px;" />
+            <input type="hidden" name="photo_url" id="photo_url">
+            <div id="photoPreview" style="margin-top:10px;"></div>
+            <small style="color:#666; display:block; margin-top:6px;">Upload a 2x2 photo in JPG or PNG format. Max 5MB.</small>
+            <div id="photoUploadStatus" style="margin-top:8px;color:#555;font-size:.88rem;"></div>
+          </div>
+        </div>
       </div>
 
       <!-- II. Physical Check-up Result -->
@@ -271,13 +281,112 @@ function toggleDetails(questionId) {
   }
 }
 
-// Form validation
-document.getElementById('harForm').addEventListener('submit', function(e) {
+const photoFileInput = document.getElementById('photoFile');
+const photoPreview = document.getElementById('photoPreview');
+const photoStatus = document.getElementById('photoUploadStatus');
+const photoUrlInput = document.getElementById('photo_url');
+const harForm = document.getElementById('harForm');
+let photoUploadInProgress = false;
+let pendingUploadPromise = null;
+
+function updatePhotoStatus(message) {
+  if (photoStatus) photoStatus.textContent = message;
+}
+
+async function uploadHarPhoto(file) {
+  if (!file) throw new Error('No file selected.');
+  if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('Please upload a JPG or PNG photo.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Photo must be 5MB or less.');
+
+  photoUploadInProgress = true;
+  updatePhotoStatus('Uploading photo...');
+
+  const response = await fetch('/health-screening/get-upload-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: file.name })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Unable to get upload URL');
+  }
+
+  const { signedUrl, path } = await response.json();
+  const uploadResponse = await fetch(signedUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type }
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error('Photo upload failed.');
+  }
+
+  photoUrlInput.value = path;
+  photoUploadInProgress = false;
+  updatePhotoStatus('Photo uploaded successfully.');
+  return path;
+}
+
+photoFileInput?.addEventListener('change', function() {
+  const file = this.files[0];
+  photoPreview.innerHTML = '';
+  updatePhotoStatus('');
+  photoUrlInput.value = '';
+
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    updatePhotoStatus('Please select a JPG or PNG image.');
+    this.value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    updatePhotoStatus('Photo must be 5MB or less.');
+    this.value = '';
+    return;
+  }
+
+  const img = document.createElement('img');
+  img.src = URL.createObjectURL(file);
+  img.style.maxHeight = '120px';
+  img.style.borderRadius = '8px';
+  img.style.border = '1px solid #ccc';
+  img.onload = () => URL.revokeObjectURL(img.src);
+  photoPreview.appendChild(img);
+
+  pendingUploadPromise = uploadHarPhoto(file).catch(err => {
+    console.error('Photo upload error:', err);
+    updatePhotoStatus('Upload failed: ' + (err.message || 'Please try again.'));
+    photoUploadInProgress = false;
+  });
+});
+
+harForm?.addEventListener('submit', async function(e) {
   const certifyCheck = document.getElementById('certifyCheck');
   if (!certifyCheck.checked) {
     e.preventDefault();
     alert('Please certify that all information provided is accurate and complete.');
     certifyCheck.focus();
+    return;
+  }
+
+  const file = photoFileInput?.files?.[0];
+  if (!file) return;
+  if (photoUploadInProgress) {
+    e.preventDefault();
+    updatePhotoStatus('Please wait until the photo upload is complete.');
+    return;
+  }
+  if (!photoUrlInput.value) {
+    e.preventDefault();
+    try {
+      await (pendingUploadPromise || uploadHarPhoto(file));
+      harForm.submit();
+    } catch (err) {
+      console.error('Photo upload error during submit:', err);
+      updatePhotoStatus('Upload failed: ' + (err.message || 'Please try again.'));
+    }
   }
 });
 </script>

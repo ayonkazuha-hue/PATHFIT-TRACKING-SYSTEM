@@ -209,6 +209,11 @@ function viewRecord(recordId) {
         '<div class="har-item"><div class="har-lbl">Gender</div><div class="har-val">' + (record.gender||'—') + '</div></div>' +
         '<div class="har-item"><div class="har-lbl">Age</div><div class="har-val">' + (record.age||'—') + '</div></div>' +
       '</div>' +
+      (record.photo_url ?
+        '<div style="margin-top:16px;text-align:center;">' +
+          '<div class="har-ms-title" style="margin-bottom:8px;">Uploaded Photo</div>' +
+          '<img src="' + record.photo_url + '" alt="Student Photo" style="max-width:160px;max-height:160px;border-radius:12px;border:1px solid #cdd5e0;" onerror="this.style.display=\'none\'">' +
+        '</div>' : '') +
     '</div>' +
     '<div class="har-ms">' +
       '<div class="har-ms-title">II. Physical Check-up Result</div>' +

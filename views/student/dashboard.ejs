@@ -16,9 +16,11 @@
       <div class="label">Health Screening</div>
       <div class="value" style="font-size:1rem;margin-top:6px;">
         <% if (screening) { %>
-          <span class="badge" style="background:<%= screening.cleared ? '#2e7d32' : '#f57f17' %>;">
-            <%= screening.cleared ? '✔ Cleared' : '⏳ Pending' %>
-          </span>
+          <% if (screening.cleared) { %>
+            <span class="badge" style="background:#2e7d32;">✔ Cleared</span>
+          <% } else { %>
+            <a href="/health-screening" class="btn btn-sm">Re-submit Health Appraisal</a>
+          <% } %>
         <% } else { %>
           <a href="/health-screening" class="btn btn-sm">Complete Now</a>
         <% } %>

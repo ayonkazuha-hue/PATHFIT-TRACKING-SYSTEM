@@ -507,12 +507,31 @@ module.exports = function(supabaseAdmin) {
       }
 
       const pendingRegistrations        = await getPendingRegistrations();
+
+      const recordsWithSignedPhoto = await Promise.all((screenings || []).map(async (record) => {
+        if (!record.photo_url || record.photo_url.startsWith('http')) {
+          return record;
+        }
+        try {
+          const { data: signedData, error: signedError } = await supabaseAdmin
+            .storage
+            .from('modules')
+            .createSignedUrl(record.photo_url, 60);
+          if (!signedError && signedData?.signedUrl) {
+            return { ...record, photo_url: signedData.signedUrl };
+          }
+        } catch (err) {
+          console.error('[health-appraisal signed photo]', err);
+        }
+        return record;
+      }));
+
       const pendingPasswordResets       = await getPendingPasswordResets();
       const fitnessTestNotifications    = await getFitnessTestNotifications();
       const healthAppraisalNotifications = await getHealthAppraisalNotifications();
 
       res.render('instructor/health_appraisal', {
-        screenings: screenings || [],
+        screenings: recordsWithSignedPhoto,
         pendingRegistrations,
         pendingPasswordResets,
         fitnessTestNotifications,

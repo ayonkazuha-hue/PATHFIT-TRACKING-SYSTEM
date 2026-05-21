@@ -51,6 +51,7 @@ CREATE TABLE health_appraisal_record (
   cleared                  BOOLEAN DEFAULT FALSE,
   cleared_at               TIMESTAMPTZ,
   cleared_by               UUID CONSTRAINT fk_har_cleared_by REFERENCES users(user_id) ON DELETE SET NULL,
+  photo_url                TEXT,
   UNIQUE(student_id)
 );
 
