@@ -31,7 +31,7 @@
   <div class="lesson-banner">
     <div class="week-tag">Week <%= currentPlan.week_number %> · PATHFit <%= level %></div>
     <h3><%= currentPlan.topic %></h3>
-    <% if (currentPlan.activity && currentPlan.activity.includes('/uploads/modules/')) { %>
+    <% if (currentPlan.activity && currentPlan.activity.includes('/modules/')) { %>
       <div style="margin-top: 12px;">
         <a href="/student/view-module?file=<%= encodeURIComponent(currentPlan.activity) %>&title=<%= encodeURIComponent(currentPlan.topic) %>" class="btn btn-sm btn-outline" style="background-color: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); color: white;">👁️ View Module</a>
       </div>

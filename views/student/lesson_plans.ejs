@@ -25,7 +25,7 @@
         <% if (isCurrent) { %><span class="current-badge">Current</span><% } %>
       </div>
       <h4><%= plan.topic %></h4>
-      <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
+      <% if (plan.activity && plan.activity.includes('/modules/')) { %>
         <div style="margin: 15px 0;">
           <a href="/student/view-module?file=<%= encodeURIComponent(plan.activity) %>&title=<%= encodeURIComponent('Week ' + plan.week_number + ': ' + plan.topic) %>" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0; text-decoration: none; display: inline-block;">👁️ View Module</a>
         </div>

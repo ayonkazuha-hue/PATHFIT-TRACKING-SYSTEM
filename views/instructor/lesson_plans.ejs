@@ -26,7 +26,7 @@
         <% } %>
       </div>
       <h4><%= plan.topic %></h4>
-      <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
+      <% if (plan.activity && plan.activity.includes('/modules/')) { %>
         <div style="margin: 10px 0; display: flex; gap: 8px; align-items: center;">
           <a href="<%= plan.activity %>" target="_blank" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0;">📄 View / Download Module</a>
           <form method="POST" action="/instructor/lesson-plans/remove-file" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove this module file?');">
