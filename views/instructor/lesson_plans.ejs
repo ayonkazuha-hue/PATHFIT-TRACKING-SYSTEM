@@ -13,15 +13,17 @@
   </div>
 
   <div class="week-grid">
-    <% 
-      const currIdx = plans.findIndex(p => (p.objectives || '').includes('CURRENT'));
-      const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
-    %>
     <% plans.forEach((plan, i) => { %>
-    <div class="week-card <%= i===currentWeekIndex?'current':'' %>" id="card-<%= plan.plan_id %>">
+    <% const isCurrent = (plan.objectives || '').includes('CURRENT'); %>
+    <div class="week-card <%= isCurrent ? 'current' : '' %>" id="card-<%= plan.plan_id %>">
       <div class="week-tag">
         Week <%= plan.week_number %>
-        <% if(i===currentWeekIndex){ %><span class="current-badge">Current</span><% } %>
+        <% if (isCurrent) { %>
+          <span class="current-badge">Current Week</span>
+        <% } %>
+        <% if ((plan.objectives || '').includes('PUBLISHED')) { %>
+          <span class="badge" style="background-color: #27ae60; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: <%= isCurrent ? '4px' : '8px' %>;">Visible to Students</span>
+        <% } %>
       </div>
       <h4><%= plan.topic %></h4>
       <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
@@ -38,22 +40,22 @@
       <% } %>
       <div style="margin-top: 10px; display: flex; gap: 8px;">
         <button class="btn btn-sm btn-outline" onclick="toggleEdit('<%= plan.plan_id %>')">✏ Edit</button>
-        <% if (i !== currentWeekIndex) { %>
+        <form method="POST" action="/instructor/lesson-plans/toggle-publish" style="display:inline;">
+          <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
+          <input type="hidden" name="level" value="<%= level %>">
+          <% const isPublished = (plan.objectives || '').includes('PUBLISHED'); %>
+          <input type="hidden" name="action" value="<%= isPublished ? 'unpublish' : 'publish' %>">
+          <button type="submit" class="btn btn-sm" style="background-color: <%= isPublished ? '#27ae60' : '#bdc3c7' %>; color: <%= isPublished ? 'white' : '#333' %>; border: none;" title="Toggle Visibility">
+            <%= isPublished ? '👁️ Published' : '🙈 Hidden' %>
+          </button>
+        </form>
+        <% if (!isCurrent) { %>
           <form method="POST" action="/instructor/lesson-plans/set-current" style="display:inline;">
             <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
             <input type="hidden" name="level" value="<%= level %>">
-            <button type="submit" class="btn btn-sm" style="background-color: #27ae60; color: white; border: none;">📍 Set as Current Week</button>
+            <button type="submit" class="btn btn-sm" style="background-color: #3498db; color: white; border: none;" title="Make this the current week">📍 Set as Current</button>
           </form>
         <% } %>
-        <form method="POST" action="/instructor/lesson-plans/toggle-hide" style="display:inline;">
-          <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
-          <input type="hidden" name="level" value="<%= level %>">
-          <% const isHidden = (plan.objectives || '').includes('HIDDEN'); %>
-          <input type="hidden" name="action" value="<%= isHidden ? 'show' : 'hide' %>">
-          <button type="submit" class="btn btn-sm" style="background-color: <%= isHidden ? '#7f8c8d' : '#f39c12' %>; color: white; border: none;" title="Toggle visibility for students">
-            <%= isHidden ? '👁️ Show' : '🙈 Hide' %>
-          </button>
-        </form>
       </div>
 
       <div id="edit-<%= plan.plan_id %>" style="display:none;margin-top:12px;border-top:1px solid #e8ecf0;padding-top:12px;">

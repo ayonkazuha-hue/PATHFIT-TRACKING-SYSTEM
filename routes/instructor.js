@@ -352,53 +352,44 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
-  // POST /instructor/lesson-plans/set-current
-  router.post('/lesson-plans/set-current', async (req, res) => {
-    const { plan_id, level } = req.body;
+  // POST /instructor/lesson-plans/toggle-publish
+  router.post('/lesson-plans/toggle-publish', async (req, res) => {
+    const { plan_id, level, action } = req.body;
     try {
-      // Get all plans in this level
-      const { data: plans } = await supabaseAdmin.from('lesson_plans').select('plan_id, objectives').eq('pathfit_level', level);
+      const { data: plan } = await supabaseAdmin.from('lesson_plans').select('objectives').eq('plan_id', plan_id).single();
+      if (!plan) throw new Error('Lesson plan not found');
+
+      let flags = (plan.objectives || '').split(',').map(s => s.trim()).filter(Boolean);
       
-      // Update each plan
-      for (const plan of plans) {
-        let newObjs = plan.objectives || '';
-        const wasCurrent = newObjs.includes('CURRENT');
-        const isTarget = plan.plan_id === plan_id;
-
-        if (isTarget && !wasCurrent) {
-          newObjs = newObjs ? newObjs + ',CURRENT' : 'CURRENT';
-        } else if (!isTarget && wasCurrent) {
-          newObjs = newObjs.replace(',CURRENT', '').replace('CURRENT,', '').replace('CURRENT', '');
-        }
-
-        if (newObjs !== (plan.objectives || '')) {
-          await supabaseAdmin.from('lesson_plans')
-            .update({ objectives: newObjs })
-            .eq('plan_id', plan.plan_id);
-        }
+      if (action === 'publish') {
+        if (!flags.includes('PUBLISHED')) flags.push('PUBLISHED');
+      } else {
+        flags = flags.filter(f => f !== 'PUBLISHED');
       }
-        
-      res.redirect(`/instructor/lesson-plans?level=${level}&success=Current week updated.`);
+
+      await supabaseAdmin.from('lesson_plans').update({ objectives: flags.join(',') }).eq('plan_id', plan_id);
+      res.redirect(`/instructor/lesson-plans?level=${level}&success=Module visibility updated.`);
     } catch (err) {
       res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
     }
   });
 
-  // POST /instructor/lesson-plans/toggle-hide
-  router.post('/lesson-plans/toggle-hide', async (req, res) => {
-    const { plan_id, level, action } = req.body;
+  // POST /instructor/lesson-plans/set-current
+  router.post('/lesson-plans/set-current', async (req, res) => {
+    const { plan_id, level } = req.body;
     try {
-      const { data: plan } = await supabaseAdmin.from('lesson_plans').select('objectives').eq('plan_id', plan_id).single();
-      let objs = plan.objectives || '';
-      
-      if (action === 'hide') {
-        if (!objs.includes('HIDDEN')) objs = objs ? objs + ',HIDDEN' : 'HIDDEN';
-      } else {
-        objs = objs.replace(',HIDDEN', '').replace('HIDDEN,', '').replace('HIDDEN', '');
+      const { data: plans } = await supabaseAdmin.from('lesson_plans').select('plan_id, objectives').eq('pathfit_level', level);
+      for (const plan of plans) {
+        let flags = (plan.objectives || '').split(',').map(s => s.trim()).filter(Boolean);
+        flags = flags.filter(f => f !== 'CURRENT');
+        if (plan.plan_id == plan_id) {
+          flags.push('CURRENT');
+          // Automatically publish if made current
+          if (!flags.includes('PUBLISHED')) flags.push('PUBLISHED');
+        }
+        await supabaseAdmin.from('lesson_plans').update({ objectives: flags.join(',') }).eq('plan_id', plan.plan_id);
       }
-
-      await supabaseAdmin.from('lesson_plans').update({ objectives: objs }).eq('plan_id', plan_id);
-      res.redirect(`/instructor/lesson-plans?level=${level}&success=Lesson plan visibility updated.`);
+      res.redirect(`/instructor/lesson-plans?level=${level}&success=Current module updated.`);
     } catch (err) {
       res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
     }

@@ -19,7 +19,8 @@ module.exports = function(supabaseAdmin) {
       const plans       = lpRes.data   || [];
       const screening   = hsRes.data;
 
-      const currentPlan = plans.find(p => (p.objectives || '').includes('CURRENT') && !(p.objectives || '').includes('HIDDEN')) || null;
+      const publishedPlans = plans.filter(p => (p.objectives || '').includes('PUBLISHED'));
+      const currentPlan = publishedPlans.find(p => (p.objectives || '').includes('CURRENT')) || null;
 
       res.render('student/dashboard', {
         tests, screening,

@@ -11,20 +11,24 @@
 
   <div class="week-grid">
     <% 
-      const currIdx = plans.findIndex(p => p.objectives === 'CURRENT');
-      const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
+      const publishedPlans = plans.filter(p => (p.objectives || '').includes('PUBLISHED'));
+      const currentPlanObj = publishedPlans.find(p => (p.objectives || '').includes('CURRENT'));
+      const currentPlanId = currentPlanObj ? currentPlanObj.plan_id : null;
     %>
-    <% plans.forEach((plan, i) => { %>
-    <% if (!(plan.objectives || '').includes('HIDDEN')) { %>
-    <div class="week-card <%= i===currentWeekIndex?'current':'' %>">
+    <% if (publishedPlans.length === 0) { %>
+      <div style="text-align:center; padding: 40px; color: #777; background: #fff; border-radius: 8px; border: 1px dashed #ccc;">
+        No modules have been published yet.
+      </div>
+    <% } %>
+    <% publishedPlans.forEach((plan) => { %>
+    <% const isCurrent = plan.plan_id === currentPlanId; %>
+    <div class="week-card <%= isCurrent ? 'current' : '' %>">
       <div class="week-tag">
         Week <%= plan.week_number %>
-        <% if(i===currentWeekIndex){ %><span class="current-badge">Current</span><% } %>
+        <% if (isCurrent) { %><span class="current-badge">Current</span><% } %>
       </div>
       <h4><%= plan.topic %></h4>
-      <% if (i > currentWeekIndex) { %>
-        <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">🔒 This module is currently locked.</p>
-      <% } else if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
+      <% if (plan.activity && plan.activity.includes('/uploads/modules/')) { %>
         <div style="margin: 15px 0;">
           <a href="/student/view-module?file=<%= encodeURIComponent(plan.activity) %>&title=<%= encodeURIComponent('Week ' + plan.week_number + ': ' + plan.topic) %>" class="btn btn-sm btn-outline" style="background-color: #f0f4f8; border-color: #d1d9e0; text-decoration: none; display: inline-block;">👁️ View Module</a>
         </div>
@@ -32,7 +36,6 @@
         <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">No module uploaded yet.</p>
       <% } %>
     </div>
-    <% } %>
     <% }) %>
   </div>
 </div>
