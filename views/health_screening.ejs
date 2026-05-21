@@ -128,8 +128,12 @@
             <input type="text" name="ideal_weight" placeholder="e.g., Normal">
           </div>
           <div class="har-field">
+            <label>BMI Value</label>
+            <input type="number" step="0.1" name="bmi_value" id="bmi_value" placeholder="e.g., 22.5">
+          </div>
+          <div class="har-field">
             <label>BMI Classification</label>
-            <input type="text" name="bmi_classification" placeholder="e.g., Normal">
+            <input type="text" name="bmi_classification" id="bmi_classification" placeholder="e.g., Normal" readonly>
           </div>
         </div>
       </div>
@@ -389,6 +393,35 @@ harForm?.addEventListener('submit', async function(e) {
     }
   }
 });
+</script>
+
+<script>
+// BMI classification helper
+function classifyBMIValue(bmi) {
+  if (bmi === null || bmi === undefined || bmi === '') return '';
+  const v = parseFloat(bmi);
+  if (Number.isNaN(v)) return '';
+  if (v < 18.5) return 'Underweight';
+  if (v >= 18.5 && v <= 24.9) return 'Normal';
+  if (v >= 25 && v <= 29.9) return 'Overweight';
+  if (v >= 30 && v <= 34.9) return 'Obese';
+  if (v >= 35 && v <= 39.9) return 'Severely Obese';
+  return 'Morbidly Obese';
+}
+
+const bmiValueInput = document.getElementById('bmi_value');
+const bmiClassInput = document.getElementById('bmi_classification');
+if (bmiValueInput && bmiClassInput) {
+  bmiValueInput.addEventListener('input', function() {
+    const val = this.value;
+    const cls = classifyBMIValue(val);
+    bmiClassInput.value = cls;
+  });
+  // populate on load if value exists
+  if (bmiValueInput.value) {
+    bmiClassInput.value = classifyBMIValue(bmiValueInput.value);
+  }
+}
 </script>
 
 <%- include('partials/footer') %>

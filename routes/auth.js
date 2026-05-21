@@ -213,7 +213,7 @@ module.exports = function(supabase, supabaseAdmin) {
         .from('modules')
         .getPublicUrl(storagePath);
 
-      res.json({ signedUrl: data.signedUrl, path: storagePath, publicUrl: urlData.publicUrl });
+      res.json({ signedUrl: data.signedUrl, publicUrl: urlData.publicUrl });
     } catch (err) {
       console.error('[health-screening get-upload-url]', err);
       res.status(500).json({ error: err.message || 'Unable to create upload URL' });
@@ -226,7 +226,7 @@ module.exports = function(supabase, supabaseAdmin) {
     
     const {
       name, gender, age,
-      height_kg, weight_cm, resting_pulse_rate, waistline_inches, ideal_weight, bmi_classification,
+      height_kg, weight_cm, resting_pulse_rate, waistline_inches, ideal_weight, bmi_value, bmi_classification,
       q1_hospitalization, q1_details,
       q2_injury, q2_details,
       q3_diagnosed, q3_conditions,
@@ -298,6 +298,23 @@ module.exports = function(supabase, supabaseAdmin) {
       };
 
       if (photo_url) insertData.photo_url = photo_url;
+
+      // Compute BMI classification server-side if a numeric BMI value was provided
+      let finalBmiClass = null;
+      if (typeof bmi_value !== 'undefined' && bmi_value !== null && String(bmi_value).trim() !== '') {
+        const v = parseFloat(bmi_value);
+        if (!Number.isNaN(v)) {
+          if (v < 18.5) finalBmiClass = 'Underweight';
+          else if (v >= 18.5 && v <= 24.9) finalBmiClass = 'Normal';
+          else if (v >= 25 && v <= 29.9) finalBmiClass = 'Overweight';
+          else if (v >= 30 && v <= 34.9) finalBmiClass = 'Obese';
+          else if (v >= 35 && v <= 39.9) finalBmiClass = 'Severely Obese';
+          else finalBmiClass = 'Morbidly Obese';
+        }
+      }
+      // Fallback to provided classification text if no numeric value
+      if (!finalBmiClass && bmi_classification) finalBmiClass = bmi_classification;
+      if (finalBmiClass) insertData.bmi_classification = finalBmiClass;
 
       const { data: existingRecord, error: fetchError } = await supabaseAdmin
         .from('health_appraisal_record')
