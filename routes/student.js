@@ -11,7 +11,7 @@ module.exports = function(supabaseAdmin) {
     try {
       const [ftRes, lpRes, hsRes] = await Promise.all([
         supabaseAdmin.from('fitness_tests').select('*').eq('student_id', uid).order('created_at', { ascending: false }),
-        supabaseAdmin.from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number'),
+        supabaseAdmin.from('lesson_plans').select('*').eq('pathfit_level', level).neq('week_number', 16).order('week_number'),
         supabaseAdmin.from('health_appraisal_record').select('*').eq('student_id', uid).maybeSingle(),
       ]);
 
@@ -19,7 +19,7 @@ module.exports = function(supabaseAdmin) {
       const plans       = lpRes.data   || [];
       const screening   = hsRes.data;
 
-      const currentPlan = plans[0] || null;
+      const currentPlan = plans.find(p => (p.objectives || '').includes('CURRENT') && !(p.objectives || '').includes('HIDDEN')) || null;
 
       res.render('student/dashboard', {
         tests, screening,
@@ -208,7 +208,7 @@ module.exports = function(supabaseAdmin) {
     const level = parseInt(req.query.level) || req.session.user.pathfit_level || 1;
     try {
       const { data: plans } = await supabaseAdmin
-        .from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number');
+        .from('lesson_plans').select('*').eq('pathfit_level', level).neq('week_number', 16).order('week_number');
       res.render('student/lesson_plans', { plans: plans || [], level });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });

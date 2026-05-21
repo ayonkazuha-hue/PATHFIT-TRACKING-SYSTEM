@@ -1,7 +1,7 @@
 <%- include('../partials/header', { title: 'Lesson Plans' }) %>
 <div class="container">
   <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">16-Week Lesson Plans</div>
+  <div class="page-title">15-Week Lesson Plans</div>
   <div class="page-sub">CHED-aligned PATHFit curriculum. Click "Edit" on any card to update.</div>
 
   <% if (error)   { %><div class="alert alert-error"><%= error %></div><% } %>
@@ -14,7 +14,7 @@
 
   <div class="week-grid">
     <% 
-      const currIdx = plans.findIndex(p => p.objectives === 'CURRENT');
+      const currIdx = plans.findIndex(p => (p.objectives || '').includes('CURRENT'));
       const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
     %>
     <% plans.forEach((plan, i) => { %>
@@ -40,6 +40,15 @@
             <button type="submit" class="btn btn-sm" style="background-color: #27ae60; color: white; border: none;">📍 Set as Current Week</button>
           </form>
         <% } %>
+        <form method="POST" action="/instructor/lesson-plans/toggle-hide" style="display:inline;">
+          <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
+          <input type="hidden" name="level" value="<%= level %>">
+          <% const isHidden = (plan.objectives || '').includes('HIDDEN'); %>
+          <input type="hidden" name="action" value="<%= isHidden ? 'show' : 'hide' %>">
+          <button type="submit" class="btn btn-sm" style="background-color: <%= isHidden ? '#7f8c8d' : '#f39c12' %>; color: white; border: none;" title="Toggle visibility for students">
+            <%= isHidden ? '👁️ Show' : '🙈 Hide' %>
+          </button>
+        </form>
       </div>
 
       <div id="edit-<%= plan.plan_id %>" style="display:none;margin-top:12px;border-top:1px solid #e8ecf0;padding-top:12px;">

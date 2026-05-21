@@ -1,7 +1,7 @@
 <%- include('../partials/header', { title: 'Lesson Plans' }) %>
 <div class="container">
   <a href="/student/dashboard" class="back-link">← Back to Dashboard</a>
-  <div class="page-title">16-Week Lesson Plans</div>
+  <div class="page-title">15-Week Lesson Plans</div>
   <div class="page-sub">CHED-aligned PATHFit curriculum for the full semester.</div>
 
   <div class="level-tabs">
@@ -15,6 +15,7 @@
       const currentWeekIndex = currIdx >= 0 ? currIdx : 0;
     %>
     <% plans.forEach((plan, i) => { %>
+    <% if (!(plan.objectives || '').includes('HIDDEN')) { %>
     <div class="week-card <%= i===currentWeekIndex?'current':'' %>">
       <div class="week-tag">
         Week <%= plan.week_number %>
@@ -31,6 +32,7 @@
         <p style="font-style:italic;color:#777;font-size:.8rem;margin-top:10px;">No module uploaded yet.</p>
       <% } %>
     </div>
+    <% } %>
     <% }) %>
   </div>
 </div>

@@ -304,7 +304,7 @@ module.exports = function(supabaseAdmin) {
     const level = parseInt(req.query.level) || 1;
     try {
       const { data: plans } = await supabaseAdmin
-        .from('lesson_plans').select('*').eq('pathfit_level', level).order('week_number');
+        .from('lesson_plans').select('*').eq('pathfit_level', level).neq('week_number', 16).order('week_number');
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
@@ -343,17 +343,49 @@ module.exports = function(supabaseAdmin) {
   router.post('/lesson-plans/set-current', async (req, res) => {
     const { plan_id, level } = req.body;
     try {
-      // Clear current flag for all plans in this level
-      await supabaseAdmin.from('lesson_plans')
-        .update({ objectives: '' })
-        .eq('pathfit_level', level);
-        
-      // Set current flag for the selected plan
-      await supabaseAdmin.from('lesson_plans')
-        .update({ objectives: 'CURRENT' })
-        .eq('plan_id', plan_id);
+      // Get all plans in this level
+      const { data: plans } = await supabaseAdmin.from('lesson_plans').select('plan_id, objectives').eq('pathfit_level', level);
+      
+      // Update each plan
+      for (const plan of plans) {
+        let newObjs = plan.objectives || '';
+        const wasCurrent = newObjs.includes('CURRENT');
+        const isTarget = plan.plan_id === plan_id;
+
+        if (isTarget && !wasCurrent) {
+          newObjs = newObjs ? newObjs + ',CURRENT' : 'CURRENT';
+        } else if (!isTarget && wasCurrent) {
+          newObjs = newObjs.replace(',CURRENT', '').replace('CURRENT,', '').replace('CURRENT', '');
+        }
+
+        if (newObjs !== (plan.objectives || '')) {
+          await supabaseAdmin.from('lesson_plans')
+            .update({ objectives: newObjs })
+            .eq('plan_id', plan.plan_id);
+        }
+      }
         
       res.redirect(`/instructor/lesson-plans?level=${level}&success=Current week updated.`);
+    } catch (err) {
+      res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
+    }
+  });
+
+  // POST /instructor/lesson-plans/toggle-hide
+  router.post('/lesson-plans/toggle-hide', async (req, res) => {
+    const { plan_id, level, action } = req.body;
+    try {
+      const { data: plan } = await supabaseAdmin.from('lesson_plans').select('objectives').eq('plan_id', plan_id).single();
+      let objs = plan.objectives || '';
+      
+      if (action === 'hide') {
+        if (!objs.includes('HIDDEN')) objs = objs ? objs + ',HIDDEN' : 'HIDDEN';
+      } else {
+        objs = objs.replace(',HIDDEN', '').replace('HIDDEN,', '').replace('HIDDEN', '');
+      }
+
+      await supabaseAdmin.from('lesson_plans').update({ objectives: objs }).eq('plan_id', plan_id);
+      res.redirect(`/instructor/lesson-plans?level=${level}&success=Lesson plan visibility updated.`);
     } catch (err) {
       res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
     }
