@@ -126,12 +126,33 @@ module.exports = function(supabaseAdmin) {
 
   
   async function getPendingPasswordResets() {
-    const { data } = await supabaseAdmin
+    const { data: resets, error } = await supabaseAdmin
       .from('password_reset_requests')
-      .select('*, users(name, email, student_id, section, course)')
+      .select('*')
       .eq('status', 'pending')
       .order('requested_at', { ascending: false });
-    return data || [];
+      
+    if (error) {
+      console.error('[getPendingPasswordResets] Error:', error.message);
+      return [];
+    }
+    if (!resets || resets.length === 0) return [];
+
+    const userIds = resets.map(r => r.user_id);
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('user_id, name, email, student_id, section, course')
+      .in('user_id', userIds);
+
+    const userMap = {};
+    if (users) {
+      users.forEach(u => { userMap[u.user_id] = u; });
+    }
+
+    return resets.map(r => ({
+      ...r,
+      users: userMap[r.user_id] || { name: 'Unknown', email: '', student_id: '', section: '', course: '' }
+    }));
   }
 
   
@@ -503,7 +524,7 @@ module.exports = function(supabaseAdmin) {
       // Fetch the request
       const { data: request, error: fetchErr } = await supabaseAdmin
         .from('password_reset_requests')
-        .select('*, users(email)')
+        .select('*')
         .eq('request_id', request_id)
         .eq('status', 'pending')
         .single();

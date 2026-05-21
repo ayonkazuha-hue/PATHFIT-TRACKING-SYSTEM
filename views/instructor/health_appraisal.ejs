@@ -70,19 +70,24 @@
 
   <div class="card">
     <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('all',this)">
-        All Records
-        <span style="background:#e8ecf0;color:#555;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= screenings.length %></span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('pending',this)">
-        ⏳ Pending
-        <span style="background:#fff3e0;color:#f57f17;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _pending.length %></span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('cleared',this)">
-        ✔ Cleared
-        <span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _cleared.length %></span>
-      </button>
+    <div class="tab-bar" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <button class="tab-btn active" onclick="switchTab('all',this)">
+          All Records
+          <span style="background:#e8ecf0;color:#555;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= screenings.length %></span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('pending',this)">
+          ⏳ Pending
+          <span style="background:#fff3e0;color:#f57f17;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _pending.length %></span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('cleared',this)">
+          ✔ Cleared
+          <span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:.78rem;margin-left:4px;"><%= _cleared.length %></span>
+        </button>
+      </div>
+      <div style="padding-right: 16px;">
+        <input type="text" id="harSearch" placeholder="Search name or ID..." onkeyup="searchRecords()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.85rem; width: 220px;">
+      </div>
     </div>
 
     <!-- All Records -->
@@ -144,6 +149,28 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
 }
+
+function searchRecords() {
+  const input = document.getElementById('harSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('.tab-pane.active tbody tr');
+  
+  rows.forEach(row => {
+    const name = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+    const id = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+    if (name.includes(input) || id.includes(input)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+// Attach event listener so search applies when switching tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setTimeout(searchRecords, 10);
+  });
+});
 
 function viewRecord(recordId) {
   const record = RECORDS.find(function(r){ return r.record_id === recordId; });

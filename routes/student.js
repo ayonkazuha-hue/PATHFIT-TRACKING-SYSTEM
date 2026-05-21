@@ -206,7 +206,7 @@ module.exports = function(supabaseAdmin) {
 
   // GET /student/lesson-plans
   router.get('/lesson-plans', async (req, res) => {
-    const level = parseInt(req.query.level) || req.session.user.pathfit_level || 1;
+    const level = req.session.user.pathfit_level || 1;
     try {
       const { data: plans } = await supabaseAdmin
         .from('lesson_plans').select('*').eq('pathfit_level', level).neq('week_number', 16).order('week_number');
