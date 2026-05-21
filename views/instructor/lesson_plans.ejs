@@ -59,17 +59,19 @@
       </div>
 
       <div id="edit-<%= plan.plan_id %>" style="display:none;margin-top:12px;border-top:1px solid #e8ecf0;padding-top:12px;">
-        <form method="POST" action="/instructor/lesson-plans" enctype="multipart/form-data">
+        <form method="POST" action="/instructor/lesson-plans" id="form-<%= plan.plan_id %>">
           <input type="hidden" name="plan_id" value="<%= plan.plan_id %>">
           <input type="hidden" name="level" value="<%= level %>">
+          <input type="hidden" name="activity_url" value="" id="activity_url-<%= plan.plan_id %>">
           <div class="form-group">
             <label style="font-size:.78rem;">Topic</label>
             <input type="text" name="topic" value="<%= plan.topic %>" required style="font-size:.82rem;padding:7px 10px;">
           </div>
           <div class="form-group">
             <label style="font-size:.78rem;">Upload Module (PDF, DOCX, etc.)</label>
-            <input type="file" name="module_file" accept=".pdf,.doc,.docx,.ppt,.pptx" style="font-size:.82rem;padding:7px 10px;">
+            <input type="file" name="module_file" accept=".pdf,.doc,.docx,.ppt,.pptx" style="font-size:.82rem;padding:7px 10px;" id="file-<%= plan.plan_id %>">
             <small style="color:#666; display:block; margin-top:4px;">Uploading a new file will replace the current module.</small>
+            <div id="upload-status-<%= plan.plan_id %>" style="margin-top:8px; display:none;"></div>
           </div>
           <button type="submit" class="btn btn-sm">Save Changes</button>
         </form>
@@ -84,5 +86,64 @@ function toggleEdit(id) {
   const el = document.getElementById('edit-' + id);
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+
+document.querySelectorAll('[id^="form-"]').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const planId = form.querySelector('[name="plan_id"]').value;
+    const level = form.querySelector('[name="level"]').value;
+    const fileInput = document.getElementById('file-' + planId);
+    const statusDiv = document.getElementById('upload-status-' + planId);
+    const activityUrlInput = document.getElementById('activity_url-' + planId);
+    
+    // If no file selected, just submit the form normally
+    if (!fileInput.files.length) {
+      form.submit();
+      return;
+    }
+    
+    const file = fileInput.files[0];
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<span style="color: #3498db;">📤 Uploading...</span>';
+    
+    try {
+      // Step 1: Get signed upload URL from backend
+      const uploadUrlResponse = await fetch('/instructor/lesson-plans/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name })
+      });
+      
+      if (!uploadUrlResponse.ok) {
+        throw new Error(await uploadUrlResponse.text());
+      }
+      
+      const { signedUrl, publicUrl } = await uploadUrlResponse.json();
+      
+      // Step 2: Upload file directly to Supabase using signed URL
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+      
+      // Step 3: Set the public URL and submit form
+      activityUrlInput.value = publicUrl;
+      statusDiv.innerHTML = '<span style="color: #27ae60;">✅ Upload complete! Saving...</span>';
+      
+      // Small delay to show completion message
+      setTimeout(() => form.submit(), 500);
+      
+    } catch (err) {
+      console.error('Upload error:', err);
+      statusDiv.innerHTML = '<span style="color: #e74c3c;">❌ Upload failed: ' + err.message + '</span>';
+    }
+  });
+});
 </script>
 <%- include('../partials/footer') %>
