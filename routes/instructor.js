@@ -2,16 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads/modules');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+// Use memory storage — Vercel's filesystem is read-only
+// Files are uploaded directly to Supabase Storage instead
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
 });
-const upload = multer({ storage: storage });
 
 function getRating(testType, gender, age, value) {
   const v = parseFloat(value);
@@ -345,18 +341,40 @@ module.exports = function(supabaseAdmin) {
     const { plan_id, topic, level } = req.body;
     try {
       const updateData = { topic };
-      
+
       if (req.file) {
-        // Save the file path in the activity field
-        updateData.activity = '/uploads/modules/' + req.file.filename;
+        // Upload to Supabase Storage (works on Vercel — no local filesystem needed)
+        const ext = path.extname(req.file.originalname);
+        const filename = `module_file-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+        const storagePath = `modules/${filename}`;
+
+        const { error: uploadErr } = await supabaseAdmin
+          .storage
+          .from('modules')
+          .upload(storagePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: false,
+          });
+
+        if (uploadErr) throw new Error('File upload failed: ' + uploadErr.message);
+
+        // Get the public URL
+        const { data: urlData } = supabaseAdmin
+          .storage
+          .from('modules')
+          .getPublicUrl(storagePath);
+
+        updateData.activity = urlData.publicUrl;
       }
-      
+
       await supabaseAdmin.from('lesson_plans')
         .update(updateData)
         .eq('plan_id', plan_id);
+
       res.redirect(`/instructor/lesson-plans?level=${level}&success=Lesson plan updated.`);
     } catch (err) {
-      res.redirect(`/instructor/lesson-plans?level=${level}&error=${err.message}`);
+      console.error('[lesson-plans upload]', err);
+      res.redirect(`/instructor/lesson-plans?level=${level}&error=${encodeURIComponent(err.message)}`);
     }
   });
 
