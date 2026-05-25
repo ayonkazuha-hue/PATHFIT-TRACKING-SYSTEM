@@ -124,11 +124,7 @@
             <input type="number" step="0.01" name="waistline_inches" placeholder="e.g., 28.5">
           </div>
           <div class="har-field">
-            <label>Ideal Weight</label>
-            <input type="text" name="ideal_weight" placeholder="e.g., Normal">
-          </div>
-          <div class="har-field">
-            <label>BMI Value</label>
+            <label>BMI</label>
             <input type="number" step="0.1" name="bmi_value" id="bmi_value" placeholder="e.g., 22.5">
           </div>
           <div class="har-field">
@@ -172,22 +168,76 @@
         <!-- Q3 -->
         <div class="har-question">
           <div class="har-question-text">3. Have you experienced or have been diagnosed with, any or all of the following:</div>
-          <div class="har-radio-group">
-            <label class="har-radio-label"><input type="radio" name="q3_diagnosed" value="yes" onchange="toggleDetails('q3')"> Yes</label>
-            <label class="har-radio-label"><input type="radio" name="q3_diagnosed" value="no" onchange="toggleDetails('q3')" checked> No</label>
-          </div>
-          <div class="har-details" id="q3_details" style="display:none;">
-            <div class="har-checkbox-grid">
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.1 Chest pain"> 3.1 Chest pain</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.2 Difficulty breathing"> 3.2 Difficulty breathing</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.3 Dizziness or fainting spell"> 3.3 Dizziness or fainting spell</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.4 Hypertension (High Blood Pressure)"> 3.4 Hypertension (High Blood Pressure)</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.5 Anemia"> 3.5 Anemia</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.6 Kidney problem"> 3.6 Kidney problem</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.7 Arthritis"> 3.7 Arthritis</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.8 Gout"> 3.8 Gout</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.9 Dislocation"> 3.9 Dislocation</label>
-              <label class="har-checkbox-label"><input type="checkbox" name="q3_conditions" value="3.10 Fracture"> 3.10 Fracture</label>
+          <div style="display:grid; gap:12px; margin-top:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.1 Chest Pain</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_1_chest_pain" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_1_chest_pain" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.2 Difficulty Breathing</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_2_breathing" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_2_breathing" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.3 Dizziness or fainting spell</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_3_dizziness" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_3_dizziness" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.4 Hypertension (High Blood Pressure)</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_4_hypertension" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_4_hypertension" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.5 Anemia</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_5_anemia" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_5_anemia" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.6 Kidney problem</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_6_kidney" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_6_kidney" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.7 Arthritis</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_7_arthritis" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_7_arthritis" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.8 Gout</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_8_gout" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_8_gout" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.9 Dislocation</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_9_dislocation" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_9_dislocation" value="no" checked> No</label>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+              <div style="font-weight:600; color:#042C53;">3.10 Fracture</div>
+              <div class="har-radio-group">
+                <label class="har-radio-label"><input type="radio" name="q3_10_fracture" value="yes"> Yes</label>
+                <label class="har-radio-label"><input type="radio" name="q3_10_fracture" value="no" checked> No</label>
+              </div>
             </div>
           </div>
         </div>

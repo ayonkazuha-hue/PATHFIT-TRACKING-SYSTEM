@@ -213,7 +213,7 @@ module.exports = function(supabase, supabaseAdmin) {
         .from('modules')
         .getPublicUrl(storagePath);
 
-      res.json({ signedUrl: data.signedUrl, publicUrl: urlData.publicUrl });
+      res.json({ signedUrl: data.signedUrl, path: storagePath, publicUrl: urlData.publicUrl });
     } catch (err) {
       console.error('[health-screening get-upload-url]', err);
       res.status(500).json({ error: err.message || 'Unable to create upload URL' });
@@ -226,10 +226,12 @@ module.exports = function(supabase, supabaseAdmin) {
     
     const {
       name, gender, age,
-      height_kg, weight_cm, resting_pulse_rate, waistline_inches, ideal_weight, bmi_value, bmi_classification,
+      height_kg, weight_cm, resting_pulse_rate, waistline_inches, bmi_value, bmi_classification,
       q1_hospitalization, q1_details,
       q2_injury, q2_details,
-      q3_diagnosed, q3_conditions,
+      q3_1_chest_pain, q3_2_breathing, q3_3_dizziness, q3_4_hypertension,
+      q3_5_anemia, q3_6_kidney, q3_7_arthritis, q3_8_gout,
+      q3_9_dislocation, q3_10_fracture,
       q4_lower_back_pain,
       q5_movement_restriction,
       q6_medical_treatment,
@@ -241,9 +243,6 @@ module.exports = function(supabase, supabaseAdmin) {
     } = req.body;
 
     try {
-      // Parse Q3 conditions (checkboxes)
-      const q3ConditionsArray = Array.isArray(q3_conditions) ? q3_conditions : (q3_conditions ? [q3_conditions] : []);
-      
       const insertData = {
         student_id: req.session.user.user_id,
         name: name.trim(),
@@ -255,7 +254,6 @@ module.exports = function(supabase, supabaseAdmin) {
         weight_cm: weight_cm ? parseFloat(weight_cm) : null,
         resting_pulse_rate: resting_pulse_rate ? parseInt(resting_pulse_rate) : null,
         waistline_inches: waistline_inches ? parseFloat(waistline_inches) : null,
-        ideal_weight: ideal_weight || null,
         bmi_classification: bmi_classification || null,
         
         // Questionnaire
@@ -265,17 +263,22 @@ module.exports = function(supabase, supabaseAdmin) {
         q2_injury: q2_injury === 'yes',
         q2_details: q2_injury === 'yes' ? (q2_details || '') : null,
         
-        q3_diagnosed: q3_diagnosed === 'yes',
-        q3_1_chest_pain: q3ConditionsArray.includes('3.1 Chest pain'),
-        q3_2_breathing: q3ConditionsArray.includes('3.2 Difficulty breathing'),
-        q3_3_dizziness: q3ConditionsArray.includes('3.3 Dizziness or fainting spell'),
-        q3_4_hypertension: q3ConditionsArray.includes('3.4 Hypertension (High Blood Pressure)'),
-        q3_5_anemia: q3ConditionsArray.includes('3.5 Anemia'),
-        q3_6_kidney: q3ConditionsArray.includes('3.6 Kidney problem'),
-        q3_7_arthritis: q3ConditionsArray.includes('3.7 Arthritis'),
-        q3_8_gout: q3ConditionsArray.includes('3.8 Gout'),
-        q3_9_dislocation: q3ConditionsArray.includes('3.9 Dislocation'),
-        q3_10_fracture: q3ConditionsArray.includes('3.10 Fracture'),
+        q3_1_chest_pain: q3_1_chest_pain === 'yes',
+        q3_2_breathing: q3_2_breathing === 'yes',
+        q3_3_dizziness: q3_3_dizziness === 'yes',
+        q3_4_hypertension: q3_4_hypertension === 'yes',
+        q3_5_anemia: q3_5_anemia === 'yes',
+        q3_6_kidney: q3_6_kidney === 'yes',
+        q3_7_arthritis: q3_7_arthritis === 'yes',
+        q3_8_gout: q3_8_gout === 'yes',
+        q3_9_dislocation: q3_9_dislocation === 'yes',
+        q3_10_fracture: q3_10_fracture === 'yes',
+        q3_diagnosed: (
+          q3_1_chest_pain === 'yes' || q3_2_breathing === 'yes' || q3_3_dizziness === 'yes' ||
+          q3_4_hypertension === 'yes' || q3_5_anemia === 'yes' || q3_6_kidney === 'yes' ||
+          q3_7_arthritis === 'yes' || q3_8_gout === 'yes' || q3_9_dislocation === 'yes' ||
+          q3_10_fracture === 'yes'
+        ),
         
         q4_lower_back_pain: q4_lower_back_pain === 'yes',
         q5_movement_restriction: q5_movement_restriction === 'yes',
