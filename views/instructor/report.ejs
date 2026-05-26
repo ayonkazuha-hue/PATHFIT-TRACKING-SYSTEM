@@ -58,6 +58,23 @@
   font-size: 1.1rem; color: #888; line-height: 1; padding: 0 2px; transition: color .15s;
 }
 .report-chip .chip-clear:hover { color: #e53935; }
+
+/* ── Section details under each student ── */
+.student-details-box {
+  max-height: 260px;
+  overflow: auto;
+  padding: 0 2px 4px 2px;
+}
+.student-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.student-details-table th, .student-details-table td {
+  padding: 6px 8px;
+  border-top: 1px solid #eef0f4;
+  vertical-align: top;
+}
 </style>
 
 <div class="container">
@@ -161,53 +178,68 @@
       <table>
         <thead><tr><th>Name</th><th>Student ID</th><th>PATHFit Level</th><th>Total Tests</th><th>Last Test</th></tr></thead>
         <tbody>
-          <% sectionSummary.forEach(s => { %>
-          <tr>
+          <% 
+            const recordsByStudentId = (sectionTestRecords || []).reduce((acc, r) => {
+              const sid = (r.student_id || '').toString();
+              if (!acc[sid]) acc[sid] = [];
+              acc[sid].push(r);
+              return acc;
+            }, {});
+          %>
+          <% sectionSummary.forEach(s => { 
+            const sid = (s.student_id || '').toString();
+            const recs = recordsByStudentId[sid] || [];
+          %>
+          <tr class="student-summary-row">
             <td><%= s.name %></td>
             <td><%= s.student_id || '—' %></td>
             <td><%= s.pathfit_level || '—' %></td>
             <td><%= s.test_count %></td>
             <td><%= s.last_test ? new Date(s.last_test).toLocaleDateString() : '—' %></td>
           </tr>
+          <% if (showSectionTestDetails) { %>
+            <tr class="student-details-row">
+              <td colspan="5" style="background:#fbfcfe;">
+                <% if (recs.length) { %>
+                  <div class="student-details-box">
+                    <table class="student-details-table">
+                      <thead>
+                        <tr>
+                          <th style="text-align:left;">Test Type</th>
+                          <th style="text-align:left;">Period</th>
+                          <th style="text-align:left;">Score</th>
+                          <th style="text-align:left;">Rating</th>
+                          <th style="text-align:left;">Recorded At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% recs.forEach(r => { %>
+                          <tr>
+                            <td><%= r.test_type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></td>
+                            <td><%= r.test_period ? r.test_period.charAt(0).toUpperCase() + r.test_period.slice(1) : '—' %></td>
+                            <td><%= r.reps_or_cm != null ? r.reps_or_cm : '—' %></td>
+                            <td><%= r.rating ? r.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '—' %></td>
+                            <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %></td>
+                          </tr>
+                        <% }) %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% } else { %>
+                  <div style="padding:12px;color:#888;font-size:.9rem;">No fitness test records for this student.</div>
+                <% } %>
+              </td>
+            </tr>
+          <% } %>
           <% }) %>
         </tbody>
       </table>
     </div>
   </div>
-  <% if (showSectionTestDetails) { %>
-    <% if (sectionTestRecords && sectionTestRecords.length) { %>
-    <div class="card">
-      <h3>Section <%= section %> Fitness Test Details</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Name</th><th>Student ID</th><th>Test Type</th><th>Period</th><th>Score</th><th>Rating</th><th>Recorded At</th></tr>
-          </thead>
-          <tbody>
-            <% sectionTestRecords.forEach(r => { %>
-            <tr>
-              <td><%= r.student_name %></td>
-              <td><%= r.student_id || '—' %></td>
-              <td><%= r.test_type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></td>
-              <td><%= r.test_period ? r.test_period.charAt(0).toUpperCase() + r.test_period.slice(1) : '—' %></td>
-              <td><%= r.reps_or_cm != null ? r.reps_or_cm : '—' %></td>
-              <td><%= r.rating ? r.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '—' %></td>
-              <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %></td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <% } else { %>
-    <div class="card">
-      <div style="padding:18px;font-size:.96rem;color:#555;">No fitness test records yet for section <strong><%= section %></strong>.</div>
-    </div>
-    <% } %>
-  <% } else { %>
+  <% if (!showSectionTestDetails) { %>
     <div class="card">
       <div style="padding:18px;font-size:.96rem;color:#555;">
-        Click <strong>Class Summary</strong> to view the <strong>Fitness Test Details</strong> for section <strong><%= section %></strong>.
+        Click <strong>Class Summary</strong> to view the <strong>Fitness Test Details</strong> near each student's name for section <strong><%= section %></strong>.
       </div>
     </div>
   <% } %>

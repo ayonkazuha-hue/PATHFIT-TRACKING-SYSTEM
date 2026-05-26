@@ -150,9 +150,11 @@ tr:last-child td { border-bottom: none; }
 /* ── Badges ──────────────────────────────────────────────── */
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; color: #fff; white-space: nowrap; }
 .badge-excellent         { background: #2e7d32; }
+.badge-very_good         { background: #0f766e; } /* teal for strong contrast */
 .badge-good              { background: #1565c0; }
 .badge-fair              { background: #e65100; }
 .badge-needs_improvement { background: #c62828; }
+.badge-poor              { background: #6b7280; } /* neutral gray */
 .badge-present           { background: #2e7d32; }
 .badge-absent            { background: #c62828; }
 .badge-excused           { background: #e65100; }

@@ -637,27 +637,37 @@ module.exports = function(supabaseAdmin) {
         sectionTests = data || [];
       }
 
-      const studentMap = (sectionStudents || []).reduce((acc, s) => {
-        acc[s.user_id] = s;
+      const testsByStudent = sectionTests.reduce((acc, t) => {
+        if (!acc[t.student_id]) acc[t.student_id] = [];
+        acc[t.student_id].push(t);
         return acc;
       }, {});
 
+      const formatCsvRow = (cells) => cells.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',');
+
       const csvRows = ['Name,Student ID,Section,PATHFit Level,Test Type,Test Period,Score,Rating,Recorded At'];
-      if (sectionTests.length) {
-        sectionTests.forEach(t => {
-          const student = studentMap[t.student_id] || {};
-          const row = [
-            (student.name || '').replace(/"/g, '""'),
-            student.student_id || '',
-            student.section || '',
-            student.pathfit_level || '',
-            t.test_type || '',
-            t.test_period || '',
-            t.reps_or_cm != null ? t.reps_or_cm : '',
-            t.rating || '',
-            t.created_at || '',
-          ].map(value => `"${value}"`).join(',');
-          csvRows.push(row);
+      const studentsWithTests = sectionStudents.filter(s => (testsByStudent[s.user_id] || []).length > 0);
+
+      if (studentsWithTests.length) {
+        studentsWithTests.forEach((student, studentIdx) => {
+          const tests = testsByStudent[student.user_id] || [];
+          tests.forEach((t, testIdx) => {
+            const showName = testIdx === 0;
+            csvRows.push(formatCsvRow([
+              showName ? (student.name || '') : '',
+              student.student_id || '',
+              student.section || '',
+              student.pathfit_level ?? '',
+              t.test_type || '',
+              t.test_period || '',
+              t.reps_or_cm != null ? t.reps_or_cm : '',
+              t.rating || '',
+              t.created_at || '',
+            ]));
+          });
+          if (studentIdx < studentsWithTests.length - 1) {
+            csvRows.push(formatCsvRow(['', '', '', '', '', '', '', '', '']));
+          }
         });
       } else {
         csvRows.push(`"No records found for section ${section}"`);
