@@ -1,4 +1,6 @@
 const express = require('express');
+const usersSchema = require('../utils/usersSchema');
+const { probeUsersSchema } = usersSchema;
 
 module.exports = function(supabaseAdmin) {
   const router = express.Router();
@@ -15,9 +17,15 @@ module.exports = function(supabaseAdmin) {
         supabaseAdmin.from('health_appraisal_record').select('*').eq('student_id', uid).maybeSingle(),
       ]);
 
+      if (ftRes.error) throw new Error(ftRes.error.message);
+      if (lpRes.error) throw new Error(lpRes.error.message);
+      if (hsRes.error && !hsRes.error.message.includes('does not exist')) {
+        console.warn('[dashboard] health_appraisal_record:', hsRes.error.message);
+      }
+
       const tests       = ftRes.data   || [];
       const plans       = lpRes.data   || [];
-      const screening   = hsRes.data;
+      const screening   = hsRes.error ? null : hsRes.data;
 
       const publishedPlans = plans.filter(p => (p.objectives || '').includes('PUBLISHED'));
       const currentPlan = publishedPlans.find(p => (p.objectives || '').includes('CURRENT')) || null;
@@ -40,8 +48,13 @@ module.exports = function(supabaseAdmin) {
     const gender = req.session.user.gender || '';
     let age = req.session.user.age;
     if (age === undefined) {
-      const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).single();
-      age = userProfile ? userProfile.age : null;
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (usersSchema.usersHasAgeColumn) {
+        const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).maybeSingle();
+        age = userProfile ? userProfile.age : null;
+      } else {
+        age = null;
+      }
       req.session.user.age = age;
     }
     try {
@@ -64,9 +77,20 @@ module.exports = function(supabaseAdmin) {
     const uid    = req.session.user.user_id;
     const gender = req.session.user.gender || '';
     const { test_type, test_period, reps_or_cm, hr_before } = req.body;
+    const allowedTestTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min'];
 
-    if (!test_type || !test_period || !reps_or_cm) {
+    if (!test_type || !test_period || reps_or_cm === undefined || reps_or_cm === '') {
       return res.redirect('/student/fitness-tests?error=Please fill in all fields.');
+    }
+    if (!allowedTestTypes.includes(test_type)) {
+      return res.redirect('/student/fitness-tests?error=Invalid test type selected.');
+    }
+    if (!['pre', 'post'].includes(test_period)) {
+      return res.redirect('/student/fitness-tests?error=Invalid test period selected.');
+    }
+    const scoreValue = parseFloat(reps_or_cm);
+    if (Number.isNaN(scoreValue)) {
+      return res.redirect('/student/fitness-tests?error=Please enter a valid numeric score.');
     }
 
     // Auto-rating rubric
@@ -153,18 +177,23 @@ module.exports = function(supabaseAdmin) {
 
     let age = req.session.user.age;
     if (age === undefined) {
-      const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).single();
-      age = userProfile ? userProfile.age : null;
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (usersSchema.usersHasAgeColumn) {
+        const { data: userProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', uid).maybeSingle();
+        age = userProfile ? userProfile.age : null;
+      } else {
+        age = null;
+      }
       req.session.user.age = age;
     }
-    const rating = getRating(test_type, gender, age, parseFloat(reps_or_cm));
+    const rating = getRating(test_type, gender, age, scoreValue);
 
     try {
       const insertData = {
         student_id:  uid,
         test_type,
         test_period,
-        reps_or_cm:  parseFloat(reps_or_cm),
+        reps_or_cm:  scoreValue,
         rating,
         recorded_by: uid,
       };
@@ -172,12 +201,23 @@ module.exports = function(supabaseAdmin) {
       if (hr_before && !isNaN(parseFloat(hr_before))) {
         insertData.hr_before = parseFloat(hr_before);
       }
-      // Insert the fitness test and get back the new row's ID
-      const { data: insertedTest, error: insertErr } = await supabaseAdmin
-        .from('fitness_tests')
-        .insert(insertData)
-        .select('test_id')
-        .single();
+
+      async function insertFitnessTest(data) {
+        return supabaseAdmin
+          .from('fitness_tests')
+          .insert(data)
+          .select('test_id')
+          .single();
+      }
+
+      let { data: insertedTest, error: insertErr } = await insertFitnessTest(insertData);
+
+      // Retry without hr_before if column is not migrated yet
+      if (insertErr && insertData.hr_before && insertErr.message && insertErr.message.includes('hr_before')) {
+        const fallbackData = { ...insertData };
+        delete fallbackData.hr_before;
+        ({ data: insertedTest, error: insertErr } = await insertFitnessTest(fallbackData));
+      }
 
       if (insertErr) throw insertErr;
 
@@ -256,7 +296,11 @@ module.exports = function(supabaseAdmin) {
         `Summer ${year+1}`,
       ];
 
-      res.render('student/portfolio', { portfolios, checklist, semesters, error: null, success: null });
+      res.render('student/portfolio', {
+        portfolios, checklist, semesters,
+        error: req.query.error || null,
+        success: req.query.success || null,
+      });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
@@ -267,21 +311,24 @@ module.exports = function(supabaseAdmin) {
     const uid = req.session.user.user_id;
     const { semester, reflection_notes } = req.body;
 
-    if (!semester || !reflection_notes) {
-      return res.redirect('/student/portfolio?error=Please fill in all fields.');
+    if (!semester || !reflection_notes || !reflection_notes.trim()) {
+      return res.redirect('/student/portfolio?error=' + encodeURIComponent('Please fill in all fields.'));
     }
 
     try {
-      await supabaseAdmin.from('fitness_portfolio').upsert({
+      const { error } = await supabaseAdmin.from('fitness_portfolio').upsert({
         student_id:       uid,
         semester,
-        reflection_notes,
+        reflection_notes: reflection_notes.trim(),
         submitted_at:     new Date().toISOString(),
       }, { onConflict: 'student_id,semester' });
 
-      res.redirect('/student/portfolio?success=Portfolio submitted successfully!');
+      if (error) throw error;
+
+      res.redirect('/student/portfolio?success=' + encodeURIComponent('Portfolio submitted successfully!'));
     } catch (err) {
-      res.render('error', { title: 'Error', message: err.message });
+      console.error('[portfolio POST]', err);
+      res.redirect('/student/portfolio?error=' + encodeURIComponent(err.message));
     }
   });
 

@@ -10,6 +10,9 @@ ALTER TABLE public.fitness_tests
     'zipper_test',
     'juggling',
     'sprint_40m',
+    'stork_balance',
+    'stick_drop',
+    'agility_test',
     'step_test_3min'
   ));
 

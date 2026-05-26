@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path       = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { escapeHtml } = require('./utils/sanitize');
+const { probeUsersSchema } = require('./utils/usersSchema');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -35,8 +37,9 @@ app.use(session({
 
 // Make user available in all views
 app.use((req, res, next) => {
-  res.locals.user    = req.session.user || null;
-  res.locals.session = req.session;
+  res.locals.user     = req.session.user || null;
+  res.locals.session  = req.session;
+  res.locals.escapeHtml = escapeHtml;
   next();
 });
 
@@ -48,6 +51,14 @@ const requireLogin = (req, res, next) => {
 const requireInstructor = (req, res, next) => {
   if (!req.session.user || req.session.user.role !== 'instructor') {
     return res.redirect('/student/dashboard');
+  }
+  next();
+};
+const requireStudent = (req, res, next) => {
+  if (!req.session.user || req.session.user.role !== 'student') {
+    return res.redirect(
+      req.session.user?.role === 'instructor' ? '/instructor/dashboard' : '/login'
+    );
   }
   next();
 };
@@ -67,7 +78,7 @@ const studentRoutes    = require('./routes/student')(supabaseAdmin);
 const instructorRoutes = require('./routes/instructor')(supabaseAdmin);
 
 app.use('/', authRoutes);
-app.use('/student',    requireLogin, studentRoutes);
+app.use('/student',    requireLogin, requireStudent, studentRoutes);
 app.use('/instructor', requireLogin, requireInstructor, instructorRoutes);
 
 // ── 404 / Error handlers ─────────────────────────────────────
@@ -89,6 +100,7 @@ const server = app.listen(PORT, () => {
   console.log(`  ✓  http://localhost:${PORT}/student/dashboard`);
   console.log(`  ✓  http://localhost:${PORT}/instructor/dashboard`);
   console.log('\n  Press Ctrl+C to stop\n');
+  probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
 });
 
 server.on('error', (err) => {

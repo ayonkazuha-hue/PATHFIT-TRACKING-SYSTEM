@@ -1,5 +1,9 @@
 const express = require('express');
 const path = require('path');
+const {
+  probeUsersSchema,
+  buildUserProfileInsert,
+} = require('../utils/usersSchema');
 
 module.exports = function(supabase, supabaseAdmin) {
   const router = express.Router();
@@ -24,19 +28,35 @@ module.exports = function(supabase, supabaseAdmin) {
         return res.render('login', { error: 'Invalid email or password.', email });
       }
 
-      // Fetch profile
+      // Fetch profile by auth user_id
       const { data: profile, error: profileErr } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('user_id', data.user.id)
         .single();
 
+      let resolvedProfile = profile;
       if (profileErr || !profile) {
+        console.warn('[login] profile not found by user_id, trying email fallback for', email);
+        const { data: emailProfile, error: emailProfileErr } = await supabaseAdmin
+          .from('users')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (emailProfileErr) {
+          console.error('[login] email fallback error:', emailProfileErr.message);
+        }
+
+        resolvedProfile = emailProfile || null;
+      }
+
+      if (!resolvedProfile) {
         return res.render('login', { error: 'User profile not found. Contact your instructor.', email });
       }
 
       // Block pending students
-      if (profile.role === 'student' && profile.status === 'pending') {
+      if (resolvedProfile.role === 'student' && resolvedProfile.status === 'pending') {
         return res.render('login', {
           error: 'Your account is pending approval. Please wait for your instructor to approve your registration.',
           email,
@@ -44,23 +64,24 @@ module.exports = function(supabase, supabaseAdmin) {
       }
 
       req.session.user = {
-        user_id:       profile.user_id,
-        name:          profile.name,
-        email:         profile.email,
-        role:          profile.role,
-        pathfit_level: profile.pathfit_level,
-        student_id:    profile.student_id,
-        gender:        profile.gender,
-        section:       profile.section,
+        user_id:       resolvedProfile.user_id,
+        name:          resolvedProfile.name,
+        email:         resolvedProfile.email,
+        role:          resolvedProfile.role,
+        pathfit_level: resolvedProfile.pathfit_level,
+        student_id:    resolvedProfile.student_id,
+        gender:        resolvedProfile.gender,
+        section:       resolvedProfile.section,
+        age:           resolvedProfile.age ?? null,
         jwt:           data.session.access_token,
       };
 
       // Check health screening for students
-      if (profile.role === 'student') {
+      if (resolvedProfile.role === 'student') {
         const { data: hs } = await supabaseAdmin
           .from('health_appraisal_record')
           .select('record_id')
-          .eq('student_id', profile.user_id)
+          .eq('student_id', resolvedProfile.user_id)
           .maybeSingle();
 
         if (!hs) return res.redirect('/health-screening');
@@ -145,8 +166,9 @@ module.exports = function(supabase, supabaseAdmin) {
 
       const uid = authData.user.id;
 
-      // Insert profile with pending status
-      const { error: profileErr } = await supabaseAdmin.from('users').insert({
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+
+      const profileRow = buildUserProfileInsert({
         user_id:       uid,
         student_id,
         name,
@@ -154,12 +176,14 @@ module.exports = function(supabase, supabaseAdmin) {
         section,
         course,
         gender,
-        age:           parseInt(age),
-        year_level:    parseInt(year_level),
-        pathfit_level: parseInt(pathfit_level),
+        age:           parseInt(age, 10),
+        year_level:    parseInt(year_level, 10),
+        pathfit_level: parseInt(pathfit_level, 10),
         role:          'student',
         status:        'pending',
       });
+
+      const { error: profileErr } = await supabaseAdmin.from('users').insert(profileRow);
 
       if (profileErr) {
         // Clean up the auth user if profile insert fails
@@ -323,11 +347,11 @@ module.exports = function(supabase, supabaseAdmin) {
         .from('health_appraisal_record')
         .select('record_id')
         .eq('student_id', req.session.user.user_id)
-        .single();
+        .maybeSingle();
 
       let recordId = null;
 
-      if (fetchError && !fetchError.message.includes('Results contain 0 rows')) {
+      if (fetchError) {
         console.error('[health-screening] fetch existing record error:', fetchError);
         return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
       }
@@ -373,7 +397,7 @@ module.exports = function(supabase, supabaseAdmin) {
           console.error('[health-screening] insert error:', insertError);
           if (insertError.message && insertError.message.includes('does not exist')) {
             return res.render('health_screening', {
-              error: 'The Health Appraisal Record table is not set up yet. Please ask your instructor to run the database setup script (add_health_appraisal_record.sql).'
+              error: 'The Health Appraisal Record table is not set up yet. Please ask your instructor to run the database setup script (SETUP_HEALTH_APPRAISAL.sql or add_health_appraisal_record.sql).'
             });
           }
           return res.render('health_screening', { error: 'Could not save your health appraisal. Please try again.' });
@@ -455,7 +479,7 @@ module.exports = function(supabase, supabaseAdmin) {
         });
       }
 
-      if (profile.status !== 'approved') {
+      if (profile.status === 'pending') {
         return res.render('forgot_password', {
           error: 'Your account is not yet active. Contact your instructor.',
           success: null, old,

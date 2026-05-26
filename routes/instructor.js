@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const usersSchema = require('../utils/usersSchema');
+const { probeUsersSchema, buildUserProfileUpdate } = usersSchema;
 
 // Use memory storage — Vercel's filesystem is read-only
 // Files are uploaded directly to Supabase Storage instead
@@ -95,29 +97,83 @@ module.exports = function(supabaseAdmin) {
 
   
   async function getPendingRegistrations() {
-    const { data } = await supabaseAdmin
-      .from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false });
-    return data || [];
+    const { data, error } = await supabaseAdmin
+      .from('users').select('*').eq('role', 'student').order('created_at', { ascending: false });
+    if (error) {
+      console.error('[getPendingRegistrations]', error.message);
+      return [];
+    }
+    return (data || []).filter(s => s.status === 'pending');
   }
 
   
   async function getFitnessTestNotifications() {
-    const { data } = await supabaseAdmin
-      .from('fitness_test_notifications')
-      .select('*, users(name, student_id, section, course)')
-      .eq('is_read', false)
-      .order('created_at', { ascending: false });
-    return data || [];
+    try {
+      const { data: notifications, error } = await supabaseAdmin
+        .from('fitness_test_notifications')
+        .select('*')
+        .eq('is_read', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[getFitnessTestNotifications] Error:', error.message);
+        return [];
+      }
+
+      const studentIds = [...new Set((notifications || []).map(n => n.student_id).filter(Boolean))];
+      if (studentIds.length === 0) return notifications || [];
+
+      const { data: users, error: usersErr } = await supabaseAdmin
+        .from('users')
+        .select('user_id, name, student_id, section, course')
+        .in('user_id', studentIds);
+
+      const userMap = {};
+      if (users) users.forEach(u => { userMap[u.user_id] = u; });
+
+      return (notifications || []).map(n => ({
+        ...n,
+        users: userMap[n.student_id] || null,
+      }));
+    } catch (err) {
+      console.error('[getFitnessTestNotifications] Catch Error:', err);
+      return [];
+    }
   }
 
   // Helper: fetch unread health appraisal notifications for the nav bell
   async function getHealthAppraisalNotifications() {
-    const { data } = await supabaseAdmin
-      .from('health_appraisal_notifications')
-      .select('*, users!fk_han_student(name, student_id, section, course)')
-      .eq('is_read', false)
-      .order('created_at', { ascending: false });
-    return data || [];
+    try {
+      const { data: notifications, error } = await supabaseAdmin
+        .from('health_appraisal_notifications')
+        .select('*')
+        .eq('is_read', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[getHealthAppraisalNotifications] Error:', error.message);
+        return [];
+      }
+
+      const studentIds = [...new Set((notifications || []).map(n => n.student_id).filter(Boolean))];
+      if (studentIds.length === 0) return notifications || [];
+
+      const { data: users, error: usersErr } = await supabaseAdmin
+        .from('users')
+        .select('user_id, name, student_id, section, course')
+        .in('user_id', studentIds);
+
+      const userMap = {};
+      if (users) users.forEach(u => { userMap[u.user_id] = u; });
+
+      return (notifications || []).map(n => ({
+        ...n,
+        users: userMap[n.student_id] || null,
+      }));
+    } catch (err) {
+      console.error('[getHealthAppraisalNotifications] Catch Error:', err);
+      return [];
+    }
   }
 
   
@@ -152,10 +208,16 @@ module.exports = function(supabaseAdmin) {
   }
 
   
+  // Approved list: explicit approved, or legacy rows with no status column/value
+  function isApprovedStudent(s) {
+    return !s.status || s.status === 'approved';
+  }
+
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
     try {
-      let query = supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'approved').order('name');
+      await probeUsersSchema(supabaseAdmin);
+      let query = supabaseAdmin.from('users').select('*').eq('role', 'student').order('name');
       if (section)       query = query.eq('section', section);
       if (pathfit_level) query = query.eq('pathfit_level', parseInt(pathfit_level));
       if (gender)        query = query.eq('gender', gender);
@@ -163,15 +225,20 @@ module.exports = function(supabaseAdmin) {
       if (year_level)    query = query.eq('year_level', parseInt(year_level));
       if (search)        query = query.ilike('name', `%${search}%`);
 
-      const [studentsRes, pendingRes, pendingRegistrationsRes] = await Promise.all([
+      const [studentsRes, pendingRes, allStudentsRes] = await Promise.all([
         query,
         supabaseAdmin.from('health_appraisal_record').select('record_id', { count: 'exact', head: false }).eq('cleared', false),
-        supabaseAdmin.from('users').select('*').eq('role', 'student').eq('status', 'pending').order('created_at', { ascending: false }),
+        supabaseAdmin.from('users').select('*').eq('role', 'student').order('created_at', { ascending: false }),
       ]);
 
-      const students = studentsRes.data || [];
+      if (studentsRes.error) {
+        console.error('[dashboard] students query error:', studentsRes.error.message);
+        throw new Error(studentsRes.error.message);
+      }
+
+      const students = (studentsRes.data || []).filter(isApprovedStudent);
       const pendingScreenings = (pendingRes.data || []).length;
-      const pendingRegistrations = pendingRegistrationsRes.data || [];
+      const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
       const healthAppraisalNotifications = await getHealthAppraisalNotifications();
@@ -206,22 +273,20 @@ module.exports = function(supabaseAdmin) {
     }
 
     try {
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+
+      const updates = buildUserProfileUpdate({
+        name, student_id, email, section, course,
+        year_level, gender, pathfit_level, age,
+      });
+
       const { error } = await supabaseAdmin
         .from('users')
-        .update({
-          name:          name.trim(),
-          student_id:    student_id ? student_id.trim() : null,
-          email:         email.trim(),
-          section:       section       || null,
-          course:        course        || null,
-          year_level:    year_level    ? parseInt(year_level)    : null,
-          gender:        gender        || null,
-          age:           age           ? parseInt(age)           : null,
-          pathfit_level: pathfit_level ? parseInt(pathfit_level) : null,
-        })
+        .update(updates)
         .eq('user_id', user_id);
 
       if (error) throw error;
+
       return res.redirect('/instructor/dashboard?approveSuccess=Student information updated successfully.');
     } catch (err) {
       return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
@@ -236,11 +301,14 @@ module.exports = function(supabaseAdmin) {
     }
     try {
       if (action === 'approve') {
-        const { error } = await supabaseAdmin
-          .from('users')
-          .update({ status: 'approved' })
-          .eq('user_id', user_id);
-        if (error) throw error;
+        await probeUsersSchema(supabaseAdmin, { refresh: true });
+        if (usersSchema.usersHasStatusColumn) {
+          const { error } = await supabaseAdmin
+            .from('users')
+            .update({ status: 'approved' })
+            .eq('user_id', user_id);
+          if (error) throw error;
+        }
         return res.redirect('/instructor/dashboard?approveSuccess=Student approved successfully.');
       } else {
         // Reject: delete the auth user and profile
@@ -264,8 +332,8 @@ module.exports = function(supabaseAdmin) {
           : Promise.resolve({ data: null }),
       ]);
 
-      const students2 = studentsRes.data || [];
-      const selectedStudent = studentRes.data || null;
+      const students2 = (studentsRes.data || []).filter(isApprovedStudent);
+      const selectedStudent = studentRes.data && isApprovedStudent(studentRes.data) ? studentRes.data : null;
       let tests = [];
 
       if (selectedStudentId) {
@@ -297,12 +365,16 @@ module.exports = function(supabaseAdmin) {
       return res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&error=Please fill in all fields.`);
     }
 
-    const { data: stProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', target_student_id).single();
-    const age = stProfile ? stProfile.age : null;
+    await probeUsersSchema(supabaseAdmin, { refresh: true });
+    let age = null;
+    if (usersSchema.usersHasAgeColumn) {
+      const { data: stProfile } = await supabaseAdmin.from('users').select('age').eq('user_id', target_student_id).single();
+      age = stProfile ? stProfile.age : null;
+    }
     const rating = getRating(test_type, student_gender, age, parseFloat(reps_or_cm));
 
     try {
-      await supabaseAdmin.from('fitness_tests').insert({
+      const { error: insertErr } = await supabaseAdmin.from('fitness_tests').insert({
         student_id:  target_student_id,
         test_type,
         test_period,
@@ -310,9 +382,10 @@ module.exports = function(supabaseAdmin) {
         rating,
         recorded_by: req.session.user.user_id,
       });
+      if (insertErr) throw insertErr;
       res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&success=Test recorded! Rating: ${rating.replace(/_/g,' ')}`);
     } catch (err) {
-      res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&error=${err.message}`);
+      res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&error=${encodeURIComponent(err.message)}`);
     }
   });
 
@@ -450,12 +523,21 @@ module.exports = function(supabaseAdmin) {
   // GET /instructor/report
   router.get('/report', async (req, res) => {
     const targetId = req.query.student_id || null;
+    const section = (req.query.section || '').toUpperCase().trim() || null;
+    const searchQuery = req.query.query || '';
+    const viewType = req.query.view || 'report';
+    const isSectionSearch = !!section && !targetId;
     try {
-      const { data: studentsList } = await supabaseAdmin
-        .from('users').select('user_id,name,section').eq('role','student').order('name');
+      const { data: studentsListRaw } = await supabaseAdmin
+        .from('users').select('user_id,name,student_id,section,course,status').eq('role','student').order('name');
+      const studentsList = (studentsListRaw || []).filter(isApprovedStudent);
 
       let tests = [];
       let studentInfo = null;
+      let sectionStudents = [];
+      let sectionTests = [];
+      let sectionSummary = [];
+      let sectionTestRecords = [];
 
       if (targetId) {
         const [testsRes, studentRes] = await Promise.all([
@@ -464,9 +546,43 @@ module.exports = function(supabaseAdmin) {
         ]);
         tests = testsRes.data || [];
         studentInfo = studentRes.data;
-      } else {
-        const { data } = await supabaseAdmin.from('fitness_tests').select('*').order('created_at');
-        tests = data || [];
+      } else if (section) {
+        const { data: studentsInSect } = await supabaseAdmin
+          .from('users').select('*').eq('role','student').ilike('section', `%${section}%`).order('name');
+        sectionStudents = (studentsInSect || []).filter(isApprovedStudent);
+        const studentIds = sectionStudents.map(s => s.user_id);
+        if (studentIds.length) {
+          const { data: sectionTestsData } = await supabaseAdmin
+            .from('fitness_tests').select('*').in('student_id', studentIds).order('student_id').order('created_at');
+          sectionTests = sectionTestsData || [];
+        }
+
+        const summaryMap = sectionStudents.reduce((acc, s) => {
+          acc[s.user_id] = { ...s, test_count: 0, last_test: null };
+          return acc;
+        }, {});
+
+        sectionTests.forEach(t => {
+          const summary = summaryMap[t.student_id];
+          if (!summary) return;
+          summary.test_count += 1;
+          if (!summary.last_test || new Date(t.created_at) > new Date(summary.last_test)) {
+            summary.last_test = t.created_at;
+          }
+        });
+
+        sectionSummary = Object.values(summaryMap);
+        const studentMap = sectionStudents.reduce((acc, s) => {
+          acc[s.user_id] = s;
+          return acc;
+        }, {});
+        sectionTestRecords = sectionTests.map(t => ({
+          ...t,
+          student_name: studentMap[t.student_id]?.name || 'Unknown',
+          student_id: studentMap[t.student_id]?.student_id || '',
+          section: studentMap[t.student_id]?.section || section,
+          pathfit_level: studentMap[t.student_id]?.pathfit_level || ''
+        }));
       }
 
       const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min'];
@@ -476,9 +592,10 @@ module.exports = function(supabaseAdmin) {
         if (grouped[t.test_type]) grouped[t.test_type][t.test_period] = t;
       });
 
-      // Rating distribution for class-wide
-      const dist = { excellent: 0, good: 0, fair: 0, needs_improvement: 0 };
-      tests.forEach(t => { if (t.rating) dist[t.rating]++; });
+      // Rating distribution for class-wide (all rating tiers)
+      const dist = { excellent: 0, very_good: 0, good: 0, fair: 0, needs_improvement: 0, poor: 0 };
+      const countSource = targetId ? tests : section ? sectionTests : [];
+      countSource.forEach(t => { if (t.rating && dist[t.rating] !== undefined) dist[t.rating]++; });
 
       const pendingRegistrations = await getPendingRegistrations();
       const pendingPasswordResets = await getPendingPasswordResets();
@@ -486,9 +603,67 @@ module.exports = function(supabaseAdmin) {
       const healthAppraisalNotifications = await getHealthAppraisalNotifications();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
-        targetId, dist, totalTests: tests.length,
+        targetId, section, sectionStudents, sectionTests, sectionSummary,
+        sectionTestRecords: sectionTestRecords || [],
+        searchQuery, showClassSummary: viewType === 'summary' || isSectionSearch,
+        dist, totalTests: countSource.length,
         pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
       });
+    } catch (err) {
+      res.render('error', { title: 'Error', message: err.message });
+    }
+  });
+
+  // GET /instructor/report/download
+  router.get('/report/download', async (req, res) => {
+    const section = (req.query.section || '').toUpperCase().trim();
+    if (!section) {
+      return res.redirect('/instructor/report');
+    }
+
+    try {
+      const { data: sectionStudentsRaw } = await supabaseAdmin
+        .from('users').select('*').eq('role','student').ilike('section', section).order('name');
+      const sectionStudents = (sectionStudentsRaw || []).filter(isApprovedStudent);
+
+      const studentIds = (sectionStudents || []).map(s => s.user_id);
+      let sectionTests = [];
+      if (studentIds.length) {
+        const { data } = await supabaseAdmin
+          .from('fitness_tests').select('*').in('student_id', studentIds).order('student_id').order('created_at');
+        sectionTests = data || [];
+      }
+
+      const studentMap = (sectionStudents || []).reduce((acc, s) => {
+        acc[s.user_id] = s;
+        return acc;
+      }, {});
+
+      const csvRows = ['Name,Student ID,Section,PATHFit Level,Test Type,Test Period,Score,Rating,Recorded At'];
+      if (sectionTests.length) {
+        sectionTests.forEach(t => {
+          const student = studentMap[t.student_id] || {};
+          const row = [
+            (student.name || '').replace(/"/g, '""'),
+            student.student_id || '',
+            student.section || '',
+            student.pathfit_level || '',
+            t.test_type || '',
+            t.test_period || '',
+            t.reps_or_cm != null ? t.reps_or_cm : '',
+            t.rating || '',
+            t.created_at || '',
+          ].map(value => `"${value}"`).join(',');
+          csvRows.push(row);
+        });
+      } else {
+        csvRows.push(`"No records found for section ${section}"`);
+      }
+
+      const csv = `\uFEFF${csvRows.join('\r\n')}`;
+      res.setHeader('Content-Disposition', `attachment; filename=section_${section}_summary.csv`);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.send(csv);
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
     }
@@ -497,18 +672,38 @@ module.exports = function(supabaseAdmin) {
   // GET /instructor/health-appraisal
   router.get('/health-appraisal', async (req, res) => {
     try {
-      const { data: screenings, error: fetchErr } = await supabaseAdmin
+      const { data: screeningsRaw, error: fetchErr } = await supabaseAdmin
         .from('health_appraisal_record')
-        .select('*, users!fk_har_student(name, student_id, section, course)')
+        .select('*')
         .order('submitted_at', { ascending: false });
 
       if (fetchErr) {
         console.error('[health-appraisal GET]', fetchErr.message);
       }
 
+      const screenings = screeningsRaw || [];
+      const studentIds = [...new Set(screenings.map(s => s.student_id).filter(Boolean))];
+      let screeningsWithUsers = screenings;
+
+      if (studentIds.length > 0) {
+        const { data: users, error: usersErr } = await supabaseAdmin
+          .from('users')
+          .select('user_id, name, student_id, section, course')
+          .in('user_id', studentIds);
+
+        if (!usersErr && users) {
+          const userMap = {};
+          users.forEach(u => { userMap[u.user_id] = u; });
+          screeningsWithUsers = screenings.map(s => ({
+            ...s,
+            users: userMap[s.student_id] || null,
+          }));
+        }
+      }
+
       const pendingRegistrations        = await getPendingRegistrations();
 
-      const recordsWithSignedPhoto = await Promise.all((screenings || []).map(async (record) => {
+      const recordsWithSignedPhoto = await Promise.all((screeningsWithUsers || []).map(async (record) => {
         if (!record.photo_url || record.photo_url.startsWith('http')) {
           return record;
         }
@@ -537,6 +732,8 @@ module.exports = function(supabaseAdmin) {
         fitnessTestNotifications,
         healthAppraisalNotifications,
         fetchError: fetchErr ? fetchErr.message : null,
+        error: req.query.error || null,
+        success: req.query.success || null,
       });
     } catch (err) {
       console.error('[health-appraisal GET catch]', err);
@@ -547,17 +744,23 @@ module.exports = function(supabaseAdmin) {
   // POST /instructor/health-appraisal/clear
   router.post('/health-appraisal/clear', async (req, res) => {
     const { record_id, cleared } = req.body;
+    if (!record_id) {
+      return res.redirect('/instructor/health-appraisal?error=Missing record ID.');
+    }
     try {
-      await supabaseAdmin.from('health_appraisal_record')
+      const { error } = await supabaseAdmin.from('health_appraisal_record')
         .update({ 
           cleared: cleared === 'true',
           cleared_at: cleared === 'true' ? new Date().toISOString() : null,
           cleared_by: cleared === 'true' ? req.session.user.user_id : null
         })
         .eq('record_id', record_id);
-      res.redirect('/instructor/health-appraisal');
+      if (error) throw error;
+      const msg = cleared === 'true' ? 'Student cleared successfully.' : 'Clearance revoked.';
+      res.redirect('/instructor/health-appraisal?success=' + encodeURIComponent(msg));
     } catch (err) {
-      res.redirect('/instructor/health-appraisal');
+      console.error('[health-appraisal/clear]', err);
+      res.redirect('/instructor/health-appraisal?error=' + encodeURIComponent(err.message));
     }
   });
 

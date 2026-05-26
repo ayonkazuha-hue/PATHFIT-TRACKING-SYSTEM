@@ -9,7 +9,7 @@ ALTER TABLE public.fitness_tests
 
 ALTER TABLE public.fitness_tests
   ADD CONSTRAINT fitness_tests_test_type_check
-  CHECK (test_type IN ('push_ups','sit_reach','zipper_test','juggling','sprint_40m'));
+  CHECK (test_type IN ('push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min'));
 
 -- Verify
 SELECT DISTINCT test_type FROM public.fitness_tests ORDER BY test_type;

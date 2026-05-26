@@ -37,6 +37,12 @@
   <div class="page-title">Health Appraisal Records (PAR-Q)</div>
   <div class="page-sub">Review comprehensive student health appraisal records and grant or revoke clearance.</div>
 
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success" style="margin-bottom:16px;"><%= success %></div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error" style="margin-bottom:16px;"><%= error %></div>
+  <% } %>
   <% if (typeof fetchError !== 'undefined' && fetchError) { %>
   <div class="alert alert-error" style="margin-bottom:16px;">
     ⚠️ Database error: <%= fetchError %><br>

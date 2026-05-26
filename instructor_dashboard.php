@@ -135,9 +135,9 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
   <form method="GET" action="instructor_dashboard.php">
     <div class="filter-bar">
       <div>
-        <label>Section</label>
+        <label>Section Code</label>
         <select name="section">
-          <option value="">All Sections</option>
+          <option value="">All Section Codes</option>
           <?php foreach ($sections as $sec): ?>
             <option value="<?= htmlspecialchars($sec) ?>" <?= $filterSection === $sec ? 'selected' : '' ?>>
               <?= htmlspecialchars($sec) ?>
@@ -181,7 +181,7 @@ $pendingScreenings = count($pendingHsRes['data'] ?? []);
           <th>Student ID</th>
           <th>Name</th>
           <th>Email</th>
-          <th>Section</th>
+          <th>Section Code</th>
           <th>Course</th>
           <th>Year</th>
           <th>Gender</th>

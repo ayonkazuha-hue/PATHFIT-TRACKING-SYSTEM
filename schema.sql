@@ -12,6 +12,7 @@ CREATE TABLE users (
     year_level    SMALLINT CHECK (year_level BETWEEN 1 AND 5),
     gender        VARCHAR(10) CHECK (gender IN ('male','female')),
     pathfit_level SMALLINT CHECK (pathfit_level IN (1,2)),
+    age           SMALLINT CHECK (age BETWEEN 1 AND 120),
     role          VARCHAR(20) NOT NULL DEFAULT 'student' CHECK (role IN ('student','instructor')),
     status        VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending','approved')),
     created_at    TIMESTAMPTZ DEFAULT NOW()
@@ -20,10 +21,11 @@ CREATE TABLE users (
 CREATE TABLE fitness_tests (
     test_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id  UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    test_type   VARCHAR(30) NOT NULL CHECK (test_type IN ('push_ups','sit_ups','sit_reach','step_test','shuttle_run')),
+    test_type   VARCHAR(30) NOT NULL CHECK (test_type IN ('push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min')),
     test_period VARCHAR(10) NOT NULL CHECK (test_period IN ('pre','post')),
     reps_or_cm  NUMERIC(8,2),
-    rating      VARCHAR(25) CHECK (rating IN ('excellent','good','fair','needs_improvement')),
+    hr_before   NUMERIC(6,1),
+    rating      VARCHAR(25) CHECK (rating IN ('excellent','very_good','good','fair','needs_improvement','poor')),
     recorded_by UUID REFERENCES users(user_id),
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );

@@ -154,9 +154,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  value="<?= htmlspecialchars($_POST['course'] ?? '') ?>" required>
         </div>
         <div class="form-group">
-          <label for="section">Section *</label>
-          <input type="text" id="section" name="section" placeholder="A"
-                 value="<?= htmlspecialchars($_POST['section'] ?? '') ?>" required>
+          <label for="section">Section Code *</label>
+          <select id="section" name="section" required>
+            <option value="">— Select —</option>
+            <option value="A" <?= (($_POST['section'] ?? '') === 'A') ? 'selected' : '' ?>>A</option>
+            <option value="B" <?= (($_POST['section'] ?? '') === 'B') ? 'selected' : '' ?>>B</option>
+            <option value="C" <?= (($_POST['section'] ?? '') === 'C') ? 'selected' : '' ?>>C</option>
+            <option value="D" <?= (($_POST['section'] ?? '') === 'D') ? 'selected' : '' ?>>D</option>
+            <option value="E" <?= (($_POST['section'] ?? '') === 'E') ? 'selected' : '' ?>>E</option>
+            <option value="F" <?= (($_POST['section'] ?? '') === 'F') ? 'selected' : '' ?>>F</option>
+            <option value="G" <?= (($_POST['section'] ?? '') === 'G') ? 'selected' : '' ?>>G</option>
+            <option value="H" <?= (($_POST['section'] ?? '') === 'H') ? 'selected' : '' ?>>H</option>
+            <option value="I" <?= (($_POST['section'] ?? '') === 'I') ? 'selected' : '' ?>>I</option>
+            <option value="J" <?= (($_POST['section'] ?? '') === 'J') ? 'selected' : '' ?>>J</option>
+            <option value="K" <?= (($_POST['section'] ?? '') === 'K') ? 'selected' : '' ?>>K</option>
+            <option value="L" <?= (($_POST['section'] ?? '') === 'L') ? 'selected' : '' ?>>L</option>
+            <option value="M" <?= (($_POST['section'] ?? '') === 'M') ? 'selected' : '' ?>>M</option>
+          </select>
         </div>
       </div>
       <div class="form-row">

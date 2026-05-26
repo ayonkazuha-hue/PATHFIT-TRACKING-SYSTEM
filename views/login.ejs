@@ -44,7 +44,7 @@
       </div>
 
       <% if (error) { %>
-        <div class="alert alert-error"><%= error %></div>
+        <div class="alert alert-error"><%= escapeHtml(error || '') %></div>
       <% } %>
 
       <form method="POST" action="/login">
@@ -52,7 +52,7 @@
           <label for="email">Email Address</label>
           <input type="email" id="email" name="email"
                  placeholder="you@nbsc.edu.ph"
-                 value="<%= email %>" required autofocus>
+                 value="<%= escapeHtml(email || '') %>" required autofocus>
         </div>
         <div class="form-group">
           <label for="password">Password</label>

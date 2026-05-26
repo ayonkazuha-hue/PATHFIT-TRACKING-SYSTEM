@@ -38,10 +38,6 @@
   <!-- Filter -->
   <form method="GET" action="/instructor/dashboard">
     <div class="filter-bar">
-      <div class="fg" style="flex:1 1 200px;">
-        <label>Search by Name</label>
-        <input type="text" name="search" value="<%= filters.search %>" placeholder="e.g. Juan dela Cruz" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:.9rem;">
-      </div>
       <div class="fg">
         <label>Institute / Course</label>
         <select name="course">
@@ -52,12 +48,22 @@
         </select>
       </div>
       <div class="fg">
-        <label>Section</label>
+        <label>Section Code:</label>
         <select name="section">
-          <option value="">All Section</option>
+          <option value="">All Section Codes</option>
           <option value="A" <%= filters.section==='A'?'selected':'' %>>A</option>
           <option value="B" <%= filters.section==='B'?'selected':'' %>>B</option>
           <option value="C" <%= filters.section==='C'?'selected':'' %>>C</option>
+          <option value="D" <%= filters.section==='D'?'selected':'' %>>D</option>
+          <option value="E" <%= filters.section==='E'?'selected':'' %>>E</option>
+          <option value="F" <%= filters.section==='F'?'selected':'' %>>F</option>
+          <option value="G" <%= filters.section==='G'?'selected':'' %>>G</option>
+          <option value="H" <%= filters.section==='H'?'selected':'' %>>H</option>
+          <option value="I" <%= filters.section==='I'?'selected':'' %>>I</option>
+          <option value="J" <%= filters.section==='J'?'selected':'' %>>J</option>
+          <option value="K" <%= filters.section==='K'?'selected':'' %>>K</option>
+          <option value="L" <%= filters.section==='L'?'selected':'' %>>L</option>
+          <option value="M" <%= filters.section==='M'?'selected':'' %>>M</option>
         </select>
       </div>
       <div class="fg">
@@ -76,14 +82,6 @@
           <option value="">All Levels</option>
           <option value="1" <%= filters.pathfit_level==='1'?'selected':'' %>>PATHFit 1</option>
           <option value="2" <%= filters.pathfit_level==='2'?'selected':'' %>>PATHFit 2</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Gender</label>
-        <select name="gender">
-          <option value="">All Genders</option>
-          <option value="male"   <%= filters.gender==='male'  ?'selected':'' %>>Male</option>
-          <option value="female" <%= filters.gender==='female'?'selected':'' %>>Female</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;align-items:flex-end;">
@@ -115,7 +113,7 @@
     <div class="table-wrap">
       <table id="studentTable">
         <thead>
-          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section</th><th>Course</th><th>Year Level</th><th>Gender</th><th>Age</th><th>PATHFit</th><th></th></tr>
+          <tr><th>Student ID</th><th>Name</th><th>Email</th><th>Section Code</th><th>Course</th><th>Year Level</th><th>Gender</th><th>Age</th><th>PATHFit</th><th></th></tr>
         </thead>
         <tbody>
           <% students.forEach(s => { %>
@@ -295,13 +293,23 @@ function exportToExcel() {
             </select>
           </div>
           <div>
-            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section</label>
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section Code:</label>
             <select name="section" id="editSection"
               style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
               <option value="">— Select —</option>
               <option value="A">A</option>
               <option value="B">B</option>
               <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="G">G</option>
+              <option value="H">H</option>
+              <option value="I">I</option>
+              <option value="J">J</option>
+              <option value="K">K</option>
+              <option value="L">L</option>
+              <option value="M">M</option>
             </select>
           </div>
           <div>

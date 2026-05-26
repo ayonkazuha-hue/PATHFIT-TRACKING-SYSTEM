@@ -68,28 +68,31 @@
   <!-- Student Search -->
   <form method="GET" action="/instructor/report" id="reportForm">
     <input type="hidden" name="student_id" id="reportStudentId" value="<%= targetId || '' %>">
+    <input type="hidden" name="section" id="reportSection" value="<%= section || '' %>">
     <div class="filter-bar" style="align-items:flex-end;">
       <div style="flex:1;min-width:260px;">
-        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search Student by Name or ID</label>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search student by name, ID, or section</label>
         <div class="report-search-wrap" id="searchWrap">
-          <input type="text" id="reportSearchInput"
-                 placeholder="Type name or student ID…"
+          <input type="text" id="reportSearchInput" name="query"
+                 placeholder="Type name, student ID, or section code…"
                  autocomplete="off"
-                 value="<% if(studentInfo){ %><%= studentInfo.name %> (<%= studentInfo.student_id||'' %>)<% } %>">
+                 value="<% if (studentInfo) { %><%= studentInfo.name %> (<%= studentInfo.student_id||'' %>)<% } else { %><%= searchQuery || '' %><% } %>">
           <div class="report-dropdown" id="reportDropdown"></div>
         </div>
         <!-- Selected chip -->
         <div class="report-chip <%= studentInfo ? 'show' : '' %>" id="reportChip">
           <span id="chipText"><% if(studentInfo){ %><%= studentInfo.name %><% } %></span>
           <span id="chipMeta" style="opacity:.7;font-size:.78rem;">
-            <% if(studentInfo){ %>&nbsp;· <%= studentInfo.student_id||'' %> · Section <%= studentInfo.section||'—' %><% } %>
+            <% if(studentInfo){ %>&nbsp;· <%= studentInfo.student_id||'' %> · Section Code <%= studentInfo.section||'—' %><% } %>
           </span>
           <button type="button" class="chip-clear" onclick="clearStudent()" aria-label="Clear">×</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button type="submit" class="btn">View Report</button>
-        <a href="/instructor/report" class="btn btn-outline">Class Summary</a>
+        <button type="submit" name="view" value="report" class="btn">Search</button>
+        <button type="submit" name="view" value="summary" class="btn btn-outline">Class Summary</button>
+        <button type="button" class="btn btn-outline" id="downloadSummaryBtn">Download</button>
+        <a href="/instructor/report" class="btn btn-outline">Reset</a>
       </div>
     </div>
   </form>
@@ -99,12 +102,13 @@
   <div style="background:linear-gradient(135deg,#042C53,#185FA5);color:#fff;border-radius:10px;padding:16px 22px;margin-bottom:24px;display:flex;gap:30px;flex-wrap:wrap;">
     <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Name</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.name %></div></div>
     <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Student ID</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.student_id||'—' %></div></div>
-    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Section</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.section||'—' %></div></div>
+    <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Section Code</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= studentInfo.section||'—' %></div></div>
     <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Gender</div><div style="font-size:1rem;font-weight:600;margin-top:2px;"><%= (studentInfo.gender||'').charAt(0).toUpperCase()+(studentInfo.gender||'').slice(1) %></div></div>
     <div><div style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">PATHFit</div><div style="font-size:1rem;font-weight:600;margin-top:2px;">PATHFit <%= studentInfo.pathfit_level %></div></div>
   </div>
   <% } %>
 
+  <% if (studentInfo && !showClassSummary) { %>
   <!-- Comparison Table -->
   <div class="card">
     <h3>Fitness Test Comparison</h3>
@@ -144,11 +148,70 @@
       </table>
     </div>
   </div>
-
-  <!-- Class-wide distribution -->
-  <% if (!targetId && totalTests > 0) { %>
+  <% } else if (!section || !showClassSummary) { %>
   <div class="card">
-    <h3>Class-Wide Rating Distribution</h3>
+    <div style="padding:18px;font-size:.96rem;color:#555;">Search by student name, ID, or section code (A–M) to view reports or download a class summary.</div>
+  </div>
+  <% } %>
+
+  <% if (section && sectionStudents && sectionStudents.length && showClassSummary) { %>
+  <div class="card">
+    <h3>Section <%= section %> Class Summary</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Student ID</th><th>PATHFit Level</th><th>Total Tests</th><th>Last Test</th></tr></thead>
+        <tbody>
+          <% sectionSummary.forEach(s => { %>
+          <tr>
+            <td><%= s.name %></td>
+            <td><%= s.student_id || '—' %></td>
+            <td><%= s.pathfit_level || '—' %></td>
+            <td><%= s.test_count %></td>
+            <td><%= s.last_test ? new Date(s.last_test).toLocaleDateString() : '—' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% if (sectionTestRecords && sectionTestRecords.length) { %>
+  <div class="card">
+    <h3>Section <%= section %> Fitness Test Details</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Student ID</th><th>Test Type</th><th>Period</th><th>Score</th><th>Rating</th><th>Recorded At</th></tr>
+        </thead>
+        <tbody>
+          <% sectionTestRecords.forEach(r => { %>
+          <tr>
+            <td><%= r.student_name %></td>
+            <td><%= r.student_id || '—' %></td>
+            <td><%= r.test_type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></td>
+            <td><%= r.test_period ? r.test_period.charAt(0).toUpperCase() + r.test_period.slice(1) : '—' %></td>
+            <td><%= r.reps_or_cm != null ? r.reps_or_cm : '—' %></td>
+            <td><%= r.rating ? r.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '—' %></td>
+            <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } else { %>
+  <div class="card">
+    <div style="padding:18px;font-size:.96rem;color:#555;">No fitness test records yet for section <strong><%= section %></strong>.</div>
+  </div>
+  <% } %>
+  <% } else if (section && showClassSummary) { %>
+  <div class="card">
+    <div style="padding:18px;font-size:.96rem;color:#555;">No students found in section <strong><%= section %></strong>.</div>
+  </div>
+  <% } %>
+
+  <% if (section && totalTests > 0) { %>
+  <div class="card">
+    <h3>Section Rating Distribution</h3>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Rating</th><th>Count</th><th>Percentage</th></tr></thead>
@@ -179,9 +242,11 @@ const REPORT_STUDENTS = <%- JSON.stringify(studentsList.map(s => ({
 
 const searchInput = document.getElementById('reportSearchInput');
 const hiddenId    = document.getElementById('reportStudentId');
+const reportSection = document.getElementById('reportSection');
 const chip        = document.getElementById('reportChip');
 const chipText    = document.getElementById('chipText');
 const chipMeta    = document.getElementById('chipMeta');
+const downloadBtn = document.getElementById('downloadSummaryBtn');
 
 /* Move dropdown to <body> so it's never clipped by any parent */
 const dropdown = document.getElementById('reportDropdown');
@@ -196,6 +261,11 @@ if (hiddenId.value) {
 function filterStudents(q) {
   const lq = q.trim().toLowerCase();
   if (!lq) return REPORT_STUDENTS;
+  const sectionMatch = lq.match(/^(?:section|sec)\s*([a-m])$/i) || lq.match(/^([a-m])$/i);
+  if (sectionMatch) {
+    const sectionCode = sectionMatch[1].toLowerCase();
+    return REPORT_STUDENTS.filter(s => s.section.toLowerCase() === sectionCode);
+  }
   return REPORT_STUDENTS.filter(s =>
     s.name.toLowerCase().includes(lq) ||
     s.student_id.toLowerCase().includes(lq) ||
@@ -239,6 +309,7 @@ function hideDropdown() {
 
 function selectStudent(s) {
   hiddenId.value = s.id;
+  reportSection.value = '';
   chipText.textContent = s.name;
   chipMeta.innerHTML   = `&nbsp;· ${s.student_id || '—'} · Section ${s.section || '—'}`;
   chip.classList.add('show');
@@ -250,6 +321,7 @@ function selectStudent(s) {
 
 function clearStudent() {
   hiddenId.value = '';
+  reportSection.value = '';
   chip.classList.remove('show');
   searchInput.style.display = '';
   searchInput.value = '';
@@ -257,8 +329,24 @@ function clearStudent() {
   hideDropdown();
 }
 
+function findSectionCode(q) {
+  const match = q.trim().toLowerCase().match(/^(?:section|sec)\s*([a-m])$/i) || q.trim().toLowerCase().match(/^([a-m])$/i);
+  return match ? match[1].toUpperCase() : '';
+}
+
+function findStudentByQuery(q) {
+  const normalized = q.trim().toLowerCase();
+  if (!normalized) return null;
+  return REPORT_STUDENTS.find(s =>
+    s.student_id.toLowerCase() === normalized ||
+    s.name.toLowerCase() === normalized
+  );
+}
+
 searchInput.addEventListener('input', () => {
   hiddenId.value = '';
+  const sectionCode = findSectionCode(searchInput.value);
+  reportSection.value = sectionCode;
   renderDropdown(filterStudents(searchInput.value));
 });
 
@@ -268,6 +356,32 @@ searchInput.addEventListener('focus', () => {
 
 searchInput.addEventListener('blur', () => {
   setTimeout(hideDropdown, 150);
+});
+
+const reportForm = document.getElementById('reportForm');
+reportForm.addEventListener('submit', () => {
+  const sectionCode = findSectionCode(searchInput.value);
+  const student = findStudentByQuery(searchInput.value);
+
+  if (student) {
+    hiddenId.value = student.id;
+    reportSection.value = '';
+  } else if (sectionCode) {
+    hiddenId.value = '';
+    reportSection.value = sectionCode;
+  } else {
+    hiddenId.value = '';
+    reportSection.value = '';
+  }
+});
+
+downloadBtn.addEventListener('click', () => {
+  let sectionCode = reportSection.value || findSectionCode(searchInput.value);
+  if (!sectionCode) {
+    alert('Please search a section code (A–M) first to download its class summary.');
+    return;
+  }
+  window.location.href = `/instructor/report/download?section=${encodeURIComponent(sectionCode)}`;
 });
 
 window.addEventListener('scroll', () => {
