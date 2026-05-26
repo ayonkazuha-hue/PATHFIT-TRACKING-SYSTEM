@@ -342,7 +342,34 @@ footer {
   background: #e8f0fb; color: #042C53; border-radius: 20px;
   font-size: .8rem; font-weight: 700; border: 1px solid #cdd5e0;
 }
-.schedule-sheet-master { margin-bottom: 0; border-bottom: none; border-radius: 4px 4px 0 0; }
+.schedule-sheet-master { margin-bottom: 16px; border-radius: 4px; }
+.schedule-time-cell-edit {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 6px 8px; min-width: 0;
+}
+.schedule-time-label-input {
+  flex: 1 1 72px; min-width: 0; width: 100%; max-width: 100%;
+  padding: 6px 8px; border: 1.5px solid #cdd5e0; border-radius: 6px;
+  font-size: .78rem; font-weight: 700; text-align: center; background: #fff;
+  box-sizing: border-box;
+}
+.schedule-time-label-input:focus { outline: none; border-color: #185FA5; background: #f0f6ff; }
+.schedule-lunch-toggle-label {
+  display: inline-flex; align-items: center; gap: 4px; font-size: .7rem;
+  color: #555; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.schedule-lunch-toggle-label.schedule-lunch-inline { font-size: .68rem; }
+.schedule-lunch-toggle-label input { accent-color: #e65100; width: 14px; height: 14px; margin: 0; }
+.schedule-time-remove-btn {
+  flex-shrink: 0; background: none; border: none; color: #bbb; font-size: 1.1rem; line-height: 1;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px;
+}
+.schedule-time-remove-btn:hover { color: #e53935; background: #fde8e8; }
+.schedule-time-display { font-weight: 700; font-size: .82rem; color: #042C53; display: block; padding: 8px 6px; }
+.schedule-grid-time-actions {
+  padding: 10px 12px; background: #f9fafb; border-top: 1px solid #ddd;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
 .schedule-block-wrap { margin: 0 0 24px; }
 .schedule-block-wrap:last-of-type { margin-bottom: 16px; }
 .schedule-block-toolbar {
@@ -607,6 +634,12 @@ footer {
   .schedule-units-panel { border-top: 2px solid #333; }
   .schedule-add-row { flex-direction: column; align-items: stretch; }
   .schedule-add-row .btn { width: 100%; }
+  .schedule-time-cell-edit { flex-direction: column; align-items: stretch; }
+  .schedule-time-label-input { width: 100%; flex: 1 1 auto; }
+  .schedule-lunch-toggle-label { justify-content: center; width: 100%; }
+  .schedule-time-remove-btn { align-self: flex-end; }
+  .schedule-grid { min-width: 0; font-size: .75rem; }
+  .schedule-time-col { min-width: 0; }
   .schedule-block-actions { width: 100%; }
   .schedule-block-actions .btn { flex: 1; min-width: 0; }
   .notif-dropdown { right: 0; left: auto; max-width: calc(100vw - 16px); }

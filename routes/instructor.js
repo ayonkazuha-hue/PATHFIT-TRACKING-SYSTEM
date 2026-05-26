@@ -251,7 +251,7 @@ module.exports = function(supabaseAdmin) {
     return !s.status || s.status === 'approved';
   }
 
-  const TEACHING_TIME_SLOTS = [
+  const DEFAULT_TEACHING_TIME_SLOTS = [
     { id: '7-9',   label: '7:00-9:00',   lunch: false },
     { id: '9-11',  label: '9:00-11:00',  lunch: false },
     { id: '11-12', label: '11:00-12:00', lunch: false },
@@ -261,21 +261,72 @@ module.exports = function(supabaseAdmin) {
   ];
   const TEACHING_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
-  function buildEmptyScheduleSlots() {
+  function getDefaultTimeSlots() {
+    return DEFAULT_TEACHING_TIME_SLOTS.map(s => ({ ...s }));
+  }
+
+  function normalizeTimeSlots(raw) {
+    const defaults = getDefaultTimeSlots();
+    if (!Array.isArray(raw) || !raw.length) return defaults;
+    const normalized = raw.map((slot, idx) => {
+      const label = (slot.label || '').trim().slice(0, 40) || `Time ${idx + 1}`;
+      const id = (slot.id || `slot-${idx}`).trim().slice(0, 40) || `slot-${idx}`;
+      return {
+        id,
+        label,
+        lunch: !!slot.lunch,
+      };
+    }).filter(s => s.label);
+    return normalized.length ? normalized : defaults;
+  }
+
+  function buildEmptyScheduleSlots(timeSlots) {
     const slots = {};
-    TEACHING_TIME_SLOTS.forEach(slot => {
+    (timeSlots || getDefaultTimeSlots()).forEach(slot => {
+      if (slot.lunch) return;
       slots[slot.id] = {};
       TEACHING_DAYS.forEach(day => { slots[slot.id][day] = ''; });
     });
     return slots;
   }
 
+  function parseScheduleBundle(raw) {
+    const defaultTimes = getDefaultTimeSlots();
+    if (!raw || typeof raw !== 'object') {
+      return { timeSlots: defaultTimes, cells: buildEmptyScheduleSlots(defaultTimes) };
+    }
+    if (raw.slots && raw.timeSlots) {
+      const timeSlots = normalizeTimeSlots(raw.timeSlots);
+      return { timeSlots, cells: normalizeScheduleCells(raw.slots, timeSlots) };
+    }
+    return { timeSlots: defaultTimes, cells: normalizeScheduleCells(raw, defaultTimes) };
+  }
+
+  function packScheduleBundle(timeSlots, cells) {
+    return { timeSlots: normalizeTimeSlots(timeSlots), slots: normalizeScheduleCells(cells, timeSlots) };
+  }
+
+  function normalizeScheduleCells(raw, timeSlots) {
+    const slots = buildEmptyScheduleSlots(timeSlots);
+    if (raw && typeof raw === 'object') {
+      (timeSlots || getDefaultTimeSlots()).forEach(slot => {
+        if (slot.lunch) return;
+        TEACHING_DAYS.forEach(day => {
+          const val = raw[slot.id]?.[day];
+          slots[slot.id][day] = typeof val === 'string' ? val.trim() : '';
+        });
+      });
+    }
+    return slots;
+  }
+
   function getDefaultTeachingSchedule(displayName) {
+    const timeSlots = getDefaultTimeSlots();
     return {
       schedule_id: null,
       display_name: displayName || 'INSTRUCTOR NAME',
       semester_label: 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)',
-      schedule_data: buildEmptyScheduleSlots(),
+      schedule_data: buildEmptyScheduleSlots(timeSlots),
       deload_units: '',
       regular_load: '',
       overload: '',
@@ -284,18 +335,21 @@ module.exports = function(supabaseAdmin) {
     };
   }
 
-  function mapScheduleRow(data) {
+  function mapScheduleRow(data, timeSlotsOverride) {
+    const parsed = parseScheduleBundle(data.schedule_data);
+    const timeSlots = timeSlotsOverride || parsed.timeSlots;
     return {
       schedule_id: data.schedule_id,
       display_name: data.display_name || 'INSTRUCTOR NAME',
       semester_label: data.semester_label || 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)',
-      schedule_data: normalizeScheduleData(data.schedule_data),
+      schedule_data: normalizeScheduleCells(parsed.cells, timeSlots),
       deload_units: data.deload_units || '',
       regular_load: data.regular_load || '',
       overload: data.overload || '',
       total_units: data.total_units || '',
       is_locked: !!data.is_locked,
       sort_order: data.sort_order || 0,
+      time_slots: timeSlots,
     };
   }
 
@@ -309,15 +363,27 @@ module.exports = function(supabaseAdmin) {
         .order('created_at', { ascending: true });
       if (error) {
         console.error('[loadAllTeachingSchedules]', error.message);
-        return { schedules: [], semesterLabel: defaultSemester };
+        return { schedules: [], semesterLabel: defaultSemester, timeSlots: getDefaultTimeSlots() };
       }
-      const schedules = (data || []).map(mapScheduleRow);
+      const rows = data || [];
+      const schedules = rows.map(row => mapScheduleRow(row));
       const semesterLabel = schedules[0]?.semester_label || defaultSemester;
-      return { schedules, semesterLabel };
+      const timeSlots = schedules[0]?.time_slots || getDefaultTimeSlots();
+      return { schedules, semesterLabel, timeSlots };
     } catch (err) {
       console.error('[loadAllTeachingSchedules]', err);
-      return { schedules: [], semesterLabel: defaultSemester };
+      return { schedules: [], semesterLabel: defaultSemester, timeSlots: getDefaultTimeSlots() };
     }
+  }
+
+  async function syncGlobalScheduleSettings(semesterLabel) {
+    await supabaseAdmin
+      .from('instructor_schedules')
+      .update({
+        semester_label: semesterLabel,
+        updated_at: new Date().toISOString(),
+      })
+      .not('schedule_id', 'is', null);
   }
 
   async function getScheduleById(scheduleId) {
@@ -328,19 +394,6 @@ module.exports = function(supabaseAdmin) {
       .maybeSingle();
     if (error) throw error;
     return data;
-  }
-
-  function normalizeScheduleData(raw) {
-    const slots = buildEmptyScheduleSlots();
-    if (raw && typeof raw === 'object') {
-      TEACHING_TIME_SLOTS.forEach(slot => {
-        TEACHING_DAYS.forEach(day => {
-          const val = raw[slot.id]?.[day];
-          slots[slot.id][day] = typeof val === 'string' ? val.trim() : '';
-        });
-      });
-    }
-    return slots;
   }
 
   router.get('/dashboard', async (req, res) => {
@@ -393,11 +446,12 @@ module.exports = function(supabaseAdmin) {
   router.get('/schedules', async (req, res) => {
     try {
       const navNotifs = await loadInstructorNavNotifications();
-      const { schedules: teachingSchedules, semesterLabel: teachingSemesterLabel } = await loadAllTeachingSchedules();
+      const { schedules: teachingSchedules, semesterLabel: teachingSemesterLabel, timeSlots: teachingTimeSlots } = await loadAllTeachingSchedules();
+      const allSchedulesLocked = teachingSchedules.length > 0 && teachingSchedules.every(s => s.is_locked);
 
       res.render('instructor/schedules', {
         ...navNotifs,
-        teachingSchedules, teachingSemesterLabel, teachingTimeSlots: TEACHING_TIME_SLOTS, teachingDays: TEACHING_DAYS,
+        teachingSchedules, teachingSemesterLabel, teachingTimeSlots, teachingDays: TEACHING_DAYS, allSchedulesLocked,
         scheduleSuccess: req.query.scheduleSuccess || null,
         scheduleError:   req.query.scheduleError   || null,
       });
@@ -411,19 +465,26 @@ module.exports = function(supabaseAdmin) {
     const redirectBase = '/instructor/schedules';
     const userId = req.session.user.user_id;
     try {
-      const { schedules } = await loadAllTeachingSchedules();
+      const { schedules, timeSlots: existingTimes } = await loadAllTeachingSchedules();
       const displayName = (req.body.display_name || 'NEW INSTRUCTOR').trim().slice(0, 150) || 'NEW INSTRUCTOR';
       const semesterLabel = (req.body.semester_label || schedules[0]?.semester_label || '').trim().slice(0, 250) ||
         'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)';
+      let timeSlots = existingTimes;
+      try {
+        if (req.body.time_slots) timeSlots = normalizeTimeSlots(JSON.parse(req.body.time_slots));
+      } catch { /* keep existing */ }
 
       const { error } = await supabaseAdmin.from('instructor_schedules').insert({
         display_name: displayName,
         semester_label: semesterLabel,
-        schedule_data: buildEmptyScheduleSlots(),
+        schedule_data: packScheduleBundle(timeSlots, buildEmptyScheduleSlots(timeSlots)),
         sort_order: schedules.length,
         updated_by: userId,
         updated_at: new Date().toISOString(),
       });
+      if (!error && schedules.length) {
+        await syncGlobalScheduleSettings(semesterLabel);
+      }
       if (error) throw error;
       res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent('Instructor schedule added. Fill in the grid and save.')}`);
     } catch (err) {
@@ -451,11 +512,17 @@ module.exports = function(supabaseAdmin) {
         return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('This schedule is locked. Unlock it first to make changes.')}`);
       }
 
-      let scheduleData = {};
+      let scheduleCells = {};
+      let timeSlots = parseScheduleBundle(existing.schedule_data).timeSlots;
       try {
-        scheduleData = JSON.parse(req.body.schedule_data || '{}');
+        scheduleCells = JSON.parse(req.body.schedule_data || '{}');
       } catch {
         return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Invalid schedule data.')}`);
+      }
+      try {
+        if (req.body.time_slots) timeSlots = normalizeTimeSlots(JSON.parse(req.body.time_slots));
+      } catch {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Invalid time slot data.')}`);
       }
 
       const semesterLabel = (req.body.semester_label || '').trim().slice(0, 250) ||
@@ -464,7 +531,7 @@ module.exports = function(supabaseAdmin) {
       const payload = {
         display_name: (req.body.display_name || '').trim().slice(0, 150) || 'INSTRUCTOR NAME',
         semester_label: semesterLabel,
-        schedule_data: normalizeScheduleData(scheduleData),
+        schedule_data: packScheduleBundle(timeSlots, scheduleCells),
         deload_units: (req.body.deload_units || '').trim().slice(0, 500),
         regular_load: (req.body.regular_load || '').trim().slice(0, 500),
         overload: (req.body.overload || '').trim().slice(0, 500),
@@ -480,10 +547,7 @@ module.exports = function(supabaseAdmin) {
 
       if (error) throw error;
 
-      await supabaseAdmin
-        .from('instructor_schedules')
-        .update({ semester_label: semesterLabel, updated_at: new Date().toISOString() })
-        .neq('schedule_id', scheduleId);
+      await syncGlobalScheduleSettings(semesterLabel);
 
       res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent('Schedule saved for ' + payload.display_name + '.')}`);
     } catch (err) {

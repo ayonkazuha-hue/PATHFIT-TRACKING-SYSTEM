@@ -1,11 +1,13 @@
 <!-- Faculty Teaching Load — multiple instructors -->
 <% const schedules = teachingSchedules || []; const semesterLabel = teachingSemesterLabel || 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)'; %>
+<% const defaultTimeSlots = teachingTimeSlots || []; %>
+<% const schedulesAllLocked = schedules.length > 0 && schedules.every(function (s) { return s.is_locked; }); %>
 
 <div class="card teaching-schedule-card" id="teachingScheduleCard">
   <div class="schedule-toolbar">
     <div>
       <h3 style="margin:0;border:none;padding:0;">Faculty Teaching Load</h3>
-      <p class="schedule-toolbar-sub">Add schedules for each instructor, edit names and time slots, then lock when finished.</p>
+      <p class="schedule-toolbar-sub">Edit semester, times in each grid, instructor names, and class codes. Lock each instructor when finished.</p>
     </div>
     <div class="schedule-toolbar-actions">
       <span class="schedule-count-badge"><%= schedules.length %> instructor<%= schedules.length === 1 ? '' : 's' %></span>
@@ -24,7 +26,8 @@
       <input type="text" id="globalSemesterLabel" class="schedule-semester-input"
              value="<%= semesterLabel %>"
              placeholder="SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)"
-             aria-label="Semester label">
+             aria-label="Semester label"
+             <%= schedulesAllLocked ? 'readonly' : '' %>>
     </div>
   </div>
 
@@ -38,11 +41,13 @@
     <% schedules.forEach(function(sched, blockIdx) {
       const locked = !!sched.is_locked;
       const blockId = sched.schedule_id;
+      const blockTimeSlots = sched.time_slots || defaultTimeSlots;
     %>
     <div class="schedule-block-wrap" data-block-index="<%= blockIdx %>">
       <form method="POST" action="/instructor/schedule/save" class="schedule-block-form" id="scheduleForm-<%= blockId %>">
         <input type="hidden" name="schedule_id" value="<%= blockId %>">
         <input type="hidden" name="schedule_data" class="schedule-data-input" value="">
+        <input type="hidden" name="time_slots" class="schedule-times-input" value="">
         <input type="hidden" name="semester_label" class="schedule-semester-hidden" value="<%= semesterLabel %>">
 
         <div class="schedule-block-toolbar">
@@ -82,10 +87,24 @@
                     <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <% teachingTimeSlots.forEach(function(slot) { %>
-                  <tr class="<%= slot.lunch ? 'schedule-lunch-row' : '' %>">
-                    <td class="schedule-time-col"><%= slot.label %></td>
+                <tbody class="schedule-grid-body">
+                  <% blockTimeSlots.forEach(function(slot) { %>
+                  <tr class="schedule-grid-row <%= slot.lunch ? 'schedule-lunch-row' : '' %>" data-slot-id="<%= slot.id %>">
+                    <td class="schedule-time-col">
+                      <% if (locked) { %>
+                        <span class="schedule-time-display"><%= slot.label %></span>
+                      <% } else { %>
+                        <div class="schedule-time-cell-edit">
+                          <input type="text" class="schedule-time-label-input" value="<%= slot.label %>"
+                                 placeholder="e.g. 7:00-9:00" maxlength="40" aria-label="Time label">
+                          <label class="schedule-lunch-toggle-label schedule-lunch-inline" title="Lunch break row">
+                            <input type="checkbox" class="schedule-lunch-toggle" <%= slot.lunch ? 'checked' : '' %>>
+                            <span>Lunch</span>
+                          </label>
+                          <button type="button" class="schedule-time-remove-btn" title="Remove this time row" aria-label="Remove time row">×</button>
+                        </div>
+                      <% } %>
+                    </td>
                     <% if (slot.lunch) { %>
                       <td colspan="5" class="schedule-lunch-cell">LUNCH BREAK</td>
                     <% } else { %>
@@ -132,6 +151,12 @@
             </div>
           </div>
 
+          <% if (!locked) { %>
+          <div class="schedule-grid-time-actions">
+            <button type="button" class="btn btn-sm btn-outline schedule-add-time-btn">+ Add time row</button>
+          </div>
+          <% } %>
+
           <% if (locked) { %>
             <div class="schedule-locked-overlay-hint">Locked — unlock to edit this instructor's schedule.</div>
           <% } %>
@@ -145,6 +170,7 @@
     <h4 class="schedule-add-title">Add instructor schedule</h4>
     <form method="POST" action="/instructor/schedule/add" class="schedule-add-form" id="scheduleAddForm">
       <input type="hidden" name="semester_label" id="addSemesterHidden" value="<%= semesterLabel %>">
+      <input type="hidden" name="time_slots" id="addTimeSlotsHidden" value="">
       <div class="schedule-add-row">
         <label class="schedule-add-label">
           <span>Instructor name</span>
@@ -168,8 +194,11 @@
 
 <script>
 (function () {
+  const TEACHING_DAYS = <%- JSON.stringify(teachingDays) %>;
+  const DEFAULT_TIME_SLOTS = <%- JSON.stringify(defaultTimeSlots) %>;
   const globalSemester = document.getElementById('globalSemesterLabel');
   const addSemesterHidden = document.getElementById('addSemesterHidden');
+  const addTimeSlotsHidden = document.getElementById('addTimeSlotsHidden');
   const lockForm = document.getElementById('scheduleLockSubmitForm');
   const deleteForm = document.getElementById('scheduleDeleteSubmitForm');
 
@@ -181,9 +210,145 @@
     });
   }
 
-  if (globalSemester) {
-    globalSemester.addEventListener('input', syncSemesterToForms);
-    syncSemesterToForms();
+  function escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  }
+
+  function collectTimeSlotsFromForm(form) {
+    const slots = [];
+    const tbody = form.querySelector('.schedule-grid-body');
+    if (!tbody) return slots;
+    tbody.querySelectorAll('.schedule-grid-row').forEach(function (row, idx) {
+      const labelInput = row.querySelector('.schedule-time-label-input');
+      const lunchToggle = row.querySelector('.schedule-lunch-toggle');
+      const display = row.querySelector('.schedule-time-display');
+      const label = labelInput
+        ? (labelInput.value || '').trim()
+        : (display ? display.textContent.trim() : '');
+      if (!label) return;
+      let id = row.dataset.slotId;
+      if (!id) id = 'slot-' + idx + '-' + Date.now();
+      slots.push({ id, label, lunch: !!(lunchToggle && lunchToggle.checked) });
+    });
+    return slots;
+  }
+
+  function syncTimeSlotsHidden(form) {
+    const hidden = form.querySelector('.schedule-times-input');
+    if (hidden) hidden.value = JSON.stringify(collectTimeSlotsFromForm(form));
+  }
+
+  function getCellsFromRow(gridRow) {
+    const cells = {};
+    gridRow.querySelectorAll('.schedule-slot-input').forEach(function (input) {
+      const slotId = input.dataset.slot;
+      const day = input.dataset.day;
+      if (!cells[slotId]) cells[slotId] = {};
+      cells[slotId][day] = input.value.trim();
+    });
+    return cells;
+  }
+
+  function buildTimeCellHtml(slot, locked) {
+    if (locked) {
+      return '<span class="schedule-time-display">' + escapeHtml(slot.label || '') + '</span>';
+    }
+    return '<div class="schedule-time-cell-edit">' +
+      '<input type="text" class="schedule-time-label-input" value="' + escapeHtml(slot.label || '') + '" placeholder="e.g. 7:00-9:00" maxlength="40" aria-label="Time label">' +
+      '<label class="schedule-lunch-toggle-label schedule-lunch-inline" title="Lunch break row">' +
+      '<input type="checkbox" class="schedule-lunch-toggle"' + (slot.lunch ? ' checked' : '') + '><span>Lunch</span></label>' +
+      '<button type="button" class="schedule-time-remove-btn" title="Remove this time row" aria-label="Remove time row">×</button>' +
+      '</div>';
+  }
+
+  function buildGridRowHtml(slot, cells, locked) {
+    const timeCell = buildTimeCellHtml(slot, locked);
+    if (slot.lunch) {
+      return '<tr class="schedule-grid-row schedule-lunch-row" data-slot-id="' + slot.id + '">' +
+        '<td class="schedule-time-col">' + timeCell + '</td>' +
+        '<td colspan="5" class="schedule-lunch-cell">LUNCH BREAK</td></tr>';
+    }
+    let dayCells = '';
+    TEACHING_DAYS.forEach(function (day) {
+      const val = (cells && cells[slot.id] && cells[slot.id][day]) || '';
+      const filled = val ? ' filled' : '';
+      const ro = locked ? ' readonly tabindex="-1"' : '';
+      dayCells += '<td class="schedule-slot-cell"><input type="text" class="schedule-slot-input' + filled + '" data-slot="' + slot.id + '" data-day="' + day + '" value="' + escapeHtml(val) + '" placeholder="—" maxlength="40" autocomplete="off"' + ro + '></td>';
+    });
+    return '<tr class="schedule-grid-row" data-slot-id="' + slot.id + '">' +
+      '<td class="schedule-time-col">' + timeCell + '</td>' + dayCells + '</tr>';
+  }
+
+  function rebuildGrid(form) {
+    const tbody = form.querySelector('.schedule-grid-body');
+    if (!tbody) return;
+    const locked = form.querySelector('.schedule-block-sheet.is-locked') !== null;
+    const timeSlots = collectTimeSlotsFromForm(form);
+    const existingCells = {};
+    tbody.querySelectorAll('.schedule-grid-row').forEach(function (row) {
+      existingCells[row.dataset.slotId] = getCellsFromRow(row);
+    });
+    const mergedCells = {};
+    timeSlots.forEach(function (slot) {
+      if (slot.lunch) return;
+      mergedCells[slot.id] = existingCells[slot.id] || {};
+      TEACHING_DAYS.forEach(function (day) {
+        if (mergedCells[slot.id][day] === undefined) mergedCells[slot.id][day] = '';
+      });
+    });
+    tbody.innerHTML = timeSlots.map(function (slot) {
+      return buildGridRowHtml(slot, mergedCells, locked);
+    }).join('');
+    refreshSlotFilledStates(form);
+    syncTimeSlotsHidden(form);
+  }
+
+  function refreshSlotFilledStates(form) {
+    form.querySelectorAll('.schedule-slot-input').forEach(function (input) {
+      input.classList.toggle('filled', !!input.value.trim());
+    });
+  }
+
+  function bindGridEvents(form) {
+    if (form.dataset.gridBound === '1') {
+      refreshSlotFilledStates(form);
+      return;
+    }
+    form.dataset.gridBound = '1';
+
+    form.addEventListener('input', function (e) {
+      if (e.target.classList.contains('schedule-time-label-input')) syncTimeSlotsHidden(form);
+      if (e.target.classList.contains('schedule-slot-input')) {
+        e.target.classList.toggle('filled', !!e.target.value.trim());
+      }
+    });
+
+    form.addEventListener('change', function (e) {
+      if (e.target.classList.contains('schedule-lunch-toggle')) rebuildGrid(form);
+    });
+
+    form.addEventListener('click', function (e) {
+      if (e.target.classList.contains('schedule-time-remove-btn')) {
+        const tbody = form.querySelector('.schedule-grid-body');
+        if (!tbody || tbody.querySelectorAll('.schedule-grid-row').length <= 1) {
+          alert('At least one time row is required.');
+          return;
+        }
+        e.target.closest('.schedule-grid-row')?.remove();
+        rebuildGrid(form);
+        return;
+      }
+      if (e.target.classList.contains('schedule-add-time-btn')) {
+        const tbody = form.querySelector('.schedule-grid-body');
+        if (!tbody) return;
+        const newId = 'slot-' + Date.now();
+        tbody.insertAdjacentHTML('beforeend', buildGridRowHtml({ id: newId, label: '', lunch: false }, {}, false));
+        syncTimeSlotsHidden(form);
+        tbody.querySelector('.schedule-grid-row:last-child .schedule-time-label-input')?.focus();
+      }
+    });
+
+    refreshSlotFilledStates(form);
   }
 
   function collectBlockData(form) {
@@ -197,20 +362,21 @@
     return slots;
   }
 
-  function syncFilledClass(input) {
-    input.classList.toggle('filled', !!input.value.trim());
+  if (globalSemester) {
+    globalSemester.addEventListener('input', syncSemesterToForms);
+    syncSemesterToForms();
+  }
+
+  if (addTimeSlotsHidden) {
+    addTimeSlotsHidden.value = JSON.stringify(DEFAULT_TIME_SLOTS);
   }
 
   document.querySelectorAll('.schedule-block-form').forEach(function (form) {
-    const isLocked = form.querySelector('.schedule-block-sheet.is-locked') !== null;
-    form.querySelectorAll('.schedule-slot-input').forEach(function (input) {
-      syncFilledClass(input);
-      if (!isLocked) {
-        input.addEventListener('input', function () { syncFilledClass(input); });
-      }
-    });
+    syncTimeSlotsHidden(form);
+    bindGridEvents(form);
     form.addEventListener('submit', function () {
       syncSemesterToForms();
+      syncTimeSlotsHidden(form);
       const dataInput = form.querySelector('.schedule-data-input');
       if (dataInput) dataInput.value = JSON.stringify(collectBlockData(form));
     });
@@ -243,7 +409,12 @@
 
   const addForm = document.getElementById('scheduleAddForm');
   if (addForm) {
-    addForm.addEventListener('submit', syncSemesterToForms);
+    addForm.addEventListener('submit', function () {
+      syncSemesterToForms();
+      if (addTimeSlotsHidden && !addTimeSlotsHidden.value) {
+        addTimeSlotsHidden.value = JSON.stringify(DEFAULT_TIME_SLOTS);
+      }
+    });
   }
 })();
 </script>
