@@ -1,5 +1,32 @@
 <%- include('../partials/header', { title: 'Instructor Dashboard' }) %>
 <div class="container">
+  <style>
+    .rating-chart-card { margin-bottom: 18px; }
+    .rating-chart-sub { color: #042C53; font-size: .9rem; margin: 2px 0 0; line-height: 1.45; }
+    .rating-chart-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .rating-chart-filter { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+    .rating-chart-filter label { display:block; font-size:.8rem; font-weight:700; color:#042C53; margin-bottom:4px; }
+    .rating-chart-filter select { min-width:120px; }
+    .rating-bars { display:flex; flex-direction:column; gap:10px; }
+    .rating-row { display:grid; grid-template-columns: 150px 1fr 96px; align-items:center; gap:10px; }
+    .rating-meta { font-size:.82rem; color:#555; text-align:right; font-weight:700; }
+    .rating-track { width:100%; height:24px; background:#eef3fb; border-radius:999px; overflow:hidden; border:1px solid #dde6f3; }
+    .rating-fill { height:100%; min-width:2px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; color:#fff; font-size:.72rem; font-weight:700; white-space:nowrap; transition:width .25s ease; }
+    .rating-fill.excellent { background:#2e7d32; }
+    .rating-fill.very_good { background:#00897b; }
+    .rating-fill.good { background:#1565c0; }
+    .rating-fill.fair { background:#ef6c00; }
+    .rating-fill.needs_improvement { background:#c62828; }
+    .rating-fill.poor { background:#4b5563; }
+    @media (max-width: 768px) {
+      .rating-row { grid-template-columns: 1fr; gap:6px; }
+      .rating-meta { text-align:left; }
+      .rating-track { height:22px; }
+      .rating-chart-filter { width:100%; }
+      .rating-chart-filter .btn { width:100%; }
+      .rating-chart-filter select { width:100%; }
+    }
+  </style>
   <div class="page-title">Hello, <%= user.name %>! 👋</div>
   <div class="page-sub">Manage students and track fitness progress.</div>
 
@@ -90,6 +117,79 @@
       </div>
     </div>
   </form>
+
+  <!-- Section Rating Distribution (moved from Reports) -->
+  <div class="card rating-chart-card">
+    <%
+      const chartDist = (ratingDistribution && ratingDistribution.dist) || {};
+      const chartTotal = (ratingDistribution && ratingDistribution.totalTests) || 0;
+      const chartSection = (ratingDistribution && ratingDistribution.selectedSection) || '';
+      const chartSections = (ratingDistribution && ratingDistribution.sections) || [];
+      const ratingRows = [
+        { key: 'excellent', label: 'Excellent' },
+        { key: 'very_good', label: 'Very Good' },
+        { key: 'good', label: 'Good' },
+        { key: 'fair', label: 'Fair' },
+        { key: 'needs_improvement', label: 'Needs Improvement' },
+        { key: 'poor', label: 'Poor' },
+      ];
+    %>
+    <div class="rating-chart-head">
+      <div>
+        <h3 style="margin:0;border:none;padding:0;">Section Rating Distribution</h3>
+        <div class="rating-chart-sub">
+          <% if (chartSection) { %>
+            Based on fitness test ratings in section <strong><%= chartSection %></strong>.
+          <% } else { %>
+            No section data available yet.
+          <% } %>
+        </div>
+      </div>
+      <form method="GET" action="/instructor/dashboard" class="rating-chart-filter">
+        <input type="hidden" name="section" value="<%= filters.section || '' %>">
+        <input type="hidden" name="course" value="<%= filters.course || '' %>">
+        <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+        <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+        <input type="hidden" name="gender" value="<%= filters.gender || '' %>">
+        <input type="hidden" name="search" value="<%= filters.search || '' %>">
+        <div>
+          <label for="ratingSection">Section</label>
+          <select id="ratingSection" name="rating_section" <%= chartSections.length ? '' : 'disabled' %>>
+            <% if (!chartSections.length) { %>
+              <option value="">No sections</option>
+            <% } else { %>
+              <% chartSections.forEach(sec => { %>
+                <option value="<%= sec %>" <%= sec === chartSection ? 'selected' : '' %>><%= sec %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline" <%= chartSections.length ? '' : 'disabled' %>>Apply</button>
+      </form>
+    </div>
+
+    <% if (chartSection) { %>
+      <div class="rating-bars">
+        <% ratingRows.forEach(row => {
+          const cnt = chartDist[row.key] || 0;
+          const pct = chartTotal > 0 ? Math.round((cnt / chartTotal) * 100) : 0;
+        %>
+          <div class="rating-row">
+            <span class="badge badge-<%= row.key %>"><%= row.label %></span>
+            <div class="rating-track" role="img" aria-label="<%= row.label %>: <%= cnt %> tests, <%= pct %> percent">
+              <div class="rating-fill <%= row.key %>" style="width:<%= pct %>%;">
+                <%= pct > 14 ? (pct + '%') : '' %>
+              </div>
+            </div>
+            <div class="rating-meta"><%= cnt %> · <%= pct %>%</div>
+          </div>
+        <% }) %>
+      </div>
+      <div style="margin-top:10px;font-size:.82rem;color:#6b7280;">Total tests counted: <strong><%= chartTotal %></strong></div>
+    <% } else { %>
+      <div class="empty-state">No section ratings to display yet.</div>
+    <% } %>
+  </div>
 
   <!-- Students Table -->
   <div class="card">

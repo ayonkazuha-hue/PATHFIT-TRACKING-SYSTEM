@@ -397,7 +397,7 @@ module.exports = function(supabaseAdmin) {
   }
 
   router.get('/dashboard', async (req, res) => {
-    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
+    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '', rating_section = '' } = req.query;
     try {
       await probeUsersSchema(supabaseAdmin);
       let query = supabaseAdmin.from('users').select('*').eq('role', 'student').order('name');
@@ -421,12 +421,48 @@ module.exports = function(supabaseAdmin) {
 
       const students = (studentsRes.data || []).filter(isApprovedStudent);
       const pendingScreenings = (pendingRes.data || []).length;
+      const allApprovedStudents = (allStudentsRes.data || []).filter(isApprovedStudent);
       const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
+      const availableSections = [...new Set(
+        allApprovedStudents
+          .map(s => (s.section || '').toString().trim().toUpperCase())
+          .filter(Boolean)
+      )].sort();
+      const sectionFilterUpper = (section || '').toString().trim().toUpperCase();
+      const requestedRatingSection = (rating_section || '').toString().trim().toUpperCase();
+      const selectedRatingSection = availableSections.includes(requestedRatingSection)
+        ? requestedRatingSection
+        : (availableSections.includes(sectionFilterUpper) ? sectionFilterUpper : (availableSections[0] || ''));
+      const ratingDist = { excellent: 0, very_good: 0, good: 0, fair: 0, needs_improvement: 0, poor: 0 };
+      let ratingTotal = 0;
+      if (selectedRatingSection) {
+        const sectionStudentIds = allApprovedStudents
+          .filter(s => (s.section || '').toString().trim().toUpperCase() === selectedRatingSection)
+          .map(s => s.user_id);
+        if (sectionStudentIds.length) {
+          const { data: ratingTests } = await supabaseAdmin
+            .from('fitness_tests')
+            .select('rating')
+            .in('student_id', sectionStudentIds);
+          (ratingTests || []).forEach(t => {
+            if (t.rating && ratingDist[t.rating] !== undefined) {
+              ratingDist[t.rating] += 1;
+              ratingTotal += 1;
+            }
+          });
+        }
+      }
       const navNotifs = await loadInstructorNavNotifications();
 
       res.render('instructor/dashboard', {
         students, pendingScreenings, ...navNotifs,
-        filters: { section, pathfit_level, gender, course, year_level, search },
+        filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
+        ratingDistribution: {
+          selectedSection: selectedRatingSection,
+          sections: availableSections,
+          dist: ratingDist,
+          totalTests: ratingTotal,
+        },
         stats: {
           total:   students.length,
           male:    students.filter(s => s.gender === 'male').length,

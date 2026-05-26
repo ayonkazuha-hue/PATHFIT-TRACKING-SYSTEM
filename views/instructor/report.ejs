@@ -249,25 +249,7 @@
   </div>
   <% } %>
 
-  <% if (section && totalTests > 0) { %>
-  <div class="card">
-    <h3>Section Rating Distribution</h3>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Rating</th><th>Count</th><th>Percentage</th></tr></thead>
-        <tbody>
-          <% Object.entries(dist).forEach(([r, cnt]) => { %>
-          <tr>
-            <td><span class="badge badge-<%= r %>"><%= r.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></span></td>
-            <td><%= cnt %></td>
-            <td><%= totalTests > 0 ? Math.round((cnt/totalTests)*100) : 0 %>%</td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <% } %>
+  <!-- Section Rating Distribution moved to Instructor Dashboard -->
 </div>
 
 <script>
