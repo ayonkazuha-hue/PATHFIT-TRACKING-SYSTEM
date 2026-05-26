@@ -7,16 +7,22 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img src="/images/nbsc_logo.png" alt="NBSC Logo" class="brand-logo">
-    <div class="brand-text">
-      <h1>PATH-Fit TRACKING AND MONITORING SYSTEM</h1>
-      <span>Physical Activity Towards Health and Fitness</span>
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <img src="/images/nbsc_logo.png" alt="NBSC Logo" class="brand-logo">
+      <div class="brand-text">
+        <h1>PATH-Fit TRACKING AND MONITORING SYSTEM</h1>
+        <span>Physical Activity Towards Health and Fitness</span>
+      </div>
     </div>
-  </div>
-  <% if (user) { %>
-  <nav>
+    <% if (user) { %>
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    <nav id="mainNav" class="main-nav">
     <% if (user.role === 'instructor') { %>
       <a href="/instructor/dashboard">Dashboard</a>
       <a href="/instructor/schedules">Schedules</a>
@@ -175,8 +181,9 @@
       <a href="/student/report">My Report</a>
     <% } %>
     <a href="/logout">Logout</a>
-  </nav>
-  <% } %>
+    </nav>
+    <% } %>
+  </div>
 </header>
 
 <!-- ── Modals: rendered outside <header> so position:fixed works correctly ── -->
@@ -268,6 +275,34 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    const navToggle = document.getElementById('navToggle');
+    const mainNav = document.getElementById('mainNav');
+    if (navToggle && mainNav) {
+      navToggle.addEventListener('click', function () {
+        const open = mainNav.classList.toggle('is-open');
+        navToggle.classList.toggle('is-active', open);
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      });
+      mainNav.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (window.innerWidth <= 768) {
+            mainNav.classList.remove('is-open');
+            navToggle.classList.remove('is-active');
+            navToggle.setAttribute('aria-expanded', 'false');
+            navToggle.setAttribute('aria-label', 'Open menu');
+          }
+        });
+      });
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
+          mainNav.classList.remove('is-open');
+          navToggle.classList.remove('is-active');
+          navToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
     // ── Notification bell toggle ──
     const btn      = document.getElementById('notifBtn');
     const dropdown = document.getElementById('notifDropdown');
