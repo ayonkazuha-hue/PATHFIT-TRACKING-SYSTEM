@@ -1,0 +1,112 @@
+<%- include('../partials/header', { title: 'Notifications' }) %>
+<div class="container">
+  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <div class="page-title">All Notifications</div>
+  <div class="page-sub">Read items stay listed but appear faded. Use Open to go to the related page.</div>
+
+  <%
+    const _testLabels = {
+      push_ups:'Push-Ups', sit_reach:'Sit & Reach', zipper_test:'Zipper Test',
+      juggling:'Juggling', sprint_40m:'40m Sprint', stork_balance:'Stork Balance',
+      stick_drop:'Stick Drop', agility_test:'Agility Test', step_test_3min:'3-Min Step Test'
+    };
+    const _ft = fitnessTestNotifications || [];
+    const _ha = healthAppraisalNotifications || [];
+    const _reg = pendingRegistrations || [];
+    const _reset = pendingPasswordResets || [];
+  %>
+
+  <div class="card notif-page-card">
+    <% if (_ft.length) { %>
+    <h3 class="notif-page-section">📊 Fitness Test Results</h3>
+    <% _ft.forEach(function(n) { %>
+    <div class="notif-page-row <%= n.is_read ? 'notif-row-read' : '' %>" data-type="fitness" data-id="<%= n.notif_id %>">
+      <div class="notif-page-body">
+        <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
+        <div class="notif-meta">
+          <%= _testLabels[n.test_type] || n.test_type %> ·
+          <%= n.test_period === 'pre' ? 'Pre-Test' : 'Post-Test' %>
+          <% if (n.rating) { %> · <%= n.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %><% } %>
+        </div>
+        <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+      </div>
+      <a href="/instructor/view-test-notification/<%= n.notif_id %>" class="btn btn-sm">Open</a>
+    </div>
+    <% }) %>
+    <% } %>
+
+    <% if (_ha.length) { %>
+    <h3 class="notif-page-section">🏥 Health Appraisal Records</h3>
+    <% _ha.forEach(function(n) { %>
+    <div class="notif-page-row <%= n.is_read ? 'notif-row-read' : '' %>" data-type="health" data-id="<%= n.notification_id %>">
+      <div class="notif-page-body">
+        <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
+        <div class="notif-meta">Submitted Health Appraisal Record (PAR-Q)</div>
+        <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+      </div>
+      <a href="/instructor/view-health-appraisal/<%= n.notification_id %>" class="btn btn-sm">Open</a>
+    </div>
+    <% }) %>
+    <% } %>
+
+    <% if (_reg.length) { %>
+    <h3 class="notif-page-section">👤 New Registrations</h3>
+    <% _reg.forEach(function(s) { %>
+    <div class="notif-page-row" data-local-id="reg-<%= s.user_id %>">
+      <div class="notif-page-body">
+        <div class="notif-name"><%= s.name %></div>
+        <div class="notif-meta">Registered · awaiting approval</div>
+        <div class="notif-time"><%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline notif-page-reg-btn"
+        data-user-id="<%= s.user_id %>"
+        data-name="<%= (s.name || '').replace(/"/g, '&quot;') %>"
+        data-student-id="<%= s.student_id || '' %>"
+        data-email="<%= s.email %>"
+        data-course="<%= (s.course || '—').replace(/"/g, '&quot;') %>"
+        data-section="<%= (s.section || '—').replace(/"/g, '&quot;') %>"
+        data-year-level="<%= s.year_level || '—' %>"
+        data-pathfit-level="<%= s.pathfit_level %>"
+        data-gender="<%= s.gender || '—' %>"
+        data-age="<%= s.age || '—' %>"
+        data-created-at="<%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>">Review</button>
+    </div>
+    <% }) %>
+    <% } %>
+
+    <% if (_reset.length) { %>
+    <h3 class="notif-page-section">🔑 Password Reset Requests</h3>
+    <% _reset.forEach(function(r) { %>
+    <div class="notif-page-row" data-local-id="reset-<%= r.request_id %>">
+      <div class="notif-page-body">
+        <div class="notif-name"><%= r.users ? r.users.name : '—' %></div>
+        <div class="notif-meta">Password reset · awaiting approval</div>
+        <div class="notif-time"><%= new Date(r.requested_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline notif-page-reset-btn"
+        data-request-id="<%= r.request_id %>"
+        data-name="<%= ((r.users && r.users.name) || '').replace(/"/g, '&quot;') %>"
+        data-email="<%= (r.users && r.users.email) || '' %>"
+        data-student-id="<%= (r.users && r.users.student_id) || '' %>"
+        data-section="<%= ((r.users && r.users.section) || '—').replace(/"/g, '&quot;') %>"
+        data-course="<%= ((r.users && r.users.course) || '—').replace(/"/g, '&quot;') %>"
+        data-requested-at="<%= new Date(r.requested_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>">Review</button>
+    </div>
+    <% }) %>
+    <% } %>
+
+    <% if (!_ft.length && !_ha.length && !_reg.length && !_reset.length) { %>
+    <div class="empty-state">No notifications to show.</div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.notif-page-reg-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() { openStudentModal(btn); });
+});
+document.querySelectorAll('.notif-page-reset-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() { openResetModal(btn); });
+});
+</script>
+<%- include('../partials/footer') %>

@@ -107,13 +107,22 @@ module.exports = function(supabaseAdmin) {
   }
 
   
-  async function getFitnessTestNotifications() {
+  function wantsJson(req) {
+    return req.get('X-Requested-With') === 'fetch'
+      || (req.get('Accept') || '').includes('application/json');
+  }
+
+  async function getFitnessTestNotifications(opts = {}) {
+    const { limit = null, unreadOnly = false } = opts;
     try {
-      const { data: notifications, error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from('fitness_test_notifications')
         .select('*')
-        .eq('is_read', false)
         .order('created_at', { ascending: false });
+      if (unreadOnly) query = query.eq('is_read', false);
+      if (limit) query = query.limit(limit);
+
+      const { data: notifications, error } = await query;
 
       if (error) {
         console.error('[getFitnessTestNotifications] Error:', error.message);
@@ -141,14 +150,17 @@ module.exports = function(supabaseAdmin) {
     }
   }
 
-  // Helper: fetch unread health appraisal notifications for the nav bell
-  async function getHealthAppraisalNotifications() {
+  async function getHealthAppraisalNotifications(opts = {}) {
+    const { limit = null, unreadOnly = false } = opts;
     try {
-      const { data: notifications, error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from('health_appraisal_notifications')
         .select('*')
-        .eq('is_read', false)
         .order('created_at', { ascending: false });
+      if (unreadOnly) query = query.eq('is_read', false);
+      if (limit) query = query.limit(limit);
+
+      const { data: notifications, error } = await query;
 
       if (error) {
         console.error('[getHealthAppraisalNotifications] Error:', error.message);
@@ -174,6 +186,32 @@ module.exports = function(supabaseAdmin) {
       console.error('[getHealthAppraisalNotifications] Catch Error:', err);
       return [];
     }
+  }
+
+  async function loadInstructorNavNotifications() {
+    const [
+      fitnessTestNotifications,
+      healthAppraisalNotifications,
+      ftUnread,
+      haUnread,
+      pendingRegistrations,
+      pendingPasswordResets,
+    ] = await Promise.all([
+      getFitnessTestNotifications({ limit: 5 }),
+      getHealthAppraisalNotifications({ limit: 5 }),
+      getFitnessTestNotifications({ unreadOnly: true }),
+      getHealthAppraisalNotifications({ unreadOnly: true }),
+      getPendingRegistrations(),
+      getPendingPasswordResets(),
+    ]);
+    return {
+      fitnessTestNotifications,
+      healthAppraisalNotifications,
+      fitnessTestUnreadCount: ftUnread.length,
+      healthAppraisalUnreadCount: haUnread.length,
+      pendingRegistrations,
+      pendingPasswordResets,
+    };
   }
 
   
@@ -331,14 +369,10 @@ module.exports = function(supabaseAdmin) {
       const students = (studentsRes.data || []).filter(isApprovedStudent);
       const pendingScreenings = (pendingRes.data || []).length;
       const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
-      const { schedules: teachingSchedules, semesterLabel: teachingSemesterLabel } = await loadAllTeachingSchedules();
+      const navNotifs = await loadInstructorNavNotifications();
 
       res.render('instructor/dashboard', {
-        students, pendingScreenings, pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
-        teachingSchedules, teachingSemesterLabel, teachingTimeSlots: TEACHING_TIME_SLOTS, teachingDays: TEACHING_DAYS,
+        students, pendingScreenings, ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
@@ -349,6 +383,21 @@ module.exports = function(supabaseAdmin) {
         },
         approveSuccess: req.query.approveSuccess || null,
         approveError:   req.query.approveError   || null,
+      });
+    } catch (err) {
+      res.render('error', { title: 'Error', message: err.message });
+    }
+  });
+
+  // GET /instructor/schedules
+  router.get('/schedules', async (req, res) => {
+    try {
+      const navNotifs = await loadInstructorNavNotifications();
+      const { schedules: teachingSchedules, semesterLabel: teachingSemesterLabel } = await loadAllTeachingSchedules();
+
+      res.render('instructor/schedules', {
+        ...navNotifs,
+        teachingSchedules, teachingSemesterLabel, teachingTimeSlots: TEACHING_TIME_SLOTS, teachingDays: TEACHING_DAYS,
         scheduleSuccess: req.query.scheduleSuccess || null,
         scheduleError:   req.query.scheduleError   || null,
       });
@@ -359,7 +408,7 @@ module.exports = function(supabaseAdmin) {
 
   // POST /instructor/schedule/add
   router.post('/schedule/add', async (req, res) => {
-    const redirectBase = '/instructor/dashboard';
+    const redirectBase = '/instructor/schedules';
     const userId = req.session.user.user_id;
     try {
       const { schedules } = await loadAllTeachingSchedules();
@@ -385,7 +434,7 @@ module.exports = function(supabaseAdmin) {
 
   // POST /instructor/schedule/save
   router.post('/schedule/save', async (req, res) => {
-    const redirectBase = '/instructor/dashboard';
+    const redirectBase = '/instructor/schedules';
     const userId = req.session.user.user_id;
     const scheduleId = (req.body.schedule_id || '').trim();
 
@@ -445,7 +494,7 @@ module.exports = function(supabaseAdmin) {
 
   // POST /instructor/schedule/toggle-lock
   router.post('/schedule/toggle-lock', async (req, res) => {
-    const redirectBase = '/instructor/dashboard';
+    const redirectBase = '/instructor/schedules';
     const lock = req.body.lock === 'true';
     const scheduleId = (req.body.schedule_id || '').trim();
 
@@ -478,7 +527,7 @@ module.exports = function(supabaseAdmin) {
 
   // POST /instructor/schedule/delete
   router.post('/schedule/delete', async (req, res) => {
-    const redirectBase = '/instructor/dashboard';
+    const redirectBase = '/instructor/schedules';
     const scheduleId = (req.body.schedule_id || '').trim();
 
     try {
@@ -590,13 +639,10 @@ module.exports = function(supabaseAdmin) {
         tests = testsRes.data || [];
       }
 
-      const pendingRegistrations = await getPendingRegistrations();
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+      const navNotifs = await loadInstructorNavNotifications();
       res.render('instructor/fitness_tests', {
         students: students2, tests, selectedStudentId, selectedStudent,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
+        ...navNotifs,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -641,13 +687,10 @@ module.exports = function(supabaseAdmin) {
     try {
       const { data: plans } = await supabaseAdmin
         .from('lesson_plans').select('*').eq('pathfit_level', level).neq('week_number', 16).order('week_number');
-      const pendingRegistrations = await getPendingRegistrations();
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+      const navNotifs = await loadInstructorNavNotifications();
       res.render('instructor/lesson_plans', {
         plans: plans || [], level,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
+        ...navNotifs,
         error: req.query.error || null, success: req.query.success || null,
       });
     } catch (err) {
@@ -843,10 +886,7 @@ module.exports = function(supabaseAdmin) {
       const countSource = targetId ? tests : section ? sectionTests : [];
       countSource.forEach(t => { if (t.rating && dist[t.rating] !== undefined) dist[t.rating]++; });
 
-      const pendingRegistrations = await getPendingRegistrations();
-      const pendingPasswordResets = await getPendingPasswordResets();
-      const fitnessTestNotifications = await getFitnessTestNotifications();
-      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+      const navNotifs = await loadInstructorNavNotifications();
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, section, sectionStudents, sectionTests, sectionSummary,
@@ -856,7 +896,7 @@ module.exports = function(supabaseAdmin) {
         // When the instructor clicks "Class Summary", we allow the report to show the per-test rows.
         showSectionTestDetails: viewType === 'summary',
         dist, totalTests: countSource.length,
-        pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
+        ...navNotifs,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -980,16 +1020,11 @@ module.exports = function(supabaseAdmin) {
         return record;
       }));
 
-      const pendingPasswordResets       = await getPendingPasswordResets();
-      const fitnessTestNotifications    = await getFitnessTestNotifications();
-      const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+      const navNotifs = await loadInstructorNavNotifications();
 
       res.render('instructor/health_appraisal', {
         screenings: recordsWithSignedPhoto,
-        pendingRegistrations,
-        pendingPasswordResets,
-        fitnessTestNotifications,
-        healthAppraisalNotifications,
+        ...navNotifs,
         fetchError: fetchErr ? fetchErr.message : null,
         error: req.query.error || null,
         success: req.query.success || null,
@@ -1105,6 +1140,22 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
+  // GET /instructor/notifications
+  router.get('/notifications', async (req, res) => {
+    try {
+      const navNotifs = await loadInstructorNavNotifications();
+      const fitnessTestNotifications = await getFitnessTestNotifications({ limit: 50 });
+      const healthAppraisalNotifications = await getHealthAppraisalNotifications({ limit: 50 });
+
+      res.render('instructor/notifications', {
+        ...navNotifs,
+        fitnessTestNotifications, healthAppraisalNotifications,
+      });
+    } catch (err) {
+      res.render('error', { title: 'Error', message: err.message });
+    }
+  });
+
   // POST /instructor/dismiss-test-notification
   router.post('/dismiss-test-notification', async (req, res) => {
     const { notif_id } = req.body;
@@ -1114,8 +1165,8 @@ module.exports = function(supabaseAdmin) {
         .update({ is_read: true })
         .eq('notif_id', notif_id);
     }
-    // Redirect back to wherever the instructor was
-    const ref = req.get('Referer') || '/instructor/dashboard';
+    if (wantsJson(req)) return res.json({ ok: true });
+    const ref = req.get('Referer') || '/instructor/notifications';
     res.redirect(ref);
   });
 
@@ -1147,8 +1198,8 @@ module.exports = function(supabaseAdmin) {
         .update({ is_read: true })
         .eq('notification_id', notification_id);
     }
-    // Redirect back to wherever the instructor was
-    const ref = req.get('Referer') || '/instructor/dashboard';
+    if (wantsJson(req)) return res.json({ ok: true });
+    const ref = req.get('Referer') || '/instructor/notifications';
     res.redirect(ref);
   });
 

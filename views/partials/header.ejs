@@ -19,12 +19,14 @@
   <nav>
     <% if (user.role === 'instructor') { %>
       <a href="/instructor/dashboard">Dashboard</a>
+      <a href="/instructor/schedules">Schedules</a>
       <a href="/instructor/lesson-plans">Modules</a>
       <a href="/instructor/report">Reports</a>
       <a href="/instructor/health-appraisal" style="position:relative;">
         Health Appraisal Record
-        <% if (typeof healthAppraisalNotifications !== 'undefined' && healthAppraisalNotifications.length > 0) { %>
-          <span style="position:absolute;top:-6px;right:-10px;background:#e53935;color:#fff;font-size:.6rem;font-weight:700;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;line-height:1;"><%= healthAppraisalNotifications.length %></span>
+        <% const _haUnreadNav = (typeof healthAppraisalUnreadCount !== 'undefined') ? healthAppraisalUnreadCount : 0; %>
+        <% if (_haUnreadNav > 0) { %>
+          <span style="position:absolute;top:-6px;right:-10px;background:#e53935;color:#fff;font-size:.6rem;font-weight:700;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;line-height:1;"><%= _haUnreadNav %></span>
         <% } %>
       </a>
 
@@ -34,7 +36,10 @@
         const _resets   = (typeof pendingPasswordResets      !== 'undefined') ? pendingPasswordResets      : [];
         const _ftNotifs = (typeof fitnessTestNotifications   !== 'undefined') ? fitnessTestNotifications   : [];
         const _haNotifs = (typeof healthAppraisalNotifications !== 'undefined') ? healthAppraisalNotifications : [];
-        const _totalNotif = _pendingRegistrations.length + _resets.length + _ftNotifs.length + _haNotifs.length;
+        const _ftUnread = (typeof fitnessTestUnreadCount !== 'undefined') ? fitnessTestUnreadCount : _ftNotifs.filter(n => !n.is_read).length;
+        const _haUnread = (typeof healthAppraisalUnreadCount !== 'undefined') ? healthAppraisalUnreadCount : _haNotifs.filter(n => !n.is_read).length;
+        const _totalNotif = _pendingRegistrations.length + _resets.length + _ftUnread + _haUnread;
+        const _hasAnyInDropdown = _ftNotifs.length + _haNotifs.length + _pendingRegistrations.length + _resets.length > 0;
       %>
       <div class="notif-wrap">
         <button class="notif-btn" id="notifBtn" aria-label="Notifications">
@@ -50,14 +55,16 @@
           <div class="notif-header">
             Notifications
             <% if (_totalNotif > 0) { %>
-              <span class="notif-count"><%= _totalNotif %> pending</span>
+              <span class="notif-count"><%= _totalNotif %> unread</span>
+            <% } else if (_hasAnyInDropdown) { %>
+              <span class="notif-count">All caught up</span>
             <% } %>
           </div>
 
-          <% if (_totalNotif === 0) { %>
-            <div class="notif-empty">No new notifications</div>
-          <% } %>
-
+          <% if (!_hasAnyInDropdown) { %>
+            <div class="notif-empty">No notifications yet</div>
+          <% } else { %>
+          <div class="notif-list-scroll" id="notifListScroll">
           <!-- Fitness Test Results -->
           <% if (_ftNotifs.length > 0) { %>
             <%
@@ -66,15 +73,10 @@
                 juggling:'Juggling', sprint_40m:'40m Sprint', stork_balance:'Stork Balance Test', stick_drop:'Stick Drop Test', agility_test:'Agility Test', step_test_3min:'3-Min Step Test'
               };
             %>
-            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
-              📊 New Test Results
-            </div>
+            <div class="notif-section-label">📊 Test Results</div>
             <% _ftNotifs.forEach(function(n) { %>
-            <div style="display:flex;align-items:flex-start;border-bottom:1px solid #f0f4f8;">
-              <!-- Clickable area → goes to student report and marks as read -->
-              <a href="/instructor/view-test-notification/<%= n.notif_id %>"
-                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 10px 12px 16px;flex:1;text-decoration:none;color:inherit;transition:background .15s;"
-                 onmouseover="this.style.background='#f5f8fc'" onmouseout="this.style.background=''">
+            <div class="notif-row <%= n.is_read ? 'notif-row-read' : '' %>" data-notif-type="fitness" data-notif-id="<%= n.notif_id %>">
+              <button type="button" class="notif-row-main" aria-label="Mark as read">
                 <div class="notif-icon">📊</div>
                 <div class="notif-body">
                   <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
@@ -85,49 +87,36 @@
                   </div>
                   <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
                 </div>
-              </a>
-              <!-- Dismiss button -->
-              <form method="POST" action="/instructor/dismiss-test-notification" style="margin:0;padding:10px 12px 0 0;flex-shrink:0;">
-                <input type="hidden" name="notif_id" value="<%= n.notif_id %>">
-                <button type="submit" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:2px 4px;line-height:1;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
-              </form>
+              </button>
+              <a href="/instructor/view-test-notification/<%= n.notif_id %>" class="notif-open-link" title="Open report">Open</a>
             </div>
             <% }) %>
           <% } %>
 
           <!-- Health Appraisal Record Submissions -->
           <% if (_haNotifs.length > 0) { %>
-            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
-              🏥 New Health Appraisal Records
-            </div>
+            <div class="notif-section-label">🏥 Health Appraisal</div>
             <% _haNotifs.forEach(function(n) { %>
-            <div style="display:flex;align-items:flex-start;border-bottom:1px solid #f0f4f8;">
-              <a href="/instructor/view-health-appraisal/<%= n.notification_id %>"
-                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 10px 12px 16px;flex:1;text-decoration:none;color:inherit;transition:background .15s;"
-                 onmouseover="this.style.background='#f5f8fc'" onmouseout="this.style.background=''">
+            <div class="notif-row <%= n.is_read ? 'notif-row-read' : '' %>" data-notif-type="health" data-notif-id="<%= n.notification_id %>">
+              <button type="button" class="notif-row-main" aria-label="Mark as read">
                 <div class="notif-icon">🏥</div>
                 <div class="notif-body">
                   <div class="notif-name"><%= n.users ? n.users.name : '—' %></div>
                   <div class="notif-meta">Submitted Health Appraisal Record (PAR-Q)</div>
                   <div class="notif-time"><%= new Date(n.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %></div>
                 </div>
-              </a>
-              <!-- Dismiss button -->
-              <form method="POST" action="/instructor/dismiss-health-appraisal-notification" style="margin:0;padding:10px 12px 0 0;flex-shrink:0;">
-                <input type="hidden" name="notification_id" value="<%= n.notification_id %>">
-                <button type="submit" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:2px 4px;line-height:1;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#ccc'">✕</button>
-              </form>
+              </button>
+              <a href="/instructor/view-health-appraisal/<%= n.notification_id %>" class="notif-open-link" title="Open health appraisal">Open</a>
             </div>
             <% }) %>
           <% } %>
 
           <!-- Registration requests -->
           <% if (_pendingRegistrations.length > 0) { %>
-            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
-              New Registrations
-            </div>
+            <div class="notif-section-label">👤 New Registrations</div>
             <% _pendingRegistrations.forEach(function(s) { %>
-            <button type="button" class="notif-item"
+            <button type="button" class="notif-item notif-row"
+              data-local-id="reg-<%= s.user_id %>"
               data-user-id="<%= s.user_id %>"
               data-name="<%= (s.name || '').replace(/"/g, '&quot;') %>"
               data-student-id="<%= s.student_id || '' %>"
@@ -138,8 +127,7 @@
               data-pathfit-level="<%= s.pathfit_level %>"
               data-gender="<%= s.gender || '—' %>"
               data-age="<%= s.age || '—' %>"
-              data-created-at="<%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>"
-              onclick="openStudentModal(this)">
+              data-created-at="<%= new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>">
               <div class="notif-icon">👤</div>
               <div class="notif-body">
                 <div class="notif-name"><%= s.name %></div>
@@ -152,19 +140,17 @@
 
           <!-- Password reset requests -->
           <% if (_resets.length > 0) { %>
-            <div style="padding:6px 14px 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:#aaa;font-weight:700;background:#fafafa;border-bottom:1px solid #f0f4f8;">
-              Password Reset Requests
-            </div>
+            <div class="notif-section-label">🔑 Password Resets</div>
             <% _resets.forEach(function(r) { %>
-            <button type="button" class="notif-item"
+            <button type="button" class="notif-item notif-row"
+              data-local-id="reset-<%= r.request_id %>"
               data-request-id="<%= r.request_id %>"
               data-name="<%= ((r.users && r.users.name) || '').replace(/"/g, '&quot;') %>"
               data-email="<%= (r.users && r.users.email) || '' %>"
               data-student-id="<%= (r.users && r.users.student_id) || '' %>"
               data-section="<%= ((r.users && r.users.section) || '—').replace(/"/g, '&quot;') %>"
               data-course="<%= ((r.users && r.users.course) || '—').replace(/"/g, '&quot;') %>"
-              data-requested-at="<%= new Date(r.requested_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>"
-              onclick="openResetModal(this)">
+              data-requested-at="<%= new Date(r.requested_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) %>">
               <div class="notif-icon">🔑</div>
               <div class="notif-body">
                 <div class="notif-name"><%= r.users.name %></div>
@@ -174,6 +160,10 @@
             </button>
             <% }) %>
           <% } %>
+          </div>
+          <% } %>
+
+          <a href="/instructor/notifications" class="notif-footer" id="notifViewMore">View more</a>
 
         </div>
       </div>
@@ -286,12 +276,16 @@
         e.stopPropagation();
         dropdown.classList.toggle('open');
       });
-      document.addEventListener('click', function () {
-        dropdown.classList.remove('open');
+      document.addEventListener('click', function (e) {
+        if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+          dropdown.classList.remove('open');
+        }
       });
       dropdown.addEventListener('click', function (e) {
         e.stopPropagation();
       });
+
+      initInstructorNotifications();
     }
 
     // ── Close modals on backdrop click ──
@@ -314,11 +308,93 @@
     });
   });
 
+  // ── Instructor notification bell ──
+  const NOTIF_SEEN_KEY = 'pathfit-notif-seen';
+
+  function getNotifSeenIds() {
+    try { return JSON.parse(localStorage.getItem(NOTIF_SEEN_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function saveNotifSeenId(id) {
+    const seen = getNotifSeenIds();
+    if (!seen.includes(id)) {
+      seen.push(id);
+      localStorage.setItem(NOTIF_SEEN_KEY, JSON.stringify(seen));
+    }
+  }
+
+  function applyNotifReadStyle(row) {
+    if (row) row.classList.add('notif-row-read');
+  }
+
+  function updateNotifBadge() {
+    const badge = document.querySelector('.notif-badge');
+    if (!badge) return;
+    const unreadRows = document.querySelectorAll('.notif-row:not(.notif-row-read)[data-notif-type]');
+    const unreadLocal = document.querySelectorAll('.notif-item.notif-row:not(.notif-row-read)[data-local-id]');
+    const count = unreadRows.length + unreadLocal.length;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+    const countEl = document.querySelector('.notif-count');
+    if (countEl) {
+      countEl.textContent = count > 0 ? count + ' unread' : 'All caught up';
+    }
+  }
+
+  async function markServerNotifRead(type, id) {
+    const url = type === 'health'
+      ? '/instructor/dismiss-health-appraisal-notification'
+      : '/instructor/dismiss-test-notification';
+    const body = type === 'health'
+      ? { notification_id: id }
+      : { notif_id: id };
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function initInstructorNotifications() {
+    getNotifSeenIds().forEach(function (id) {
+      const row = document.querySelector('[data-local-id="' + id + '"]');
+      applyNotifReadStyle(row);
+    });
+
+    document.querySelectorAll('.notif-row[data-notif-type] .notif-row-main').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const row = btn.closest('.notif-row');
+        if (!row || row.classList.contains('notif-row-read')) return;
+        const type = row.dataset.notifType;
+        const id = row.dataset.notifId;
+        applyNotifReadStyle(row);
+        updateNotifBadge();
+        try { await markServerNotifRead(type, id); } catch (e) { console.warn(e); }
+      });
+    });
+
+    document.querySelectorAll('.notif-item.notif-row[data-local-id]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!btn.classList.contains('notif-row-read')) {
+          applyNotifReadStyle(btn);
+          saveNotifSeenId(btn.dataset.localId);
+          updateNotifBadge();
+        }
+        if (btn.dataset.requestId) openResetModal(btn);
+        else openStudentModal(btn);
+      });
+    });
+
+    updateNotifBadge();
+  }
+
   // ── Student Approval Modal ──
   function openStudentModal(element) {
-    const dd = document.getElementById('notifDropdown');
-    if (dd) dd.classList.remove('open');
-
     const s = element.dataset;
 
     document.getElementById('modalName').textContent      = s.name || '—';
@@ -349,9 +425,6 @@
 
   // ── Password Reset Modal ──
   function openResetModal(element) {
-    const dd = document.getElementById('notifDropdown');
-    if (dd) dd.classList.remove('open');
-
     const r = element.dataset;
 
     document.getElementById('resetModalName').textContent       = r.name || '—';
