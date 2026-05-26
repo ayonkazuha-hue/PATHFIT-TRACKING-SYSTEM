@@ -26,7 +26,25 @@
     .btn-archive:hover { background:#4b5563; }
     .btn-restore { padding:5px 12px; background:#2e7d32; color:#fff; border:none; border-radius:5px; font-size:.78rem; font-weight:700; cursor:pointer; }
     .btn-restore:hover { background:#1b5e20; }
+    .section-archive-panel {
+      margin-bottom: 16px; padding: 14px 16px; background: #f5f8fc;
+      border: 1.5px solid #e0e8f0; border-radius: 10px;
+    }
+    .section-archive-panel h4 { margin: 0 0 4px; font-size: .95rem; color: #042C53; border: none; padding: 0; }
+    .section-archive-panel p { margin: 0 0 12px; font-size: .82rem; color: #666; }
+    .section-archive-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;
+    }
+    .section-archive-card {
+      display: flex; flex-direction: column; gap: 8px; align-items: stretch;
+      padding: 12px; background: #fff; border: 1px solid #e0e8f0; border-radius: 8px;
+    }
+    .section-archive-code { font-size: .88rem; font-weight: 800; color: #042C53; }
+    .section-archive-count { font-size: .78rem; color: #666; }
+    .section-archive-card .btn-archive,
+    .section-archive-card .btn-restore { width: 100%; padding: 8px 10px; font-size: .78rem; border-radius: 6px; }
     @media (max-width: 768px) {
+      .section-archive-grid { grid-template-columns: repeat(2, 1fr); }
       .rating-row { grid-template-columns: 1fr; gap:6px; }
       .rating-meta { text-align:left; }
       .rating-track { height:22px; }
@@ -37,8 +55,7 @@
       .student-list-actions { width:100%; }
       .student-list-actions .btn, .student-list-actions form { flex:1; min-width:0; }
       .student-list-actions .btn { width:100%; text-align:center; }
-      .student-row-actions { flex-direction:column; }
-      .student-row-actions .btn, .student-row-actions button { width:100%; }
+      .section-archive-grid { grid-template-columns: 1fr; }
     }
   </style>
   <div class="page-title">Hello, <%= user.name %>! 👋</div>
@@ -222,30 +239,50 @@
       </div>
     </form>
 
-    <% if (filters.section) { %>
-    <div class="student-list-actions" style="margin-bottom:14px;">
-      <% if (showArchived) { %>
-      <form method="POST" action="/instructor/restore-section" onsubmit="return confirm('Restore all archived students in section <%= filters.section %>?');">
-        <input type="hidden" name="section" value="<%= filters.section %>">
-        <input type="hidden" name="course" value="<%= filters.course || '' %>">
-        <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
-        <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
-        <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
-        <input type="hidden" name="show_archived" value="1">
-        <button type="submit" class="btn btn-sm btn-restore">Restore Section <%= filters.section %></button>
-      </form>
+    <% const archiveStats = sectionArchiveStats || []; %>
+    <div class="section-archive-panel">
+      <h4><%= showArchived ? 'Restore by Section' : 'Archive by Section' %></h4>
+      <p><%= showArchived ? 'Restore every archived student in a section back to the active list.' : 'Archive all active students in a section at once (e.g. Section A, B, or C).' %></p>
+      <% if (archiveStats.length) { %>
+      <div class="section-archive-grid">
+        <% archiveStats.forEach(function(sec) {
+          const count = showArchived ? sec.archived : sec.active;
+          const canAct = showArchived ? sec.archived > 0 : sec.active > 0;
+        %>
+        <div class="section-archive-card">
+          <span class="section-archive-code">Section <%= sec.code %></span>
+          <span class="section-archive-count"><%= count %> student<%= count === 1 ? '' : 's' %></span>
+          <% if (canAct) { %>
+            <% if (showArchived) { %>
+            <form method="POST" action="/instructor/restore-section" onsubmit="return confirm('Restore all archived students in section <%= sec.code %>?');">
+              <input type="hidden" name="section" value="<%= sec.code %>">
+              <input type="hidden" name="course" value="<%= filters.course || '' %>">
+              <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+              <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+              <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+              <input type="hidden" name="show_archived" value="1">
+              <button type="submit" class="btn-restore">Restore All</button>
+            </form>
+            <% } else { %>
+            <form method="POST" action="/instructor/archive-section" onsubmit="return confirm('Archive all <%= sec.active %> active student(s) in section <%= sec.code %>?');">
+              <input type="hidden" name="section" value="<%= sec.code %>">
+              <input type="hidden" name="course" value="<%= filters.course || '' %>">
+              <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+              <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+              <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+              <button type="submit" class="btn-archive">Archive All</button>
+            </form>
+            <% } %>
+          <% } else { %>
+            <span class="section-archive-count" style="font-style:italic;">No students to <%= showArchived ? 'restore' : 'archive' %></span>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
       <% } else { %>
-      <form method="POST" action="/instructor/archive-section" onsubmit="return confirm('Archive all active students in section <%= filters.section %>? They will be hidden from the active list.');">
-        <input type="hidden" name="section" value="<%= filters.section %>">
-        <input type="hidden" name="course" value="<%= filters.course || '' %>">
-        <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
-        <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
-        <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
-        <button type="submit" class="btn btn-sm btn-archive">Archive Section <%= filters.section %></button>
-      </form>
+        <div class="empty-state" style="padding:12px 0;">No sections with students yet.</div>
       <% } %>
     </div>
-    <% } %>
 
     <% if (students.length > 0) { %>
     <div class="table-wrap">
@@ -266,45 +303,25 @@
             <td><%= s.age||'—' %></td>
             <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
             <td>
-              <div class="student-row-actions">
-                <% if (!showArchived) { %>
-                <button type="button"
-                  class="edit-student-btn"
-                  data-user-id="<%= s.user_id %>"
-                  data-name="<%= (s.name||'').replace(/"/g,'&quot;') %>"
-                  data-student-id="<%= s.student_id||'' %>"
-                  data-email="<%= s.email||'' %>"
-                  data-gender="<%= s.gender||'' %>"
-                  data-age="<%= s.age||'' %>"
-                  data-course="<%= s.course||'' %>"
-                  data-section="<%= s.section||'' %>"
-                  data-year-level="<%= s.year_level||'' %>"
-                  data-pathfit-level="<%= s.pathfit_level||'' %>"
-                  style="padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.82rem;font-weight:700;cursor:pointer;">
-                  ✏️ Edit
-                </button>
-                <form method="POST" action="/instructor/archive-student" onsubmit="return confirm('Archive this student?');">
-                  <input type="hidden" name="user_id" value="<%= s.user_id %>">
-                  <input type="hidden" name="section" value="<%= filters.section || '' %>">
-                  <input type="hidden" name="course" value="<%= filters.course || '' %>">
-                  <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
-                  <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
-                  <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
-                  <button type="submit" class="btn-archive">Archive</button>
-                </form>
-                <% } else { %>
-                <form method="POST" action="/instructor/restore-student" onsubmit="return confirm('Restore this student to the active list?');">
-                  <input type="hidden" name="user_id" value="<%= s.user_id %>">
-                  <input type="hidden" name="section" value="<%= filters.section || '' %>">
-                  <input type="hidden" name="course" value="<%= filters.course || '' %>">
-                  <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
-                  <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
-                  <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
-                  <input type="hidden" name="show_archived" value="1">
-                  <button type="submit" class="btn-restore">Restore</button>
-                </form>
-                <% } %>
-              </div>
+              <% if (!showArchived) { %>
+              <button type="button"
+                class="edit-student-btn"
+                data-user-id="<%= s.user_id %>"
+                data-name="<%= (s.name||'').replace(/"/g,'&quot;') %>"
+                data-student-id="<%= s.student_id||'' %>"
+                data-email="<%= s.email||'' %>"
+                data-gender="<%= s.gender||'' %>"
+                data-age="<%= s.age||'' %>"
+                data-course="<%= s.course||'' %>"
+                data-section="<%= s.section||'' %>"
+                data-year-level="<%= s.year_level||'' %>"
+                data-pathfit-level="<%= s.pathfit_level||'' %>"
+                style="padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.82rem;font-weight:700;cursor:pointer;">
+                ✏️ Edit
+              </button>
+              <% } else { %>
+              <span style="font-size:.8rem;color:#888;">Use Restore by Section above</span>
+              <% } %>
             </td>
           </tr>
           <% }) %>

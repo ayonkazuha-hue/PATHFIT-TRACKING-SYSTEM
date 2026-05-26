@@ -439,6 +439,18 @@ module.exports = function(supabaseAdmin) {
       const pendingScreenings = (pendingRes.data || []).length;
       const allApprovedStudents = (allStudentsRes.data || []).filter(isApprovedStudent);
       const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
+      const allStudentRows = allStudentsRes.data || [];
+      const SECTION_CODES = ['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+      const sectionArchiveStats = SECTION_CODES.map(code => {
+        const inSection = allStudentRows.filter(s =>
+          (s.section || '').toString().trim().toUpperCase() === code
+        );
+        return {
+          code,
+          active: inSection.filter(isApprovedStudent).length,
+          archived: inSection.filter(isArchivedStudent).length,
+        };
+      }).filter(s => s.active > 0 || s.archived > 0);
       const availableSections = [...new Set(
         allApprovedStudents
           .map(s => (s.section || '').toString().trim().toUpperCase())
@@ -471,7 +483,7 @@ module.exports = function(supabaseAdmin) {
       const navNotifs = await loadInstructorNavNotifications();
 
       res.render('instructor/dashboard', {
-        students, pendingScreenings, showArchived, ...navNotifs,
+        students, pendingScreenings, showArchived, sectionArchiveStats, ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
         ratingDistribution: {
           selectedSection: selectedRatingSection,
@@ -754,7 +766,7 @@ module.exports = function(supabaseAdmin) {
         return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Archive requires status column. Run add_student_archive_status.sql in Supabase.' }));
       }
       const { data, error: fetchErr } = await supabaseAdmin
-        .from('users').select('user_id,status,section').eq('role', 'student').eq('section', section);
+        .from('users').select('user_id,status,section').eq('role', 'student').ilike('section', section);
       if (fetchErr) throw fetchErr;
       const ids = (data || []).filter(isApprovedStudent).map(s => s.user_id);
       if (!ids.length) {
@@ -780,7 +792,7 @@ module.exports = function(supabaseAdmin) {
         return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Restore requires status column. Run add_student_archive_status.sql in Supabase.' }));
       }
       const { data, error: fetchErr } = await supabaseAdmin
-        .from('users').select('user_id,status,section').eq('role', 'student').eq('section', section);
+        .from('users').select('user_id,status,section').eq('role', 'student').ilike('section', section);
       if (fetchErr) throw fetchErr;
       const ids = (data || []).filter(isArchivedStudent).map(s => s.user_id);
       if (!ids.length) {
