@@ -605,7 +605,10 @@ module.exports = function(supabaseAdmin) {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, section, sectionStudents, sectionTests, sectionSummary,
         sectionTestRecords: sectionTestRecords || [],
-        searchQuery, showClassSummary: viewType === 'summary' || isSectionSearch,
+        searchQuery,
+        showClassSummary: viewType === 'summary' || isSectionSearch,
+        // When the instructor clicks "Class Summary", we allow the report to show the per-test rows.
+        showSectionTestDetails: viewType === 'summary',
         dist, totalTests: countSource.length,
         pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
       });

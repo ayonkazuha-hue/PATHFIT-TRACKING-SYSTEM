@@ -174,34 +174,42 @@
       </table>
     </div>
   </div>
-  <% if (sectionTestRecords && sectionTestRecords.length) { %>
-  <div class="card">
-    <h3>Section <%= section %> Fitness Test Details</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Name</th><th>Student ID</th><th>Test Type</th><th>Period</th><th>Score</th><th>Rating</th><th>Recorded At</th></tr>
-        </thead>
-        <tbody>
-          <% sectionTestRecords.forEach(r => { %>
-          <tr>
-            <td><%= r.student_name %></td>
-            <td><%= r.student_id || '—' %></td>
-            <td><%= r.test_type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></td>
-            <td><%= r.test_period ? r.test_period.charAt(0).toUpperCase() + r.test_period.slice(1) : '—' %></td>
-            <td><%= r.reps_or_cm != null ? r.reps_or_cm : '—' %></td>
-            <td><%= r.rating ? r.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '—' %></td>
-            <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
+  <% if (showSectionTestDetails) { %>
+    <% if (sectionTestRecords && sectionTestRecords.length) { %>
+    <div class="card">
+      <h3>Section <%= section %> Fitness Test Details</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Student ID</th><th>Test Type</th><th>Period</th><th>Score</th><th>Rating</th><th>Recorded At</th></tr>
+          </thead>
+          <tbody>
+            <% sectionTestRecords.forEach(r => { %>
+            <tr>
+              <td><%= r.student_name %></td>
+              <td><%= r.student_id || '—' %></td>
+              <td><%= r.test_type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %></td>
+              <td><%= r.test_period ? r.test_period.charAt(0).toUpperCase() + r.test_period.slice(1) : '—' %></td>
+              <td><%= r.reps_or_cm != null ? r.reps_or_cm : '—' %></td>
+              <td><%= r.rating ? r.rating.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '—' %></td>
+              <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+    <% } else { %>
+    <div class="card">
+      <div style="padding:18px;font-size:.96rem;color:#555;">No fitness test records yet for section <strong><%= section %></strong>.</div>
+    </div>
+    <% } %>
   <% } else { %>
-  <div class="card">
-    <div style="padding:18px;font-size:.96rem;color:#555;">No fitness test records yet for section <strong><%= section %></strong>.</div>
-  </div>
+    <div class="card">
+      <div style="padding:18px;font-size:.96rem;color:#555;">
+        Click <strong>Class Summary</strong> to view the <strong>Fitness Test Details</strong> for section <strong><%= section %></strong>.
+      </div>
+    </div>
   <% } %>
   <% } else if (section && showClassSummary) { %>
   <div class="card">
