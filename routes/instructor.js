@@ -213,6 +213,98 @@ module.exports = function(supabaseAdmin) {
     return !s.status || s.status === 'approved';
   }
 
+  const TEACHING_TIME_SLOTS = [
+    { id: '7-9',   label: '7:00-9:00',   lunch: false },
+    { id: '9-11',  label: '9:00-11:00',  lunch: false },
+    { id: '11-12', label: '11:00-12:00', lunch: false },
+    { id: '12-1',  label: '12:00-1:00',  lunch: true  },
+    { id: '1-3',   label: '1:00-3:00',   lunch: false },
+    { id: '3-5',   label: '3:00-5:00',   lunch: false },
+  ];
+  const TEACHING_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+  function buildEmptyScheduleSlots() {
+    const slots = {};
+    TEACHING_TIME_SLOTS.forEach(slot => {
+      slots[slot.id] = {};
+      TEACHING_DAYS.forEach(day => { slots[slot.id][day] = ''; });
+    });
+    return slots;
+  }
+
+  function getDefaultTeachingSchedule(displayName) {
+    return {
+      schedule_id: null,
+      display_name: displayName || 'INSTRUCTOR NAME',
+      semester_label: 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)',
+      schedule_data: buildEmptyScheduleSlots(),
+      deload_units: '',
+      regular_load: '',
+      overload: '',
+      total_units: '',
+      is_locked: false,
+    };
+  }
+
+  function mapScheduleRow(data) {
+    return {
+      schedule_id: data.schedule_id,
+      display_name: data.display_name || 'INSTRUCTOR NAME',
+      semester_label: data.semester_label || 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)',
+      schedule_data: normalizeScheduleData(data.schedule_data),
+      deload_units: data.deload_units || '',
+      regular_load: data.regular_load || '',
+      overload: data.overload || '',
+      total_units: data.total_units || '',
+      is_locked: !!data.is_locked,
+      sort_order: data.sort_order || 0,
+    };
+  }
+
+  async function loadAllTeachingSchedules() {
+    const defaultSemester = 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)';
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('instructor_schedules')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (error) {
+        console.error('[loadAllTeachingSchedules]', error.message);
+        return { schedules: [], semesterLabel: defaultSemester };
+      }
+      const schedules = (data || []).map(mapScheduleRow);
+      const semesterLabel = schedules[0]?.semester_label || defaultSemester;
+      return { schedules, semesterLabel };
+    } catch (err) {
+      console.error('[loadAllTeachingSchedules]', err);
+      return { schedules: [], semesterLabel: defaultSemester };
+    }
+  }
+
+  async function getScheduleById(scheduleId) {
+    const { data, error } = await supabaseAdmin
+      .from('instructor_schedules')
+      .select('*')
+      .eq('schedule_id', scheduleId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  function normalizeScheduleData(raw) {
+    const slots = buildEmptyScheduleSlots();
+    if (raw && typeof raw === 'object') {
+      TEACHING_TIME_SLOTS.forEach(slot => {
+        TEACHING_DAYS.forEach(day => {
+          const val = raw[slot.id]?.[day];
+          slots[slot.id][day] = typeof val === 'string' ? val.trim() : '';
+        });
+      });
+    }
+    return slots;
+  }
+
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '' } = req.query;
     try {
@@ -242,9 +334,11 @@ module.exports = function(supabaseAdmin) {
       const pendingPasswordResets = await getPendingPasswordResets();
       const fitnessTestNotifications = await getFitnessTestNotifications();
       const healthAppraisalNotifications = await getHealthAppraisalNotifications();
+      const { schedules: teachingSchedules, semesterLabel: teachingSemesterLabel } = await loadAllTeachingSchedules();
 
       res.render('instructor/dashboard', {
         students, pendingScreenings, pendingRegistrations, pendingPasswordResets, fitnessTestNotifications, healthAppraisalNotifications,
+        teachingSchedules, teachingSemesterLabel, teachingTimeSlots: TEACHING_TIME_SLOTS, teachingDays: TEACHING_DAYS,
         filters: { section, pathfit_level, gender, course, year_level, search },
         stats: {
           total:   students.length,
@@ -255,9 +349,161 @@ module.exports = function(supabaseAdmin) {
         },
         approveSuccess: req.query.approveSuccess || null,
         approveError:   req.query.approveError   || null,
+        scheduleSuccess: req.query.scheduleSuccess || null,
+        scheduleError:   req.query.scheduleError   || null,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
+    }
+  });
+
+  // POST /instructor/schedule/add
+  router.post('/schedule/add', async (req, res) => {
+    const redirectBase = '/instructor/dashboard';
+    const userId = req.session.user.user_id;
+    try {
+      const { schedules } = await loadAllTeachingSchedules();
+      const displayName = (req.body.display_name || 'NEW INSTRUCTOR').trim().slice(0, 150) || 'NEW INSTRUCTOR';
+      const semesterLabel = (req.body.semester_label || schedules[0]?.semester_label || '').trim().slice(0, 250) ||
+        'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)';
+
+      const { error } = await supabaseAdmin.from('instructor_schedules').insert({
+        display_name: displayName,
+        semester_label: semesterLabel,
+        schedule_data: buildEmptyScheduleSlots(),
+        sort_order: schedules.length,
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent('Instructor schedule added. Fill in the grid and save.')}`);
+    } catch (err) {
+      console.error('[schedule/add]', err);
+      res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+  // POST /instructor/schedule/save
+  router.post('/schedule/save', async (req, res) => {
+    const redirectBase = '/instructor/dashboard';
+    const userId = req.session.user.user_id;
+    const scheduleId = (req.body.schedule_id || '').trim();
+
+    try {
+      if (!scheduleId) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
+      }
+
+      const existing = await getScheduleById(scheduleId);
+      if (!existing) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Schedule not found.')}`);
+      }
+      if (existing.is_locked) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('This schedule is locked. Unlock it first to make changes.')}`);
+      }
+
+      let scheduleData = {};
+      try {
+        scheduleData = JSON.parse(req.body.schedule_data || '{}');
+      } catch {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Invalid schedule data.')}`);
+      }
+
+      const semesterLabel = (req.body.semester_label || '').trim().slice(0, 250) ||
+        existing.semester_label;
+
+      const payload = {
+        display_name: (req.body.display_name || '').trim().slice(0, 150) || 'INSTRUCTOR NAME',
+        semester_label: semesterLabel,
+        schedule_data: normalizeScheduleData(scheduleData),
+        deload_units: (req.body.deload_units || '').trim().slice(0, 500),
+        regular_load: (req.body.regular_load || '').trim().slice(0, 500),
+        overload: (req.body.overload || '').trim().slice(0, 500),
+        total_units: (req.body.total_units || '').trim().slice(0, 20),
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabaseAdmin
+        .from('instructor_schedules')
+        .update(payload)
+        .eq('schedule_id', scheduleId);
+
+      if (error) throw error;
+
+      await supabaseAdmin
+        .from('instructor_schedules')
+        .update({ semester_label: semesterLabel, updated_at: new Date().toISOString() })
+        .neq('schedule_id', scheduleId);
+
+      res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent('Schedule saved for ' + payload.display_name + '.')}`);
+    } catch (err) {
+      console.error('[schedule/save]', err);
+      res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+  // POST /instructor/schedule/toggle-lock
+  router.post('/schedule/toggle-lock', async (req, res) => {
+    const redirectBase = '/instructor/dashboard';
+    const lock = req.body.lock === 'true';
+    const scheduleId = (req.body.schedule_id || '').trim();
+
+    try {
+      if (!scheduleId) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
+      }
+
+      const existing = await getScheduleById(scheduleId);
+      if (!existing) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Schedule not found.')}`);
+      }
+
+      const { error } = await supabaseAdmin
+        .from('instructor_schedules')
+        .update({ is_locked: lock, updated_at: new Date().toISOString() })
+        .eq('schedule_id', scheduleId);
+
+      if (error) throw error;
+      const name = existing.display_name || 'instructor';
+      const msg = lock
+        ? `Schedule locked for ${name}.`
+        : `Schedule unlocked for ${name}. You can now edit.`;
+      res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent(msg)}`);
+    } catch (err) {
+      console.error('[schedule/toggle-lock]', err);
+      res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+  // POST /instructor/schedule/delete
+  router.post('/schedule/delete', async (req, res) => {
+    const redirectBase = '/instructor/dashboard';
+    const scheduleId = (req.body.schedule_id || '').trim();
+
+    try {
+      if (!scheduleId) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
+      }
+
+      const existing = await getScheduleById(scheduleId);
+      if (!existing) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Schedule not found.')}`);
+      }
+      if (existing.is_locked) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Unlock this schedule before removing it.')}`);
+      }
+
+      const { error } = await supabaseAdmin
+        .from('instructor_schedules')
+        .delete()
+        .eq('schedule_id', scheduleId);
+
+      if (error) throw error;
+      res.redirect(`${redirectBase}?scheduleSuccess=${encodeURIComponent('Instructor schedule removed.')}`);
+    } catch (err) {
+      console.error('[schedule/delete]', err);
+      res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent(err.message)}`);
     }
   });
 

@@ -254,6 +254,135 @@ footer {
   border-top: 1px solid rgba(255,255,255,.08);
 }
 
+/* ── Faculty Teaching Load Schedule ───────────────────────── */
+.teaching-schedule-card { padding: 20px 22px 24px; }
+.schedule-toolbar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;
+  gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8ecf0;
+}
+.schedule-toolbar-sub { font-size: .82rem; color: #666; margin-top: 4px; }
+.schedule-toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.schedule-lock-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 20px; font-size: .78rem; font-weight: 700;
+}
+.schedule-lock-badge.locked { background: #fde8e8; color: #c62828; border: 1px solid #f5c6c6; }
+.schedule-lock-badge.unlocked { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.schedule-sheet { border: 2px solid #333; border-radius: 4px; overflow: hidden; background: #fff; }
+.schedule-sheet.is-locked { opacity: .97; }
+.schedule-semester-bar { background: #548235; padding: 10px 14px; }
+.schedule-semester-input {
+  width: 100%; border: none; background: transparent; color: #fff;
+  font-size: .95rem; font-weight: 700; text-align: center; padding: 4px 8px;
+}
+.schedule-semester-input:focus { outline: none; background: rgba(255,255,255,.12); border-radius: 4px; }
+.schedule-semester-input::placeholder { color: rgba(255,255,255,.65); }
+.schedule-instructor-bar {
+  background: #ff69b4; color: #fff; font-weight: 800; font-size: .95rem;
+  text-align: center; padding: 8px 12px; letter-spacing: .3px;
+}
+.schedule-layout {
+  display: grid; grid-template-columns: 1fr 220px; gap: 0;
+}
+.schedule-grid-wrap { border-right: 2px solid #333; }
+.schedule-grid { width: 100%; min-width: 520px; border-collapse: collapse; font-size: .82rem; }
+.schedule-grid th {
+  background: #f5f8fc; color: #042C53; border: 1px solid #bbb;
+  padding: 8px 6px; text-align: center; font-size: .78rem;
+}
+.schedule-grid td { border: 1px solid #bbb; padding: 0; vertical-align: middle; }
+.schedule-time-col {
+  background: #f9fafb; font-weight: 700; white-space: nowrap;
+  padding: 8px 10px !important; min-width: 88px; text-align: center;
+}
+.schedule-slot-cell { min-width: 90px; }
+.schedule-slot-input {
+  width: 100%; border: none; background: #fff; color: #042C53;
+  padding: 10px 6px; font-size: .8rem; font-weight: 600; text-align: center;
+  min-height: 42px; box-sizing: border-box;
+}
+.schedule-slot-input:focus { outline: 2px solid #185FA5; outline-offset: -2px; background: #f0f6ff; }
+.schedule-slot-input.filled { background: #4a90d9; color: #fff; }
+.schedule-slot-input.filled:focus { background: #3a7bc8; color: #fff; }
+.schedule-slot-input:read-only { cursor: default; }
+.schedule-lunch-row td { background: #fff176; }
+.schedule-lunch-cell {
+  text-align: center; font-weight: 800; font-size: .88rem; color: #333;
+  padding: 10px 8px !important; letter-spacing: .5px;
+}
+.schedule-units-panel {
+  display: flex; flex-direction: column; background: #fafbfc;
+}
+.schedule-units-header {
+  background: #c00000; color: #fff; font-weight: 700; font-size: .78rem;
+  text-align: center; padding: 8px 10px; border-bottom: 1px solid #bbb;
+}
+.schedule-unit-field {
+  flex: 1; display: flex; flex-direction: column; border-bottom: 1px solid #bbb;
+  padding: 8px 10px; min-height: 72px;
+}
+.schedule-unit-field span {
+  font-size: .72rem; font-weight: 700; color: #c00000; text-transform: uppercase;
+  letter-spacing: .4px; margin-bottom: 4px;
+}
+.schedule-unit-field textarea,
+.schedule-unit-field input {
+  flex: 1; width: 100%; border: 1px solid #ddd; border-radius: 4px;
+  padding: 6px 8px; font-size: .8rem; resize: none; background: #fff;
+}
+.schedule-unit-field textarea:focus,
+.schedule-unit-field input:focus { outline: none; border-color: #185FA5; }
+.schedule-unit-total input { font-size: 1.1rem; font-weight: 700; text-align: center; }
+.schedule-locked-overlay-hint {
+  background: #fff8e1; color: #7b5800; text-align: center;
+  padding: 8px 12px; font-size: .82rem; border-top: 1px solid #ffe082;
+}
+.schedule-count-badge {
+  display: inline-flex; align-items: center; padding: 6px 14px;
+  background: #e8f0fb; color: #042C53; border-radius: 20px;
+  font-size: .8rem; font-weight: 700; border: 1px solid #cdd5e0;
+}
+.schedule-sheet-master { margin-bottom: 0; border-bottom: none; border-radius: 4px 4px 0 0; }
+.schedule-block-wrap { margin: 0 0 24px; }
+.schedule-block-wrap:last-of-type { margin-bottom: 16px; }
+.schedule-block-toolbar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: 8px; padding: 10px 12px; background: #f5f8fc; border: 2px solid #333;
+  border-bottom: none; border-radius: 4px 4px 0 0;
+}
+.schedule-block-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.schedule-block-sheet { border-radius: 0 0 4px 4px; }
+.schedule-instructor-name-input {
+  width: 100%; border: none; background: transparent; color: #fff;
+  font-size: .95rem; font-weight: 800; text-align: center; padding: 4px 10px;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.schedule-instructor-name-input:focus {
+  outline: none; background: rgba(255,255,255,.15); border-radius: 4px;
+}
+.schedule-instructor-name-input::placeholder { color: rgba(255,255,255,.75); text-transform: none; font-weight: 600; }
+.schedule-instructor-name-input:read-only { cursor: default; }
+.schedule-empty-state {
+  text-align: center; padding: 24px 16px; color: #666; font-size: .92rem;
+  background: rgba(255,255,255,.6); border: 1px dashed #cdd5e0; border-radius: 8px; margin: 16px 0;
+}
+.schedule-add-section {
+  margin-top: 8px; padding: 18px 16px; background: #f5f8fc;
+  border: 1.5px solid #e0e8f0; border-radius: 10px;
+}
+.schedule-add-title { margin: 0 0 12px; font-size: .95rem; color: #042C53; }
+.schedule-add-form { margin: 0; }
+.schedule-add-row {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+}
+.schedule-add-label { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
+.schedule-add-label span { font-size: .78rem; font-weight: 700; color: #042C53; }
+.schedule-add-name-input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid #cdd5e0; border-radius: 7px;
+  font-size: .92rem;
+}
+.schedule-add-name-input:focus { outline: none; border-color: #185FA5; }
+
 /* ── Student Search Widget ───────────────────────────────── */
 .student-search-wrap { position: relative; }
 .student-search-input {
@@ -418,4 +547,13 @@ footer {
   header nav a { margin-left: 0; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .checkbox-grid { grid-template-columns: 1fr; }
+  .schedule-layout { grid-template-columns: 1fr; }
+  .schedule-grid-wrap { border-right: none; border-bottom: 2px solid #333; }
+  .schedule-toolbar-actions { width: 100%; }
+  .schedule-toolbar-actions .btn { flex: 1; min-width: 120px; }
+  .schedule-units-panel { border-top: 2px solid #333; }
+  .schedule-add-row { flex-direction: column; align-items: stretch; }
+  .schedule-add-row .btn { width: 100%; }
+  .schedule-block-actions { width: 100%; }
+  .schedule-block-actions .btn { flex: 1; min-width: 0; }
 }

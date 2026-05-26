@@ -1,0 +1,249 @@
+<!-- Faculty Teaching Load — multiple instructors -->
+<% const schedules = teachingSchedules || []; const semesterLabel = teachingSemesterLabel || 'SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)'; %>
+
+<div class="card teaching-schedule-card" id="teachingScheduleCard">
+  <div class="schedule-toolbar">
+    <div>
+      <h3 style="margin:0;border:none;padding:0;">Faculty Teaching Load</h3>
+      <p class="schedule-toolbar-sub">Add schedules for each instructor, edit names and time slots, then lock when finished.</p>
+    </div>
+    <div class="schedule-toolbar-actions">
+      <span class="schedule-count-badge"><%= schedules.length %> instructor<%= schedules.length === 1 ? '' : 's' %></span>
+    </div>
+  </div>
+
+  <% if (scheduleSuccess) { %>
+    <div class="alert alert-success"><%= scheduleSuccess %></div>
+  <% } %>
+  <% if (scheduleError) { %>
+    <div class="alert alert-error"><%= scheduleError %></div>
+  <% } %>
+
+  <div class="schedule-sheet schedule-sheet-master">
+    <div class="schedule-semester-bar">
+      <input type="text" id="globalSemesterLabel" class="schedule-semester-input"
+             value="<%= semesterLabel %>"
+             placeholder="SY 2026-2027 1st Semester (PATHFIT 1 & 3 FACULTY TEACHING LOAD)"
+             aria-label="Semester label">
+    </div>
+  </div>
+
+  <% if (!schedules.length) { %>
+    <div class="schedule-empty-state">
+      <p>No instructor schedules yet. Add the first one below.</p>
+    </div>
+  <% } %>
+
+  <div id="scheduleBlocksList">
+    <% schedules.forEach(function(sched, blockIdx) {
+      const locked = !!sched.is_locked;
+      const blockId = sched.schedule_id;
+    %>
+    <div class="schedule-block-wrap" data-block-index="<%= blockIdx %>">
+      <form method="POST" action="/instructor/schedule/save" class="schedule-block-form" id="scheduleForm-<%= blockId %>">
+        <input type="hidden" name="schedule_id" value="<%= blockId %>">
+        <input type="hidden" name="schedule_data" class="schedule-data-input" value="">
+        <input type="hidden" name="semester_label" class="schedule-semester-hidden" value="<%= semesterLabel %>">
+
+        <div class="schedule-block-toolbar">
+          <span class="schedule-lock-badge <%= locked ? 'locked' : 'unlocked' %>">
+            <%= locked ? '🔒 Locked' : '🔓 Editable' %>
+          </span>
+          <div class="schedule-block-actions">
+            <button type="submit" class="btn btn-sm" <%= locked ? 'disabled' : '' %>>Save</button>
+            <button type="button" class="btn btn-sm btn-outline schedule-lock-btn"
+                    data-schedule-id="<%= blockId %>" data-lock="<%= locked ? 'false' : 'true' %>">
+              <%= locked ? 'Unlock' : 'Lock' %>
+            </button>
+            <% if (!locked) { %>
+            <button type="button" class="btn btn-sm btn-danger schedule-delete-btn"
+                    data-schedule-id="<%= blockId %>"
+                    data-name="<%= (sched.display_name || '').replace(/"/g, '&quot;') %>">Remove</button>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="schedule-sheet schedule-block-sheet <%= locked ? 'is-locked' : '' %>">
+          <div class="schedule-instructor-bar">
+            <input type="text" name="display_name" class="schedule-instructor-name-input"
+                   value="<%= sched.display_name || '' %>"
+                   placeholder="LAST NAME, FIRST NAME M.I."
+                   maxlength="150"
+                   aria-label="Instructor name"
+                   <%= locked ? 'readonly' : '' %>>
+          </div>
+
+          <div class="schedule-layout">
+            <div class="schedule-grid-wrap table-wrap">
+              <table class="schedule-grid">
+                <thead>
+                  <tr>
+                    <th class="schedule-time-col">Time</th>
+                    <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% teachingTimeSlots.forEach(function(slot) { %>
+                  <tr class="<%= slot.lunch ? 'schedule-lunch-row' : '' %>">
+                    <td class="schedule-time-col"><%= slot.label %></td>
+                    <% if (slot.lunch) { %>
+                      <td colspan="5" class="schedule-lunch-cell">LUNCH BREAK</td>
+                    <% } else { %>
+                      <% teachingDays.forEach(function(day) {
+                        const val = (sched.schedule_data && sched.schedule_data[slot.id] && sched.schedule_data[slot.id][day]) || '';
+                      %>
+                      <td class="schedule-slot-cell">
+                        <input type="text"
+                               class="schedule-slot-input <%= val ? 'filled' : '' %>"
+                               data-slot="<%= slot.id %>"
+                               data-day="<%= day %>"
+                               value="<%= val %>"
+                               placeholder="—"
+                               maxlength="40"
+                               autocomplete="off"
+                               <%= locked ? 'readonly tabindex="-1"' : '' %>>
+                      </td>
+                      <% }) %>
+                    <% } %>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="schedule-units-panel">
+              <div class="schedule-units-header">Load Summary</div>
+              <label class="schedule-unit-field">
+                <span>Deload Units</span>
+                <textarea name="deload_units" rows="2" placeholder="e.g. 3 units-Ethics" <%= locked ? 'readonly' : '' %>><%= sched.deload_units || '' %></textarea>
+              </label>
+              <label class="schedule-unit-field">
+                <span>Regular Load</span>
+                <textarea name="regular_load" rows="2" placeholder="e.g. 12 units-PATHFit" <%= locked ? 'readonly' : '' %>><%= sched.regular_load || '' %></textarea>
+              </label>
+              <label class="schedule-unit-field">
+                <span>Overload</span>
+                <textarea name="overload" rows="2" placeholder="e.g. 9 units-Head, PATHFit/SDO" <%= locked ? 'readonly' : '' %>><%= sched.overload || '' %></textarea>
+              </label>
+              <label class="schedule-unit-field schedule-unit-total">
+                <span>Total Units</span>
+                <input type="text" name="total_units" value="<%= sched.total_units || '' %>" placeholder="e.g. 21" maxlength="10" <%= locked ? 'readonly' : '' %>>
+              </label>
+            </div>
+          </div>
+
+          <% if (locked) { %>
+            <div class="schedule-locked-overlay-hint">Locked — unlock to edit this instructor's schedule.</div>
+          <% } %>
+        </div>
+      </form>
+    </div>
+    <% }) %>
+  </div>
+
+  <div class="schedule-add-section">
+    <h4 class="schedule-add-title">Add instructor schedule</h4>
+    <form method="POST" action="/instructor/schedule/add" class="schedule-add-form" id="scheduleAddForm">
+      <input type="hidden" name="semester_label" id="addSemesterHidden" value="<%= semesterLabel %>">
+      <div class="schedule-add-row">
+        <label class="schedule-add-label">
+          <span>Instructor name</span>
+          <input type="text" name="display_name" class="schedule-add-name-input"
+                 placeholder="e.g. CULAJARA, EDILYN A." maxlength="150" required>
+        </label>
+        <button type="submit" class="btn">+ Add Instructor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Hidden forms for lock / delete -->
+<form method="POST" action="/instructor/schedule/toggle-lock" id="scheduleLockSubmitForm" style="display:none;">
+  <input type="hidden" name="schedule_id" id="lockScheduleId">
+  <input type="hidden" name="lock" id="lockScheduleValue">
+</form>
+<form method="POST" action="/instructor/schedule/delete" id="scheduleDeleteSubmitForm" style="display:none;">
+  <input type="hidden" name="schedule_id" id="deleteScheduleId">
+</form>
+
+<script>
+(function () {
+  const globalSemester = document.getElementById('globalSemesterLabel');
+  const addSemesterHidden = document.getElementById('addSemesterHidden');
+  const lockForm = document.getElementById('scheduleLockSubmitForm');
+  const deleteForm = document.getElementById('scheduleDeleteSubmitForm');
+
+  function syncSemesterToForms() {
+    const val = globalSemester ? globalSemester.value.trim() : '';
+    if (addSemesterHidden) addSemesterHidden.value = val;
+    document.querySelectorAll('.schedule-semester-hidden').forEach(function (el) {
+      el.value = val;
+    });
+  }
+
+  if (globalSemester) {
+    globalSemester.addEventListener('input', syncSemesterToForms);
+    syncSemesterToForms();
+  }
+
+  function collectBlockData(form) {
+    const slots = {};
+    form.querySelectorAll('.schedule-slot-input').forEach(function (input) {
+      const slotId = input.dataset.slot;
+      const day = input.dataset.day;
+      if (!slots[slotId]) slots[slotId] = {};
+      slots[slotId][day] = input.value.trim();
+    });
+    return slots;
+  }
+
+  function syncFilledClass(input) {
+    input.classList.toggle('filled', !!input.value.trim());
+  }
+
+  document.querySelectorAll('.schedule-block-form').forEach(function (form) {
+    const isLocked = form.querySelector('.schedule-block-sheet.is-locked') !== null;
+    form.querySelectorAll('.schedule-slot-input').forEach(function (input) {
+      syncFilledClass(input);
+      if (!isLocked) {
+        input.addEventListener('input', function () { syncFilledClass(input); });
+      }
+    });
+    form.addEventListener('submit', function () {
+      syncSemesterToForms();
+      const dataInput = form.querySelector('.schedule-data-input');
+      if (dataInput) dataInput.value = JSON.stringify(collectBlockData(form));
+    });
+  });
+
+  document.querySelectorAll('.schedule-lock-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const willLock = btn.dataset.lock === 'true';
+      const name = btn.closest('.schedule-block-wrap')
+        ?.querySelector('.schedule-instructor-name-input')?.value || 'this instructor';
+      if (willLock) {
+        if (!confirm('Lock schedule for ' + name + '? Editing will be disabled until unlocked.')) return;
+      } else {
+        if (!confirm('Unlock schedule for ' + name + '?')) return;
+      }
+      document.getElementById('lockScheduleId').value = btn.dataset.scheduleId;
+      document.getElementById('lockScheduleValue').value = willLock ? 'true' : 'false';
+      lockForm.submit();
+    });
+  });
+
+  document.querySelectorAll('.schedule-delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const name = btn.dataset.name || 'this instructor';
+      if (!confirm('Remove the schedule for ' + name + '? This cannot be undone.')) return;
+      document.getElementById('deleteScheduleId').value = btn.dataset.scheduleId;
+      deleteForm.submit();
+    });
+  });
+
+  const addForm = document.getElementById('scheduleAddForm');
+  if (addForm) {
+    addForm.addEventListener('submit', syncSemesterToForms);
+  }
+})();
+</script>
