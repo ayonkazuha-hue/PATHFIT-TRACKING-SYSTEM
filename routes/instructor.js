@@ -251,6 +251,21 @@ module.exports = function(supabaseAdmin) {
     return !s.status || s.status === 'approved';
   }
 
+  function isArchivedStudent(s) {
+    return s.status === 'archived';
+  }
+
+  function dashboardRedirect(query = {}, msg = {}) {
+    const params = new URLSearchParams();
+    ['section', 'pathfit_level', 'gender', 'course', 'year_level', 'search', 'rating_section', 'show_archived'].forEach((key) => {
+      if (query[key]) params.set(key, query[key]);
+    });
+    if (msg.approveSuccess) params.set('approveSuccess', msg.approveSuccess);
+    if (msg.approveError) params.set('approveError', msg.approveError);
+    const qs = params.toString();
+    return `/instructor/dashboard${qs ? `?${qs}` : ''}`;
+  }
+
   const DEFAULT_TEACHING_TIME_SLOTS = [
     { id: '7-9',   label: '7:00-9:00',   lunch: false },
     { id: '9-11',  label: '9:00-11:00',  lunch: false },
@@ -397,7 +412,8 @@ module.exports = function(supabaseAdmin) {
   }
 
   router.get('/dashboard', async (req, res) => {
-    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '', rating_section = '' } = req.query;
+    const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '', rating_section = '', show_archived = '' } = req.query;
+    const showArchived = show_archived === '1';
     try {
       await probeUsersSchema(supabaseAdmin);
       let query = supabaseAdmin.from('users').select('*').eq('role', 'student').order('name');
@@ -419,7 +435,7 @@ module.exports = function(supabaseAdmin) {
         throw new Error(studentsRes.error.message);
       }
 
-      const students = (studentsRes.data || []).filter(isApprovedStudent);
+      const students = (studentsRes.data || []).filter(showArchived ? isArchivedStudent : isApprovedStudent);
       const pendingScreenings = (pendingRes.data || []).length;
       const allApprovedStudents = (allStudentsRes.data || []).filter(isApprovedStudent);
       const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
@@ -455,7 +471,7 @@ module.exports = function(supabaseAdmin) {
       const navNotifs = await loadInstructorNavNotifications();
 
       res.render('instructor/dashboard', {
-        students, pendingScreenings, ...navNotifs,
+        students, pendingScreenings, showArchived, ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
         ratingDistribution: {
           selectedSection: selectedRatingSection,
@@ -685,6 +701,96 @@ module.exports = function(supabaseAdmin) {
       return res.redirect('/instructor/dashboard?approveSuccess=Student information updated successfully.');
     } catch (err) {
       return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
+    }
+  });
+
+  router.post('/archive-student', async (req, res) => {
+    const { user_id } = req.body;
+    const redirectQuery = req.body;
+    if (!user_id) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Missing student ID.' }));
+    }
+    try {
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (!usersSchema.usersHasStatusColumn) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Archive requires status column. Run add_student_archive_status.sql in Supabase.' }));
+      }
+      const { error } = await supabaseAdmin.from('users').update({ status: 'archived' }).eq('user_id', user_id).eq('role', 'student');
+      if (error) throw error;
+      return res.redirect(dashboardRedirect(redirectQuery, { approveSuccess: 'Student archived successfully.' }));
+    } catch (err) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: err.message }));
+    }
+  });
+
+  router.post('/restore-student', async (req, res) => {
+    const { user_id } = req.body;
+    const redirectQuery = { ...req.body, show_archived: '1' };
+    if (!user_id) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Missing student ID.' }));
+    }
+    try {
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (!usersSchema.usersHasStatusColumn) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Restore requires status column. Run add_student_archive_status.sql in Supabase.' }));
+      }
+      const { error } = await supabaseAdmin.from('users').update({ status: 'approved' }).eq('user_id', user_id).eq('role', 'student');
+      if (error) throw error;
+      return res.redirect(dashboardRedirect(redirectQuery, { approveSuccess: 'Student restored successfully.' }));
+    } catch (err) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: err.message }));
+    }
+  });
+
+  router.post('/archive-section', async (req, res) => {
+    const section = (req.body.section || '').trim();
+    const redirectQuery = req.body;
+    if (!section) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Select a section to archive.' }));
+    }
+    try {
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (!usersSchema.usersHasStatusColumn) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Archive requires status column. Run add_student_archive_status.sql in Supabase.' }));
+      }
+      const { data, error: fetchErr } = await supabaseAdmin
+        .from('users').select('user_id,status,section').eq('role', 'student').eq('section', section);
+      if (fetchErr) throw fetchErr;
+      const ids = (data || []).filter(isApprovedStudent).map(s => s.user_id);
+      if (!ids.length) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: `No active students found in section ${section}.` }));
+      }
+      const { error } = await supabaseAdmin.from('users').update({ status: 'archived' }).in('user_id', ids);
+      if (error) throw error;
+      return res.redirect(dashboardRedirect(redirectQuery, { approveSuccess: `Archived ${ids.length} student(s) in section ${section}.` }));
+    } catch (err) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: err.message }));
+    }
+  });
+
+  router.post('/restore-section', async (req, res) => {
+    const section = (req.body.section || '').trim();
+    const redirectQuery = { ...req.body, show_archived: '1' };
+    if (!section) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Select a section to restore.' }));
+    }
+    try {
+      await probeUsersSchema(supabaseAdmin, { refresh: true });
+      if (!usersSchema.usersHasStatusColumn) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: 'Restore requires status column. Run add_student_archive_status.sql in Supabase.' }));
+      }
+      const { data, error: fetchErr } = await supabaseAdmin
+        .from('users').select('user_id,status,section').eq('role', 'student').eq('section', section);
+      if (fetchErr) throw fetchErr;
+      const ids = (data || []).filter(isArchivedStudent).map(s => s.user_id);
+      if (!ids.length) {
+        return res.redirect(dashboardRedirect(redirectQuery, { approveError: `No archived students found in section ${section}.` }));
+      }
+      const { error } = await supabaseAdmin.from('users').update({ status: 'approved' }).in('user_id', ids);
+      if (error) throw error;
+      return res.redirect(dashboardRedirect(redirectQuery, { approveSuccess: `Restored ${ids.length} student(s) in section ${section}.` }));
+    } catch (err) {
+      return res.redirect(dashboardRedirect(redirectQuery, { approveError: err.message }));
     }
   });
 

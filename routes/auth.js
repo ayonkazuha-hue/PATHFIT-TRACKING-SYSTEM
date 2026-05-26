@@ -62,6 +62,12 @@ module.exports = function(supabase, supabaseAdmin) {
           email,
         });
       }
+      if (resolvedProfile.role === 'student' && resolvedProfile.status === 'archived') {
+        return res.render('login', {
+          error: 'Your account has been archived. Please contact your instructor.',
+          email,
+        });
+      }
 
       req.session.user = {
         user_id:       resolvedProfile.user_id,

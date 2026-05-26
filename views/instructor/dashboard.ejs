@@ -18,6 +18,14 @@
     .rating-fill.fair { background:#ef6c00; }
     .rating-fill.needs_improvement { background:#c62828; }
     .rating-fill.poor { background:#4b5563; }
+    .student-list-toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #e8ecf0; }
+    .student-list-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .student-filter-bar { margin-bottom:14px; }
+    .student-row-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    .btn-archive { padding:5px 12px; background:#6b7280; color:#fff; border:none; border-radius:5px; font-size:.78rem; font-weight:700; cursor:pointer; }
+    .btn-archive:hover { background:#4b5563; }
+    .btn-restore { padding:5px 12px; background:#2e7d32; color:#fff; border:none; border-radius:5px; font-size:.78rem; font-weight:700; cursor:pointer; }
+    .btn-restore:hover { background:#1b5e20; }
     @media (max-width: 768px) {
       .rating-row { grid-template-columns: 1fr; gap:6px; }
       .rating-meta { text-align:left; }
@@ -25,6 +33,12 @@
       .rating-chart-filter { width:100%; }
       .rating-chart-filter .btn { width:100%; }
       .rating-chart-filter select { width:100%; }
+      .student-list-toolbar { flex-direction:column; align-items:stretch; }
+      .student-list-actions { width:100%; }
+      .student-list-actions .btn, .student-list-actions form { flex:1; min-width:0; }
+      .student-list-actions .btn { width:100%; text-align:center; }
+      .student-row-actions { flex-direction:column; }
+      .student-row-actions .btn, .student-row-actions button { width:100%; }
     }
   </style>
   <div class="page-title">Hello, <%= user.name %>! 👋</div>
@@ -62,62 +76,6 @@
     </div>
   </div>
 
-  <!-- Filter -->
-  <form method="GET" action="/instructor/dashboard">
-    <div class="filter-bar">
-      <div class="fg">
-        <label>Institute / Course</label>
-        <select name="course">
-          <option value="">All Institutes</option>
-          <option value="IBM" <%= filters.course==='IBM'?'selected':'' %>>IBM (Institute For Business Management)</option>
-          <option value="ICS" <%= filters.course==='ICS'?'selected':'' %>>ICS (Institute For Computer Studies)</option>
-          <option value="ITE" <%= filters.course==='ITE'?'selected':'' %>>ITE (Institute For Teacher Education)</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Section Code:</label>
-        <select name="section">
-          <option value="">All Section Codes</option>
-          <option value="A" <%= filters.section==='A'?'selected':'' %>>A</option>
-          <option value="B" <%= filters.section==='B'?'selected':'' %>>B</option>
-          <option value="C" <%= filters.section==='C'?'selected':'' %>>C</option>
-          <option value="D" <%= filters.section==='D'?'selected':'' %>>D</option>
-          <option value="E" <%= filters.section==='E'?'selected':'' %>>E</option>
-          <option value="F" <%= filters.section==='F'?'selected':'' %>>F</option>
-          <option value="G" <%= filters.section==='G'?'selected':'' %>>G</option>
-          <option value="H" <%= filters.section==='H'?'selected':'' %>>H</option>
-          <option value="I" <%= filters.section==='I'?'selected':'' %>>I</option>
-          <option value="J" <%= filters.section==='J'?'selected':'' %>>J</option>
-          <option value="K" <%= filters.section==='K'?'selected':'' %>>K</option>
-          <option value="L" <%= filters.section==='L'?'selected':'' %>>L</option>
-          <option value="M" <%= filters.section==='M'?'selected':'' %>>M</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Year Level</label>
-        <select name="year_level">
-          <option value="">All Year</option>
-          <option value="1" <%= filters.year_level==='1'?'selected':'' %>>1st Year</option>
-          <option value="2" <%= filters.year_level==='2'?'selected':'' %>>2nd Year</option>
-          <option value="3" <%= filters.year_level==='3'?'selected':'' %>>3rd Year</option>
-          <option value="4" <%= filters.year_level==='4'?'selected':'' %>>4th Year</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>PATHFit Level</label>
-        <select name="pathfit_level">
-          <option value="">All Levels</option>
-          <option value="1" <%= filters.pathfit_level==='1'?'selected':'' %>>PATHFit 1</option>
-          <option value="2" <%= filters.pathfit_level==='2'?'selected':'' %>>PATHFit 2</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;">
-        <button type="submit" class="btn">Filter</button>
-        <a href="/instructor/dashboard" class="btn btn-outline">Reset</a>
-      </div>
-    </div>
-  </form>
-
   <!-- Section Rating Distribution (moved from Reports) -->
   <div class="card rating-chart-card">
     <%
@@ -152,6 +110,7 @@
         <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
         <input type="hidden" name="gender" value="<%= filters.gender || '' %>">
         <input type="hidden" name="search" value="<%= filters.search || '' %>">
+        <input type="hidden" name="show_archived" value="<%= showArchived ? '1' : '' %>">
         <div>
           <label for="ratingSection">Section</label>
           <select id="ratingSection" name="rating_section" <%= chartSections.length ? '' : 'disabled' %>>
@@ -193,21 +152,100 @@
 
   <!-- Students Table -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e8ecf0;">
+    <div class="student-list-toolbar">
       <h3 style="margin:0;border:none;padding:0;">
-        Student List
+        <%= showArchived ? 'Archived Students' : 'Student List' %>
         <span style="font-size:.82rem;font-weight:400;color:#555;margin-left:8px;"><%= students.length %> student(s)</span>
       </h3>
-      <% if (students.length > 0) { %>
-      <button onclick="exportToExcel()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;background:#1e7e34;color:#fff;border:none;border-radius:7px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#155724'" onmouseout="this.style.background='#1e7e34'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-        </svg>
-        Export to Excel
-      </button>
+      <div class="student-list-actions">
+        <% if (!showArchived && students.length > 0) { %>
+        <button type="button" onclick="exportToExcel()" class="btn btn-sm" style="background:#1e7e34;border-color:#1e7e34;">Export to Excel</button>
+        <% } %>
+        <% if (showArchived) { %>
+          <a href="/instructor/dashboard?<%= [
+            filters.section ? 'section=' + encodeURIComponent(filters.section) : '',
+            filters.course ? 'course=' + encodeURIComponent(filters.course) : '',
+            filters.year_level ? 'year_level=' + encodeURIComponent(filters.year_level) : '',
+            filters.pathfit_level ? 'pathfit_level=' + encodeURIComponent(filters.pathfit_level) : '',
+            filters.rating_section ? 'rating_section=' + encodeURIComponent(filters.rating_section) : ''
+          ].filter(Boolean).join('&') %>" class="btn btn-sm btn-outline">View Active Students</a>
+        <% } else { %>
+          <a href="/instructor/dashboard?show_archived=1<%= filters.section ? '&section=' + encodeURIComponent(filters.section) : '' %><%= filters.course ? '&course=' + encodeURIComponent(filters.course) : '' %><%= filters.year_level ? '&year_level=' + encodeURIComponent(filters.year_level) : '' %><%= filters.pathfit_level ? '&pathfit_level=' + encodeURIComponent(filters.pathfit_level) : '' %><%= filters.rating_section ? '&rating_section=' + encodeURIComponent(filters.rating_section) : '' %>" class="btn btn-sm btn-outline">View Archived</a>
+        <% } %>
+      </div>
+    </div>
+
+    <form method="GET" action="/instructor/dashboard" class="student-filter-bar">
+      <% if (showArchived) { %><input type="hidden" name="show_archived" value="1"><% } %>
+      <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+      <div class="filter-bar">
+        <div class="fg">
+          <label>Institute / Course</label>
+          <select name="course">
+            <option value="">All Institutes</option>
+            <option value="IBM" <%= filters.course==='IBM'?'selected':'' %>>IBM (Institute For Business Management)</option>
+            <option value="ICS" <%= filters.course==='ICS'?'selected':'' %>>ICS (Institute For Computer Studies)</option>
+            <option value="ITE" <%= filters.course==='ITE'?'selected':'' %>>ITE (Institute For Teacher Education)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Section Code:</label>
+          <select name="section">
+            <option value="">All Section Codes</option>
+            <% ['A','B','C','D','E','F','G','H','I','J','K','L','M'].forEach(code => { %>
+              <option value="<%= code %>" <%= filters.section===code?'selected':'' %>><%= code %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Year Level</label>
+          <select name="year_level">
+            <option value="">All Year</option>
+            <option value="1" <%= filters.year_level==='1'?'selected':'' %>>1st Year</option>
+            <option value="2" <%= filters.year_level==='2'?'selected':'' %>>2nd Year</option>
+            <option value="3" <%= filters.year_level==='3'?'selected':'' %>>3rd Year</option>
+            <option value="4" <%= filters.year_level==='4'?'selected':'' %>>4th Year</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>PATHFit Level</label>
+          <select name="pathfit_level">
+            <option value="">All Levels</option>
+            <option value="1" <%= filters.pathfit_level==='1'?'selected':'' %>>PATHFit 1</option>
+            <option value="2" <%= filters.pathfit_level==='2'?'selected':'' %>>PATHFit 2</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+          <button type="submit" class="btn">Filter</button>
+          <a href="/instructor/dashboard<%= showArchived ? '?show_archived=1' : '' %>" class="btn btn-outline">Reset</a>
+        </div>
+      </div>
+    </form>
+
+    <% if (filters.section) { %>
+    <div class="student-list-actions" style="margin-bottom:14px;">
+      <% if (showArchived) { %>
+      <form method="POST" action="/instructor/restore-section" onsubmit="return confirm('Restore all archived students in section <%= filters.section %>?');">
+        <input type="hidden" name="section" value="<%= filters.section %>">
+        <input type="hidden" name="course" value="<%= filters.course || '' %>">
+        <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+        <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+        <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+        <input type="hidden" name="show_archived" value="1">
+        <button type="submit" class="btn btn-sm btn-restore">Restore Section <%= filters.section %></button>
+      </form>
+      <% } else { %>
+      <form method="POST" action="/instructor/archive-section" onsubmit="return confirm('Archive all active students in section <%= filters.section %>? They will be hidden from the active list.');">
+        <input type="hidden" name="section" value="<%= filters.section %>">
+        <input type="hidden" name="course" value="<%= filters.course || '' %>">
+        <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+        <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+        <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+        <button type="submit" class="btn btn-sm btn-archive">Archive Section <%= filters.section %></button>
+      </form>
       <% } %>
     </div>
+    <% } %>
 
     <% if (students.length > 0) { %>
     <div class="table-wrap">
@@ -228,21 +266,45 @@
             <td><%= s.age||'—' %></td>
             <td><span class="badge badge-<%= s.pathfit_level %>">PATHFit <%= s.pathfit_level %></span></td>
             <td>
-              <button type="button"
-                class="edit-student-btn"
-                data-user-id="<%= s.user_id %>"
-                data-name="<%= (s.name||'').replace(/"/g,'&quot;') %>"
-                data-student-id="<%= s.student_id||'' %>"
-                data-email="<%= s.email||'' %>"
-                data-gender="<%= s.gender||'' %>"
-                data-age="<%= s.age||'' %>"
-                data-course="<%= s.course||'' %>"
-                data-section="<%= s.section||'' %>"
-                data-year-level="<%= s.year_level||'' %>"
-                data-pathfit-level="<%= s.pathfit_level||'' %>"
-                style="padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.82rem;font-weight:700;cursor:pointer;">
-                ✏️ Edit
-              </button>
+              <div class="student-row-actions">
+                <% if (!showArchived) { %>
+                <button type="button"
+                  class="edit-student-btn"
+                  data-user-id="<%= s.user_id %>"
+                  data-name="<%= (s.name||'').replace(/"/g,'&quot;') %>"
+                  data-student-id="<%= s.student_id||'' %>"
+                  data-email="<%= s.email||'' %>"
+                  data-gender="<%= s.gender||'' %>"
+                  data-age="<%= s.age||'' %>"
+                  data-course="<%= s.course||'' %>"
+                  data-section="<%= s.section||'' %>"
+                  data-year-level="<%= s.year_level||'' %>"
+                  data-pathfit-level="<%= s.pathfit_level||'' %>"
+                  style="padding:5px 14px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.82rem;font-weight:700;cursor:pointer;">
+                  ✏️ Edit
+                </button>
+                <form method="POST" action="/instructor/archive-student" onsubmit="return confirm('Archive this student?');">
+                  <input type="hidden" name="user_id" value="<%= s.user_id %>">
+                  <input type="hidden" name="section" value="<%= filters.section || '' %>">
+                  <input type="hidden" name="course" value="<%= filters.course || '' %>">
+                  <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+                  <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+                  <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+                  <button type="submit" class="btn-archive">Archive</button>
+                </form>
+                <% } else { %>
+                <form method="POST" action="/instructor/restore-student" onsubmit="return confirm('Restore this student to the active list?');">
+                  <input type="hidden" name="user_id" value="<%= s.user_id %>">
+                  <input type="hidden" name="section" value="<%= filters.section || '' %>">
+                  <input type="hidden" name="course" value="<%= filters.course || '' %>">
+                  <input type="hidden" name="year_level" value="<%= filters.year_level || '' %>">
+                  <input type="hidden" name="pathfit_level" value="<%= filters.pathfit_level || '' %>">
+                  <input type="hidden" name="rating_section" value="<%= filters.rating_section || '' %>">
+                  <input type="hidden" name="show_archived" value="1">
+                  <button type="submit" class="btn-restore">Restore</button>
+                </form>
+                <% } %>
+              </div>
             </td>
           </tr>
           <% }) %>
@@ -250,7 +312,7 @@
       </table>
     </div>
     <% } else { %>
-      <div class="empty-state">No students found matching the selected filters.</div>
+      <div class="empty-state"><%= showArchived ? 'No archived students found for the selected filters.' : 'No students found matching the selected filters.' %></div>
     <% } %>
   </div>
 </div>
