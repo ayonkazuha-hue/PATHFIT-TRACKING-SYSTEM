@@ -620,13 +620,15 @@ footer {
   padding: 12px 10px 12px 16px; border: none; background: transparent;
   cursor: pointer; text-align: left; color: inherit; min-width: 0;
 }
-.notif-open-link {
+.notif-dropdown .notif-open-link,
+.notif-page-card .notif-open-link {
   flex-shrink: 0; align-self: center; margin-right: 10px;
   padding: 6px 12px; font-size: .75rem; font-weight: 700;
   color: #185FA5; text-decoration: none; border: 1.5px solid #185FA5;
   border-radius: 6px; white-space: nowrap; transition: background .15s, color .15s;
 }
-.notif-open-link:hover { background: #185FA5; color: #fff; }
+.notif-dropdown .notif-open-link:hover,
+.notif-page-card .notif-open-link:hover { background: #185FA5; color: #fff; }
 .notif-footer {
   display: block; text-align: center; padding: 12px 16px;
   font-size: .88rem; color: #185FA5; font-weight: 700;
