@@ -13,8 +13,13 @@ body {
   display: flex;
   flex-direction: column;
 
-  /* Clean gradient background */
-  background: linear-gradient(135deg, #0a2540 0%, #134e8a 50%, #1a5f9e 100%);
+  /* Background image (responsive "cover") + subtle overlay for readability */
+  background:
+    linear-gradient(135deg, rgba(10, 37, 64, .55) 0%, rgba(19, 78, 138, .45) 50%, rgba(26, 95, 158, .35) 100%),
+    url('/img/fitness-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   background-attachment: fixed;
   position: relative;
 }
@@ -679,6 +684,7 @@ footer {
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
+  body { background-attachment: scroll; }
   .form-row, .grid-2, .grid-2-asym { grid-template-columns: 1fr; }
   .header-inner { padding: 10px 12px; flex-wrap: wrap; align-items: center; }
   .site-header .brand { flex-direction: row; text-align: left; gap: 10px; }
