@@ -1,8 +1,15 @@
 <%- include('../partials/header', { title: 'Schedules' }) %>
 <div class="container">
-  <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <% const _scope = (user && user.instructor_scope) ? user.instructor_scope : 'full'; %>
+  <% if (_scope === 'full') { %>
+    <a href="/instructor/dashboard" class="back-link">← Back to Dashboard</a>
+  <% } %>
   <div class="page-title">Faculty Schedules</div>
-  <div class="page-sub">Manage teaching load schedules for all PATHFit instructors.</div>
+  <div class="page-sub">
+    <%= _scope === 'full'
+      ? 'Manage teaching load schedules for all PATHFit instructors.'
+      : 'View the faculty teaching load schedule.' %>
+  </div>
 
   <%- include('_teaching_schedule') %>
 </div>

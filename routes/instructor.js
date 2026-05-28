@@ -95,6 +95,10 @@ function getRating(testType, gender, age, value) {
 module.exports = function(supabaseAdmin) {
   const router = express.Router();
 
+  function canEditSchedule(req) {
+    return req?.session?.user?.can_edit_schedule !== false;
+  }
+
   
   async function getPendingRegistrations() {
     const { data, error } = await supabaseAdmin
@@ -529,6 +533,9 @@ module.exports = function(supabaseAdmin) {
     const redirectBase = '/instructor/schedules';
     const userId = req.session.user.user_id;
     try {
+      if (!canEditSchedule(req)) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('You do not have permission to edit schedules.')}`);
+      }
       const { schedules, timeSlots: existingTimes } = await loadAllTeachingSchedules();
       const displayName = (req.body.display_name || 'NEW INSTRUCTOR').trim().slice(0, 150) || 'NEW INSTRUCTOR';
       const semesterLabel = (req.body.semester_label || schedules[0]?.semester_label || '').trim().slice(0, 250) ||
@@ -564,6 +571,9 @@ module.exports = function(supabaseAdmin) {
     const scheduleId = (req.body.schedule_id || '').trim();
 
     try {
+      if (!canEditSchedule(req)) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('You do not have permission to edit schedules.')}`);
+      }
       if (!scheduleId) {
         return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
       }
@@ -627,6 +637,9 @@ module.exports = function(supabaseAdmin) {
     const scheduleId = (req.body.schedule_id || '').trim();
 
     try {
+      if (!canEditSchedule(req)) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('You do not have permission to edit schedules.')}`);
+      }
       if (!scheduleId) {
         return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
       }
@@ -659,6 +672,9 @@ module.exports = function(supabaseAdmin) {
     const scheduleId = (req.body.schedule_id || '').trim();
 
     try {
+      if (!canEditSchedule(req)) {
+        return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('You do not have permission to edit schedules.')}`);
+      }
       if (!scheduleId) {
         return res.redirect(`${redirectBase}?scheduleError=${encodeURIComponent('Missing schedule ID.')}`);
       }

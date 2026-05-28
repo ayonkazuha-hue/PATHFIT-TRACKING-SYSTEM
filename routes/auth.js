@@ -82,6 +82,13 @@ module.exports = function(supabase, supabaseAdmin) {
         jwt:           data.session.access_token,
       };
 
+      // Instructor schedule permission (email-based)
+      // - jrsaniel@nbsc.edu.ph: view schedules only (no edits)
+      if (req.session.user.role === 'instructor') {
+        const emailLower = String(req.session.user.email || '').toLowerCase().trim();
+        req.session.user.can_edit_schedule = emailLower !== 'jrsaniel@nbsc.edu.ph';
+      }
+
       // Check health screening for students
       if (resolvedProfile.role === 'student') {
         const { data: hs } = await supabaseAdmin
