@@ -91,7 +91,7 @@
         <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search student by name, ID, or section</label>
         <div class="report-search-wrap" id="searchWrap">
           <input type="text" id="reportSearchInput" name="query"
-                 placeholder="Type name, student ID, or section code…"
+                 placeholder="Type Section Code…"
                  autocomplete="off"
                  value="<% if (studentInfo) { %><%= studentInfo.name %> (<%= studentInfo.student_id||'' %>)<% } else { %><%= searchQuery || '' %><% } %>">
           <div class="report-dropdown" id="reportDropdown"></div>

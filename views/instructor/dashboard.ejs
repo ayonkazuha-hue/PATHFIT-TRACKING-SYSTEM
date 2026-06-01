@@ -207,12 +207,26 @@
         </div>
         <div class="fg">
           <label>Section Code:</label>
-          <select name="section">
-            <option value="">All Section Codes</option>
-            <% ['A','B','C','D','E','F','G','H','I','J','K','L','M'].forEach(code => { %>
-              <option value="<%= code %>" <%= filters.section===code?'selected':'' %>><%= code %></option>
+          <%
+            const _archiveStatsForFilter = sectionArchiveStats || [];
+            const _baseCodes = ['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+            const _sectionOptions = Array.from(new Set(
+              _baseCodes.concat(_archiveStatsForFilter.map(s => s.code).filter(Boolean))
+            )).sort();
+          %>
+          <input
+            type="text"
+            name="section"
+            value="<%= filters.section || '' %>"
+            list="sectionFilterCodes"
+            placeholder="All Section Codes"
+            autocomplete="off"
+            style="width:100%;padding:8px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;text-transform:uppercase;">
+          <datalist id="sectionFilterCodes">
+            <% _sectionOptions.forEach(code => { %>
+              <option value="<%= code %>"></option>
             <% }) %>
-          </select>
+          </datalist>
         </div>
         <div class="fg">
           <label>Year Level</label>
@@ -473,23 +487,29 @@ function exportToExcel() {
           </div>
           <div>
             <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section Code:</label>
-            <select name="section" id="editSection"
-              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
-              <option value="">— Select —</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-              <option value="E">E</option>
-              <option value="F">F</option>
-              <option value="G">G</option>
-              <option value="H">H</option>
-              <option value="I">I</option>
-              <option value="J">J</option>
-              <option value="K">K</option>
-              <option value="L">L</option>
-              <option value="M">M</option>
-            </select>
+            <input
+              type="text"
+              name="section"
+              id="editSection"
+              list="editSectionCodes"
+              placeholder="Type section code…"
+              autocomplete="off"
+              style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;text-transform:uppercase;">
+            <datalist id="editSectionCodes">
+              <option value="A"></option>
+              <option value="B"></option>
+              <option value="C"></option>
+              <option value="D"></option>
+              <option value="E"></option>
+              <option value="F"></option>
+              <option value="G"></option>
+              <option value="H"></option>
+              <option value="I"></option>
+              <option value="J"></option>
+              <option value="K"></option>
+              <option value="L"></option>
+              <option value="M"></option>
+            </datalist>
           </div>
           <div>
             <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Year Level</label>
@@ -539,7 +559,7 @@ function exportToExcel() {
     document.getElementById('editGender').value       = btn.dataset.gender;
     document.getElementById('editAge').value          = btn.dataset.age;
     document.getElementById('editCourse').value       = btn.dataset.course;
-    document.getElementById('editSection').value      = btn.dataset.section;
+    document.getElementById('editSection').value      = (btn.dataset.section || '').toUpperCase();
     document.getElementById('editYearLevel').value    = btn.dataset.yearLevel;
     document.getElementById('editPathfitLevel').value = btn.dataset.pathfitLevel;
     modal.scrollTop = 0;

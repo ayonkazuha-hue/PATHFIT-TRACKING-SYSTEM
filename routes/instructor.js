@@ -421,7 +421,7 @@ module.exports = function(supabaseAdmin) {
     try {
       await probeUsersSchema(supabaseAdmin);
       let query = supabaseAdmin.from('users').select('*').eq('role', 'student').order('name');
-      if (section)       query = query.eq('section', section);
+      if (section)       query = query.ilike('section', section);
       if (pathfit_level) query = query.eq('pathfit_level', parseInt(pathfit_level));
       if (gender)        query = query.eq('gender', gender);
       if (course)        query = query.eq('course', course);
@@ -444,17 +444,17 @@ module.exports = function(supabaseAdmin) {
       const allApprovedStudents = (allStudentsRes.data || []).filter(isApprovedStudent);
       const pendingRegistrations = (allStudentsRes.data || []).filter(s => s.status === 'pending');
       const allStudentRows = allStudentsRes.data || [];
-      const SECTION_CODES = ['A','B','C','D','E','F','G','H','I','J','K','L','M'];
-      const sectionArchiveStats = SECTION_CODES.map(code => {
-        const inSection = allStudentRows.filter(s =>
-          (s.section || '').toString().trim().toUpperCase() === code
-        );
-        return {
-          code,
-          active: inSection.filter(isApprovedStudent).length,
-          archived: inSection.filter(isArchivedStudent).length,
-        };
-      }).filter(s => s.active > 0 || s.archived > 0);
+      const sectionCounts = {};
+      allStudentRows.forEach((s) => {
+        const code = (s.section || '').toString().trim().toUpperCase();
+        if (!code) return;
+        if (!sectionCounts[code]) sectionCounts[code] = { code, active: 0, archived: 0 };
+        if (isArchivedStudent(s)) sectionCounts[code].archived += 1;
+        else if (isApprovedStudent(s)) sectionCounts[code].active += 1;
+      });
+      const sectionArchiveStats = Object.values(sectionCounts)
+        .filter((s) => s.active > 0 || s.archived > 0)
+        .sort((a, b) => a.code.localeCompare(b.code));
       const availableSections = [...new Set(
         allApprovedStudents
           .map(s => (s.section || '').toString().trim().toUpperCase())
@@ -715,7 +715,9 @@ module.exports = function(supabaseAdmin) {
       await probeUsersSchema(supabaseAdmin, { refresh: true });
 
       const updates = buildUserProfileUpdate({
-        name, student_id, email, section, course,
+        name, student_id, email,
+        section: section ? String(section).trim().toUpperCase() : null,
+        course,
         year_level, gender, pathfit_level, age,
       });
 
