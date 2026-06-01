@@ -83,10 +83,10 @@ module.exports = function(supabase, supabaseAdmin) {
       };
 
       // Instructor schedule permission (email-based)
-      // - jrsaniel@nbsc.edu.ph: view schedules only (no edits)
+      // - jrsaniel, adsanchez, mkoremotigue, and cmttutica: view schedules only (no edits)
       if (req.session.user.role === 'instructor') {
         const emailLower = String(req.session.user.email || '').toLowerCase().trim();
-        req.session.user.can_edit_schedule = emailLower !== 'jrsaniel@nbsc.edu.ph';
+        req.session.user.can_edit_schedule = !['jrsaniel@nbsc.edu.ph', 'adsanchez@nbsc.edu.ph', 'mkoremotigue@nbsc.edu.ph', 'cmttutica@nbsc.edu.ph'].includes(emailLower);
       }
 
       // Check health screening for students

@@ -14,19 +14,19 @@ const upload = multer({
 function getRating(testType, gender, age, value) {
   const v = parseFloat(value);
   const rubrics = {
-    push_ups:      {
-      male:   [[30,'excellent'],[20,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
-      female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
+    push_ups: {
+      male: [[30, 'excellent'], [20, 'very_good'], [10, 'good'], [5, 'fair'], [1, 'needs_improvement'], [0, 'poor']],
+      female: [[20, 'excellent'], [15, 'very_good'], [10, 'good'], [5, 'fair'], [1, 'needs_improvement'], [0, 'poor']],
     },
-    sit_reach:     { male: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']], female: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']] },
-    zipper_test:   { male: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']], female: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']] },
-    juggling:      { male: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']], female: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']] },
-    sprint_40m:    { male: [[0,'excellent'],[4.1,'very_good'],[5.5,'good'],[6.6,'fair'],[7.6,'needs_improvement']], female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']] },
-    stork_balance: { male: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']], female: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']] },
-    stick_drop:    { male: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']], female: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']] },
-    agility_test:  { male: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']], female: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']] },
+    sit_reach: { male: [[61, 'excellent'], [46, 'very_good'], [31, 'good'], [16, 'fair'], [5, 'needs_improvement'], [0, 'poor']], female: [[61, 'excellent'], [46, 'very_good'], [31, 'good'], [16, 'fair'], [5, 'needs_improvement'], [0, 'poor']] },
+    zipper_test: { male: [[6, 'excellent'], [4, 'very_good'], [2, 'good'], [0.1, 'fair'], [0, 'needs_improvement'], [-9999, 'poor']], female: [[6, 'excellent'], [4, 'very_good'], [2, 'good'], [0.1, 'fair'], [0, 'needs_improvement'], [-9999, 'poor']] },
+    juggling: { male: [[41, 'excellent'], [31, 'very_good'], [21, 'good'], [11, 'fair'], [1, 'needs_improvement'], [0, 'poor']], female: [[41, 'excellent'], [31, 'very_good'], [21, 'good'], [11, 'fair'], [1, 'needs_improvement'], [0, 'poor']] },
+    sprint_40m: { male: [[0, 'excellent'], [4.1, 'very_good'], [5.5, 'good'], [6.6, 'fair'], [7.6, 'needs_improvement']], female: [[0, 'excellent'], [4.6, 'very_good'], [6.0, 'good'], [7.1, 'fair'], [8.2, 'needs_improvement']] },
+    stork_balance: { male: [[161, 'excellent'], [121, 'very_good'], [81, 'good'], [41, 'fair'], [21, 'needs_improvement'], [0, 'poor']], female: [[161, 'excellent'], [121, 'very_good'], [81, 'good'], [41, 'fair'], [21, 'needs_improvement'], [0, 'poor']] },
+    stick_drop: { male: [[0, 'excellent'], [5.8, 'very_good'], [12.7, 'good'], [20.32, 'fair'], [27.94, 'needs_improvement'], [30.49, 'poor']], female: [[0, 'excellent'], [5.8, 'very_good'], [12.7, 'good'], [20.32, 'fair'], [27.94, 'needs_improvement'], [30.49, 'poor']] },
+    agility_test: { male: [[0, 'excellent'], [5.01, 'very_good'], [10.01, 'good'], [15.01, 'fair'], [20.01, 'needs_improvement'], [25.01, 'poor']], female: [[0, 'excellent'], [5.01, 'very_good'], [10.01, 'good'], [15.01, 'fair'], [20.01, 'needs_improvement'], [25.01, 'poor']] },
   };
-  
+
   if (testType === 'step_test_3min') {
     const studentAge = age || 18;
     if (gender === 'female') {
@@ -92,14 +92,14 @@ function getRating(testType, gender, age, value) {
   return 'needs_improvement';
 }
 
-module.exports = function(supabaseAdmin) {
+module.exports = function (supabaseAdmin) {
   const router = express.Router();
 
   function canEditSchedule(req) {
     return req?.session?.user?.can_edit_schedule !== false;
   }
 
-  
+
   async function getPendingRegistrations() {
     const { data, error } = await supabaseAdmin
       .from('users').select('*').eq('role', 'student').order('created_at', { ascending: false });
@@ -110,7 +110,7 @@ module.exports = function(supabaseAdmin) {
     return (data || []).filter(s => s.status === 'pending');
   }
 
-  
+
   function wantsJson(req) {
     return req.get('X-Requested-With') === 'fetch'
       || (req.get('Accept') || '').includes('application/json');
@@ -218,14 +218,14 @@ module.exports = function(supabaseAdmin) {
     };
   }
 
-  
+
   async function getPendingPasswordResets() {
     const { data: resets, error } = await supabaseAdmin
       .from('password_reset_requests')
       .select('*')
       .eq('status', 'pending')
       .order('requested_at', { ascending: false });
-      
+
     if (error) {
       console.error('[getPendingPasswordResets] Error:', error.message);
       return [];
@@ -249,7 +249,7 @@ module.exports = function(supabaseAdmin) {
     }));
   }
 
-  
+
   // Approved list: explicit approved, or legacy rows with no status column/value
   function isApprovedStudent(s) {
     return !s.status || s.status === 'approved';
@@ -271,12 +271,12 @@ module.exports = function(supabaseAdmin) {
   }
 
   const DEFAULT_TEACHING_TIME_SLOTS = [
-    { id: '7-9',   label: '7:00-9:00',   lunch: false },
-    { id: '9-11',  label: '9:00-11:00',  lunch: false },
+    { id: '7-9', label: '7:00-9:00', lunch: false },
+    { id: '9-11', label: '9:00-11:00', lunch: false },
     { id: '11-12', label: '11:00-12:00', lunch: false },
-    { id: '12-1',  label: '12:00-1:00',  lunch: true  },
-    { id: '1-3',   label: '1:00-3:00',   lunch: false },
-    { id: '3-5',   label: '3:00-5:00',   lunch: false },
+    { id: '12-1', label: '12:00-1:00', lunch: true },
+    { id: '1-3', label: '1:00-3:00', lunch: false },
+    { id: '3-5', label: '3:00-5:00', lunch: false },
   ];
   const TEACHING_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
 
@@ -421,12 +421,12 @@ module.exports = function(supabaseAdmin) {
     try {
       await probeUsersSchema(supabaseAdmin);
       let query = supabaseAdmin.from('users').select('*').eq('role', 'student').order('name');
-      if (section)       query = query.ilike('section', section);
+      if (section) query = query.ilike('section', section);
       if (pathfit_level) query = query.eq('pathfit_level', parseInt(pathfit_level));
-      if (gender)        query = query.eq('gender', gender);
-      if (course)        query = query.eq('course', course);
-      if (year_level)    query = query.eq('year_level', parseInt(year_level));
-      if (search)        query = query.ilike('name', `%${search}%`);
+      if (gender) query = query.eq('gender', gender);
+      if (course) query = query.eq('course', course);
+      if (year_level) query = query.eq('year_level', parseInt(year_level));
+      if (search) query = query.ilike('name', `%${search}%`);
 
       const [studentsRes, pendingRes, allStudentsRes] = await Promise.all([
         query,
@@ -496,14 +496,14 @@ module.exports = function(supabaseAdmin) {
           totalTests: ratingTotal,
         },
         stats: {
-          total:   students.length,
-          male:    students.filter(s => s.gender === 'male').length,
-          female:  students.filter(s => s.gender === 'female').length,
-          pf1:     students.filter(s => s.pathfit_level == 1).length,
-          pf2:     students.filter(s => s.pathfit_level == 2).length,
+          total: students.length,
+          male: students.filter(s => s.gender === 'male').length,
+          female: students.filter(s => s.gender === 'female').length,
+          pf1: students.filter(s => s.pathfit_level == 1).length,
+          pf2: students.filter(s => s.pathfit_level == 2).length,
         },
         approveSuccess: req.query.approveSuccess || null,
-        approveError:   req.query.approveError   || null,
+        approveError: req.query.approveError || null,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -521,7 +521,7 @@ module.exports = function(supabaseAdmin) {
         ...navNotifs,
         teachingSchedules, teachingSemesterLabel, teachingTimeSlots, teachingDays: TEACHING_DAYS, allSchedulesLocked,
         scheduleSuccess: req.query.scheduleSuccess || null,
-        scheduleError:   req.query.scheduleError   || null,
+        scheduleError: req.query.scheduleError || null,
       });
     } catch (err) {
       res.render('error', { title: 'Error', message: err.message });
@@ -700,7 +700,7 @@ module.exports = function(supabaseAdmin) {
     }
   });
 
-  
+
   router.post('/edit-student', async (req, res) => {
     const {
       user_id, name, student_id, email,
@@ -857,7 +857,7 @@ module.exports = function(supabaseAdmin) {
     const selectedStudentId = req.query.student_id || '';
     try {
       const [studentsRes, studentRes] = await Promise.all([
-        supabaseAdmin.from('users').select('user_id,name,gender,section').eq('role','student').order('name'),
+        supabaseAdmin.from('users').select('user_id,name,gender,section').eq('role', 'student').order('name'),
         selectedStudentId
           ? supabaseAdmin.from('users').select('*').eq('user_id', selectedStudentId).single()
           : Promise.resolve({ data: null }),
@@ -903,15 +903,15 @@ module.exports = function(supabaseAdmin) {
 
     try {
       const { error: insertErr } = await supabaseAdmin.from('fitness_tests').insert({
-        student_id:  target_student_id,
+        student_id: target_student_id,
         test_type,
         test_period,
-        reps_or_cm:  parseFloat(reps_or_cm),
+        reps_or_cm: parseFloat(reps_or_cm),
         rating,
         recorded_by: req.session.user.user_id,
       });
       if (insertErr) throw insertErr;
-      res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&success=Test recorded! Rating: ${rating.replace(/_/g,' ')}`);
+      res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&success=Test recorded! Rating: ${rating.replace(/_/g, ' ')}`);
     } catch (err) {
       res.redirect(`/instructor/fitness-tests?student_id=${target_student_id}&error=${encodeURIComponent(err.message)}`);
     }
@@ -1010,7 +1010,7 @@ module.exports = function(supabaseAdmin) {
       if (!plan) throw new Error('Lesson plan not found');
 
       let flags = (plan.objectives || '').split(',').map(s => s.trim()).filter(Boolean);
-      
+
       if (action === 'publish') {
         if (!flags.includes('PUBLISHED')) flags.push('PUBLISHED');
       } else {
@@ -1054,7 +1054,7 @@ module.exports = function(supabaseAdmin) {
     const isSectionSearch = !!section && !targetId;
     try {
       const { data: studentsListRaw } = await supabaseAdmin
-        .from('users').select('user_id,name,student_id,section,course,status').eq('role','student').order('name');
+        .from('users').select('user_id,name,student_id,section,course,status').eq('role', 'student').order('name');
       const studentsList = (studentsListRaw || []).filter(isApprovedStudent);
 
       let tests = [];
@@ -1073,7 +1073,7 @@ module.exports = function(supabaseAdmin) {
         studentInfo = studentRes.data;
       } else if (section) {
         const { data: studentsInSect } = await supabaseAdmin
-          .from('users').select('*').eq('role','student').ilike('section', `%${section}%`).order('name');
+          .from('users').select('*').eq('role', 'student').ilike('section', `%${section}%`).order('name');
         sectionStudents = (studentsInSect || []).filter(isApprovedStudent);
         const studentIds = sectionStudents.map(s => s.user_id);
         if (studentIds.length) {
@@ -1110,7 +1110,7 @@ module.exports = function(supabaseAdmin) {
         }));
       }
 
-      const testTypes = ['push_ups','sit_reach','zipper_test','juggling','sprint_40m','stork_balance','stick_drop','agility_test','step_test_3min'];
+      const testTypes = ['push_ups', 'sit_reach', 'zipper_test', 'juggling', 'sprint_40m', 'stork_balance', 'stick_drop', 'agility_test', 'step_test_3min'];
       const grouped = {};
       testTypes.forEach(t => { grouped[t] = { pre: null, post: null }; });
       tests.forEach(t => {
@@ -1148,7 +1148,7 @@ module.exports = function(supabaseAdmin) {
 
     try {
       const { data: sectionStudentsRaw } = await supabaseAdmin
-        .from('users').select('*').eq('role','student').ilike('section', section).order('name');
+        .from('users').select('*').eq('role', 'student').ilike('section', section).order('name');
       const sectionStudents = (sectionStudentsRaw || []).filter(isApprovedStudent);
 
       const studentIds = (sectionStudents || []).map(s => s.user_id);
@@ -1236,7 +1236,7 @@ module.exports = function(supabaseAdmin) {
         }
       }
 
-      const pendingRegistrations        = await getPendingRegistrations();
+      const pendingRegistrations = await getPendingRegistrations();
 
       const recordsWithSignedPhoto = await Promise.all((screeningsWithUsers || []).map(async (record) => {
         if (!record.photo_url || record.photo_url.startsWith('http')) {
@@ -1279,7 +1279,7 @@ module.exports = function(supabaseAdmin) {
     }
     try {
       const { error } = await supabaseAdmin.from('health_appraisal_record')
-        .update({ 
+        .update({
           cleared: cleared === 'true',
           cleared_at: cleared === 'true' ? new Date().toISOString() : null,
           cleared_by: cleared === 'true' ? req.session.user.user_id : null
