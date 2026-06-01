@@ -101,6 +101,7 @@ const server = app.listen(PORT, () => {
   console.log(`  ✓  http://localhost:${PORT}/instructor/dashboard`);
   console.log('\n  Press Ctrl+C to stop\n');
   probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
+  require('./utils/rubrics').init(supabaseAdmin).catch(console.error);
 });
 
 server.on('error', (err) => {

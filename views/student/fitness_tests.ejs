@@ -195,45 +195,7 @@ const STUDENT_GENDER = '<%= gender %>';
 const STUDENT_AGE = parseInt('<%= age %>') || 18;
 
 /* ── Rubric data (mirrors server-side getRating) ── */
-const RUBRICS = {
-  push_ups: {
-    // Male:   ≥30 Excellent, 20-29 Very Good, 10-19 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
-    // Female: ≥20 Excellent, 15-19 Very Good, 10-14 Good, 5-9 Fair, 1-4 Needs Improvement, 0 Poor
-    male:   [[30,'excellent'],[20,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
-    female: [[20,'excellent'],[15,'very_good'],[10,'good'],[5,'fair'],[1,'needs_improvement'],[0,'poor']],
-  },
-  sit_reach: {
-    male:   [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']],
-    female: [[61,'excellent'],[46,'very_good'],[31,'good'],[16,'fair'],[5,'needs_improvement'],[0,'poor']],
-  },
-  zipper_test: {
-    male:   [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']],
-    female: [[6,'excellent'],[4,'very_good'],[2,'good'],[0.1,'fair'],[0,'needs_improvement'],[-9999,'poor']],
-  },
-  juggling: {
-    male:   [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']],
-    female: [[41,'excellent'],[31,'very_good'],[21,'good'],[11,'fair'],[1,'needs_improvement'],[0,'poor']],
-  },
-  sprint_40m: {
-    male:   [[0,'excellent'],[4.1,'very_good'],[5.5,'good'],[6.6,'fair'],[7.6,'needs_improvement']],
-    female: [[0,'excellent'],[4.6,'very_good'],[6.0,'good'],[7.1,'fair'],[8.2,'needs_improvement']],
-    lowerIsBetter: true,
-  },
-  stork_balance: {
-    male:   [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']],
-    female: [[161,'excellent'],[121,'very_good'],[81,'good'],[41,'fair'],[21,'needs_improvement'],[0,'poor']],
-  },
-  stick_drop: {
-    male:   [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']],
-    female: [[0,'excellent'],[5.8,'very_good'],[12.7,'good'],[20.32,'fair'],[27.94,'needs_improvement'],[30.49,'poor']],
-    lowerIsBetter: true,
-  },
-  agility_test: {
-    male:   [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']],
-    female: [[0,'excellent'],[5.01,'very_good'],[10.01,'good'],[15.01,'fair'],[20.01,'needs_improvement'],[25.01,'poor']],
-    lowerIsBetter: true,
-  },
-};
+const RUBRICS = <%- JSON.stringify(rubrics) %>;
 
 const RUBRIC_LABELS = {
   push_ups:    { unit:'reps', male:  ['≥ 30','20–29','10–19','5–9','1–4','0'],   female: ['≥ 20','15–19','10–14','5–9','1–4','0'] },
@@ -284,24 +246,41 @@ function updateRubricRef(testType) {
   ).join('');
 }
 
-function getRating(testType, gender, value) {
+function getRating(testType, gender, age, value) {
   const v = parseFloat(value);
   if (isNaN(v)) return null;
-  const rubric = RUBRICS[testType];
-  if (!rubric) return null;
-  const table = rubric[gender] || rubric['male'];
-  if (rubric.lowerIsBetter) {
-    if (testType === 'sprint_40m' && v <= 0) return 'poor';
-    const rev = [...table].reverse();
-    for (const [threshold, rating] of rev) {
+  const rubrics = RUBRICS;
+  
+  if (testType === 'step_test_3min') {
+    const studentAge = age || 18;
+    let ageGroup = '18-25';
+    if (studentAge >= 26 && studentAge <= 35) ageGroup = '26-35';
+    else if (studentAge >= 36) ageGroup = '36+';
+    
+    const table = rubrics[testType]?.[gender]?.[ageGroup];
+    if (!table) return 'poor';
+    
+    for (const [threshold, rating] of [...table].reverse()) {
       if (v >= threshold) return rating;
     }
     return 'excellent';
   }
+
+  const table = rubrics[testType]?.[gender];
+  if (!table) return 'fair';
+  
+  if (['sprint_40m', 'stick_drop', 'agility_test'].includes(testType)) {
+    if (testType === 'sprint_40m' && v <= 0) return 'poor';
+    for (const [threshold, rating] of [...table].reverse()) {
+      if (v >= threshold) return rating;
+    }
+    return 'excellent';
+  }
+  
   for (const [threshold, rating] of table) {
     if (v >= threshold) return rating;
   }
-  return 'needs_improvement';
+  return 'poor';
 }
 
 function previewRating() {
@@ -312,7 +291,7 @@ function previewRating() {
   updateRubricRef(testType);
 
   if (!testType || !score) { preview.className = 'rating-preview'; return; }
-  const rating = getRating(testType, STUDENT_GENDER, score);
+  const rating = getRating(testType, STUDENT_GENDER, STUDENT_AGE, score);
   if (!rating) { preview.className = 'rating-preview'; return; }
 
   const ratingLabels = { excellent:'Excellent ⭐', very_good:'Very Good 👍', good:'Good 📊', fair:'Fair 💪', needs_improvement:'Needs Improvement ⚠️', poor:'Poor 👎' };
@@ -324,52 +303,8 @@ function previewRating() {
 
 /* ── Step Test (3-Min) specific functions ── */
 function getStepRating(gender, hrAfter) {
-  const v = parseFloat(hrAfter);
-  if (isNaN(v)) return null;
-  const studentAge = STUDENT_AGE;
-  
-  let key = 'poor';
-  if (gender === 'female') {
-    if (studentAge >= 18 && studentAge <= 25) {
-      if (v <= 81) key = 'excellent';
-      else if (v <= 102) key = 'very_good';
-      else if (v <= 110) key = 'good';
-      else if (v <= 120) key = 'fair';
-      else if (v <= 169) key = 'needs_improvement';
-    } else if (studentAge >= 26 && studentAge <= 35) {
-      if (v <= 80) key = 'excellent';
-      else if (v <= 101) key = 'very_good';
-      else if (v <= 110) key = 'good';
-      else if (v <= 119) key = 'fair';
-      else if (v <= 171) key = 'needs_improvement';
-    } else { // 36 and above
-      if (v <= 84) key = 'excellent';
-      else if (v <= 104) key = 'very_good';
-      else if (v <= 112) key = 'good';
-      else if (v <= 120) key = 'fair';
-      else if (v <= 169) key = 'needs_improvement';
-    }
-  } else { // male
-    if (studentAge >= 18 && studentAge <= 25) {
-      if (v <= 76) key = 'excellent';
-      else if (v <= 93) key = 'very_good';
-      else if (v <= 100) key = 'good';
-      else if (v <= 107) key = 'fair';
-      else if (v <= 157) key = 'needs_improvement';
-    } else if (studentAge >= 26 && studentAge <= 35) {
-      if (v <= 67) key = 'excellent';
-      else if (v <= 94) key = 'very_good';
-      else if (v <= 102) key = 'good';
-      else if (v <= 110) key = 'fair';
-      else if (v <= 161) key = 'needs_improvement';
-    } else { // 36 and above
-      if (v <= 76) key = 'excellent';
-      else if (v <= 88) key = 'very_good';
-      else if (v <= 105) key = 'good';
-      else if (v <= 133) key = 'fair';
-      else if (v <= 163) key = 'needs_improvement';
-    }
-  }
+  const key = getRating('step_test_3min', gender, STUDENT_AGE, hrAfter);
+  if (!key) return null;
   
   const labels = {
     excellent: 'Excellent ⭐',
@@ -382,7 +317,7 @@ function getStepRating(gender, hrAfter) {
   
   return {
     key: key,
-    label: labels[key],
+    label: labels[key] || key,
     css: 'rating-' + key
   };
 }

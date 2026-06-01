@@ -11,86 +11,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
 });
 
-function getRating(testType, gender, age, value) {
-  const v = parseFloat(value);
-  const rubrics = {
-    push_ups: {
-      male: [[30, 'excellent'], [20, 'very_good'], [10, 'good'], [5, 'fair'], [1, 'needs_improvement'], [0, 'poor']],
-      female: [[20, 'excellent'], [15, 'very_good'], [10, 'good'], [5, 'fair'], [1, 'needs_improvement'], [0, 'poor']],
-    },
-    sit_reach: { male: [[61, 'excellent'], [46, 'very_good'], [31, 'good'], [16, 'fair'], [5, 'needs_improvement'], [0, 'poor']], female: [[61, 'excellent'], [46, 'very_good'], [31, 'good'], [16, 'fair'], [5, 'needs_improvement'], [0, 'poor']] },
-    zipper_test: { male: [[6, 'excellent'], [4, 'very_good'], [2, 'good'], [0.1, 'fair'], [0, 'needs_improvement'], [-9999, 'poor']], female: [[6, 'excellent'], [4, 'very_good'], [2, 'good'], [0.1, 'fair'], [0, 'needs_improvement'], [-9999, 'poor']] },
-    juggling: { male: [[41, 'excellent'], [31, 'very_good'], [21, 'good'], [11, 'fair'], [1, 'needs_improvement'], [0, 'poor']], female: [[41, 'excellent'], [31, 'very_good'], [21, 'good'], [11, 'fair'], [1, 'needs_improvement'], [0, 'poor']] },
-    sprint_40m: { male: [[0, 'excellent'], [4.1, 'very_good'], [5.5, 'good'], [6.6, 'fair'], [7.6, 'needs_improvement']], female: [[0, 'excellent'], [4.6, 'very_good'], [6.0, 'good'], [7.1, 'fair'], [8.2, 'needs_improvement']] },
-    stork_balance: { male: [[161, 'excellent'], [121, 'very_good'], [81, 'good'], [41, 'fair'], [21, 'needs_improvement'], [0, 'poor']], female: [[161, 'excellent'], [121, 'very_good'], [81, 'good'], [41, 'fair'], [21, 'needs_improvement'], [0, 'poor']] },
-    stick_drop: { male: [[0, 'excellent'], [5.8, 'very_good'], [12.7, 'good'], [20.32, 'fair'], [27.94, 'needs_improvement'], [30.49, 'poor']], female: [[0, 'excellent'], [5.8, 'very_good'], [12.7, 'good'], [20.32, 'fair'], [27.94, 'needs_improvement'], [30.49, 'poor']] },
-    agility_test: { male: [[0, 'excellent'], [5.01, 'very_good'], [10.01, 'good'], [15.01, 'fair'], [20.01, 'needs_improvement'], [25.01, 'poor']], female: [[0, 'excellent'], [5.01, 'very_good'], [10.01, 'good'], [15.01, 'fair'], [20.01, 'needs_improvement'], [25.01, 'poor']] },
-  };
-
-  if (testType === 'step_test_3min') {
-    const studentAge = age || 18;
-    if (gender === 'female') {
-      if (studentAge >= 18 && studentAge <= 25) {
-        if (v <= 81) return 'excellent';
-        if (v <= 102) return 'very_good';
-        if (v <= 110) return 'good';
-        if (v <= 120) return 'fair';
-        if (v <= 169) return 'needs_improvement';
-        return 'poor';
-      } else if (studentAge >= 26 && studentAge <= 35) {
-        if (v <= 80) return 'excellent';
-        if (v <= 101) return 'very_good';
-        if (v <= 110) return 'good';
-        if (v <= 119) return 'fair';
-        if (v <= 171) return 'needs_improvement';
-        return 'poor';
-      } else { // 36 and above
-        if (v <= 84) return 'excellent';
-        if (v <= 104) return 'very_good';
-        if (v <= 112) return 'good';
-        if (v <= 120) return 'fair';
-        if (v <= 169) return 'needs_improvement';
-        return 'poor';
-      }
-    } else { // male
-      if (studentAge >= 18 && studentAge <= 25) {
-        if (v <= 76) return 'excellent';
-        if (v <= 93) return 'very_good';
-        if (v <= 100) return 'good';
-        if (v <= 107) return 'fair';
-        if (v <= 157) return 'needs_improvement';
-        return 'poor';
-      } else if (studentAge >= 26 && studentAge <= 35) {
-        if (v <= 67) return 'excellent';
-        if (v <= 94) return 'very_good';
-        if (v <= 102) return 'good';
-        if (v <= 110) return 'fair';
-        if (v <= 161) return 'needs_improvement';
-        return 'poor';
-      } else { // 36 and above
-        if (v <= 76) return 'excellent';
-        if (v <= 88) return 'very_good';
-        if (v <= 105) return 'good';
-        if (v <= 133) return 'fair';
-        if (v <= 163) return 'needs_improvement';
-        return 'poor';
-      }
-    }
-  }
-  const table = rubrics[testType]?.[gender];
-  if (!table) return 'fair';
-  if (['sprint_40m', 'stick_drop', 'agility_test'].includes(testType)) {
-    if (testType === 'sprint_40m' && v <= 0) return 'poor';
-    for (const [threshold, rating] of [...table].reverse()) {
-      if (v >= threshold) return rating;
-    }
-    return 'excellent';
-  }
-  for (const [threshold, rating] of table) {
-    if (v >= threshold) return rating;
-  }
-  return 'needs_improvement';
-}
+const { getRating, get, set } = require('../utils/rubrics');
 
 module.exports = function (supabaseAdmin) {
   const router = express.Router();
@@ -414,6 +335,19 @@ module.exports = function (supabaseAdmin) {
     if (error) throw error;
     return data;
   }
+
+  router.post('/rubrics', express.json(), async (req, res) => {
+    try {
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ error: 'Invalid rubrics data' });
+      }
+      await set(supabaseAdmin, req.body);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update rubrics' });
+    }
+  });
 
   router.get('/dashboard', async (req, res) => {
     const { section = '', pathfit_level = '', gender = '', course = '', year_level = '', search = '', rating_section = '', show_archived = '' } = req.query;
@@ -1126,6 +1060,7 @@ module.exports = function (supabaseAdmin) {
       res.render('instructor/report', {
         studentsList: studentsList || [], studentInfo, grouped, testTypes,
         targetId, section, sectionStudents, sectionTests, sectionSummary,
+        rubrics: get(),
         sectionTestRecords: sectionTestRecords || [],
         searchQuery,
         showClassSummary: viewType === 'summary' || isSectionSearch,
