@@ -506,7 +506,7 @@ function downloadPDF() {
 
     doc.setFillColor(4,44,83); doc.rect(0,0,pageW,28,'F');
     doc.setTextColor(255,255,255); doc.setFontSize(15); doc.setFont('helvetica','bold');
-    doc.text('PATHFIT Tracking System', margin, 11);
+    doc.text('PATHFit TRACKING AND MONITORING SYSTEM', margin, 11);
     doc.setFontSize(8); doc.setFont('helvetica','normal');
     doc.text('Physical Activity Towards Health and Fitness — NBSC', margin, 17);
     doc.setFontSize(7.5);
@@ -514,7 +514,9 @@ function downloadPDF() {
 
     doc.setTextColor(4,44,83); doc.setFontSize(13); doc.setFont('helvetica','bold');
     doc.text('My Fitness Test Results', margin, 38);
-    doc.setDrawColor(24,95,165); doc.setLineWidth(0.8); doc.line(margin,41,margin+70,41);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text('Student: <%= user.name %>   |   Section: <%= user.section || "—" %>', pageW-margin, 38, {align:'right'});
+    doc.setDrawColor(24,95,165); doc.setLineWidth(0.8); doc.line(margin,41,pageW-margin,41);
 
     const preCount  = TEST_DATA.filter(r=>r.periodKey==='pre').length;
     const postCount = TEST_DATA.filter(r=>r.periodKey==='post').length;
@@ -566,7 +568,7 @@ function downloadPDF() {
       const footerY=doc.internal.pageSize.getHeight()-8;
       doc.setDrawColor(200,200,200); doc.setLineWidth(0.3); doc.line(margin,footerY-3,pageW-margin,footerY-3);
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160);
-      doc.text('PATHFIT Tracking System — NBSC  |  Confidential',margin,footerY);
+      doc.text('PATHFit TRACKING AND MONITORING SYSTEM — NBSC  |  Confidential',margin,footerY);
       doc.text('Page '+p+' of '+pageCount,pageW-margin,footerY,{align:'right'});
     }
     doc.save('Fitness_Test_Results_'+now.toISOString().slice(0,10)+'.pdf');
