@@ -167,7 +167,7 @@
   </div>
   <% } else if (!section || !showClassSummary) { %>
   <div class="card">
-    <div style="padding:18px;font-size:.96rem;color:#555;">Search by student name, ID, or section code (A–M) to view reports or download a class summary.</div>
+    <div style="padding:18px;font-size:.96rem;color:#555;">Search by student name, ID, or section code to view reports or download a class summary.</div>
   </div>
   <% } %>
 
@@ -283,7 +283,7 @@ if (hiddenId.value) {
 function filterStudents(q) {
   const lq = q.trim().toLowerCase();
   if (!lq) return REPORT_STUDENTS;
-  const sectionMatch = lq.match(/^(?:section|sec)\s*([a-m])$/i) || lq.match(/^([a-m])$/i);
+  const sectionMatch = lq.match(/^(?:section|sec)\s+(.+)$/i);
   if (sectionMatch) {
     const sectionCode = sectionMatch[1].toLowerCase();
     return REPORT_STUDENTS.filter(s => s.section.toLowerCase() === sectionCode);
@@ -352,8 +352,16 @@ function clearStudent() {
 }
 
 function findSectionCode(q) {
-  const match = q.trim().toLowerCase().match(/^(?:section|sec)\s*([a-m])$/i) || q.trim().toLowerCase().match(/^([a-m])$/i);
-  return match ? match[1].toUpperCase() : '';
+  const normalized = q.trim().toLowerCase();
+  if (!normalized) return '';
+  const prefixMatch = normalized.match(/^(?:section|sec)\s+(.+)$/i);
+  if (prefixMatch) return prefixMatch[1].toUpperCase();
+  const existsAsSection = REPORT_STUDENTS.some(s => s.section.toLowerCase() === normalized);
+  if (existsAsSection) {
+    const matched = REPORT_STUDENTS.find(s => s.section.toLowerCase() === normalized);
+    return matched.section;
+  }
+  return '';
 }
 
 function findStudentByQuery(q) {
@@ -400,7 +408,7 @@ reportForm.addEventListener('submit', () => {
 downloadBtn.addEventListener('click', () => {
   let sectionCode = reportSection.value || findSectionCode(searchInput.value);
   if (!sectionCode) {
-    alert('Please search a section code (A–M) first to download its class summary.');
+    alert('Please search for a section code first to download its class summary.');
     return;
   }
   window.location.href = `/instructor/report/download?section=${encodeURIComponent(sectionCode)}`;

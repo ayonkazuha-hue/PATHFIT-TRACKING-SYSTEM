@@ -496,19 +496,9 @@ function exportToExcel() {
               autocomplete="off"
               style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;text-transform:uppercase;">
             <datalist id="editSectionCodes">
-              <option value="A"></option>
-              <option value="B"></option>
-              <option value="C"></option>
-              <option value="D"></option>
-              <option value="E"></option>
-              <option value="F"></option>
-              <option value="G"></option>
-              <option value="H"></option>
-              <option value="I"></option>
-              <option value="J"></option>
-              <option value="K"></option>
-              <option value="L"></option>
-              <option value="M"></option>
+              <% _sectionOptions.forEach(code => { %>
+                <option value="<%= code %>"></option>
+              <% }) %>
             </datalist>
           </div>
           <div>
