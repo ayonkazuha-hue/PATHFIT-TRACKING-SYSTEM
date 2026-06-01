@@ -88,10 +88,10 @@
     <input type="hidden" name="section" id="reportSection" value="<%= section || '' %>">
     <div class="filter-bar" style="align-items:flex-end;">
       <div style="flex:1;min-width:260px;">
-        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search student by name, ID, or section</label>
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Search by section code</label>
         <div class="report-search-wrap" id="searchWrap">
           <input type="text" id="reportSearchInput" name="query"
-                 placeholder="Type Section Code…"
+                 placeholder="Type eg. IBM025 or just A"
                  autocomplete="off"
                  value="<% if (studentInfo) { %><%= studentInfo.name %> (<%= studentInfo.student_id||'' %>)<% } else { %><%= searchQuery || '' %><% } %>">
           <div class="report-dropdown" id="reportDropdown"></div>
@@ -167,7 +167,7 @@
   </div>
   <% } else if (!section || !showClassSummary) { %>
   <div class="card">
-    <div style="padding:18px;font-size:.96rem;color:#555;">Search by student name, ID, or section code to view reports or download a class summary.</div>
+    <div style="padding:18px;font-size:.96rem;color:#555;">Search by section code to view reports or download a class summary.</div>
   </div>
   <% } %>
 
