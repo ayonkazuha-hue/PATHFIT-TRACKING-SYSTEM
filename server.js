@@ -123,24 +123,34 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { title: 'Server Error', message: err.message });
 });
 
-// ── Start ────────────────────────────────────────────────────
-const server = app.listen(PORT, () => {
-  console.log('\n╔══════════════════════════════════════════════════════════╗');
-  console.log('║   🏃  PATHFIT TRACKING SYSTEM — Node.js + Express  🏃‍♀️   ║');
-  console.log('╚══════════════════════════════════════════════════════════╝');
-  console.log(`\n  ✓  http://localhost:${PORT}/login`);
-  console.log(`  ✓  http://localhost:${PORT}/register`);
-  console.log(`  ✓  http://localhost:${PORT}/student/dashboard`);
-  console.log(`  ✓  http://localhost:${PORT}/instructor/dashboard`);
-  console.log('\n  Press Ctrl+C to stop\n');
+// ── Start (local dev only — Vercel uses module.exports below) ─
+if (process.env.NODE_ENV !== 'production') {
   probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
   require('./utils/rubrics').init(supabaseAdmin).catch(console.error);
-});
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\n  ✗  Port ${PORT} is already in use.`);
-    console.error(`  →  Run this to fix it: taskkill /F /IM node.exe\n`);
-    process.exit(1);
-  }
-});
+  const server = app.listen(PORT, () => {
+    console.log('\n╔══════════════════════════════════════════════════════════╗');
+    console.log('║   🏃  PATHFIT TRACKING SYSTEM — Node.js + Express  🏃‍♀️   ║');
+    console.log('╚══════════════════════════════════════════════════════════╝');
+    console.log(`\n  ✓  http://localhost:${PORT}/login`);
+    console.log(`  ✓  http://localhost:${PORT}/register`);
+    console.log(`  ✓  http://localhost:${PORT}/student/dashboard`);
+    console.log(`  ✓  http://localhost:${PORT}/instructor/dashboard`);
+    console.log('\n  Press Ctrl+C to stop\n');
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n  ✗  Port ${PORT} is already in use.`);
+      console.error(`  →  Run this to fix it: taskkill /F /IM node.exe\n`);
+      process.exit(1);
+    }
+  });
+} else {
+  // Production (Vercel) — run schema probe without blocking
+  probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
+  require('./utils/rubrics').init(supabaseAdmin).catch(console.error);
+}
+
+// Required for Vercel serverless — exports the app as the handler
+module.exports = app;
