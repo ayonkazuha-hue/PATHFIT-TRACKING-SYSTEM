@@ -7,6 +7,27 @@ const {
 
 module.exports = function(supabase, supabaseAdmin) {
   const router = express.Router();
+  const STORAGE_BUCKET = 'modules';
+  const HEALTH_APPRAISAL_PHOTO_FOLDER = 'health_appraisal_photos';
+
+  async function ensureStorageBucket(bucketName) {
+    try {
+      const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+      if (!listError && Array.isArray(buckets)) {
+        if (buckets.some(b => b.name === bucketName)) {
+          return true;
+        }
+      }
+    } catch (err) {
+      // Ignore list errors and try to create the bucket on demand.
+    }
+
+    const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, { public: true });
+    if (createError && !String(createError.message).toLowerCase().includes('already exists')) {
+      throw createError;
+    }
+    return true;
+  }
 
   // GET /login
   router.get('/login', (req, res) => {
@@ -236,21 +257,31 @@ module.exports = function(supabase, supabaseAdmin) {
     try {
       const ext = path.extname(filename);
       const uniqueFilename = `health_appraisal_photo-${req.session.user.user_id}-${Date.now()}${ext}`;
-      const storagePath = `health_appraisal_photos/${uniqueFilename}`;
+      const storagePath = `${HEALTH_APPRAISAL_PHOTO_FOLDER}/${uniqueFilename}`;
 
-      const { data, error } = await supabaseAdmin
+      await ensureStorageBucket(STORAGE_BUCKET);
+
+      let uploadData;
+      let uploadError;
+      ({ data: uploadData, error: uploadError } = await supabaseAdmin
         .storage
-        .from('modules')
-        .createSignedUploadUrl(storagePath);
+        .from(STORAGE_BUCKET)
+        .createSignedUploadUrl(storagePath, 60 * 60));
 
-      if (error) throw error;
+      if (uploadError) {
+        throw uploadError;
+      }
 
       const { data: urlData } = supabaseAdmin
         .storage
-        .from('modules')
+        .from(STORAGE_BUCKET)
         .getPublicUrl(storagePath);
 
-      res.json({ signedUrl: data.signedUrl, path: storagePath, publicUrl: urlData.publicUrl });
+      res.json({
+        signedUrl: uploadData.signedUrl,
+        path:      storagePath,
+        publicUrl: urlData.publicUrl,
+      });
     } catch (err) {
       console.error('[health-screening get-upload-url]', err);
       res.status(500).json({ error: err.message || 'Unable to create upload URL' });
@@ -291,6 +322,7 @@ module.exports = function(supabase, supabaseAdmin) {
         weight_cm: weight_cm ? parseFloat(weight_cm) : null,
         resting_pulse_rate: resting_pulse_rate ? parseInt(resting_pulse_rate) : null,
         waistline_inches: waistline_inches ? parseFloat(waistline_inches) : null,
+        bmi_value: (bmi_value && !isNaN(parseFloat(bmi_value))) ? parseFloat(bmi_value) : null,
         bmi_classification: bmi_classification || null,
         
         // Questionnaire

@@ -1173,22 +1173,33 @@ module.exports = function (supabaseAdmin) {
 
       const pendingRegistrations = await getPendingRegistrations();
 
-      const recordsWithSignedPhoto = await Promise.all((screeningsWithUsers || []).map(async (record) => {
-        if (!record.photo_url || record.photo_url.startsWith('http')) {
-          return record;
-        }
+      // Photos are stored as permanent public URLs, but when the storage bucket is private
+      // we need to resolve a signed access URL for the instructor view.
+      const recordsWithSignedPhoto = await Promise.all(screeningsWithUsers.map(async record => {
+        if (!record.photo_url || typeof record.photo_url !== 'string') return record;
+
+        let resolvedPhotoUrl = record.photo_url;
         try {
-          const { data: signedData, error: signedError } = await supabaseAdmin
-            .storage
-            .from('modules')
-            .createSignedUrl(record.photo_url, 60);
-          if (!signedError && signedData?.signedUrl) {
-            return { ...record, photo_url: signedData.signedUrl };
+          const moduleBucket = supabaseAdmin.storage.from('modules');
+          const storagePathMatch = resolvedPhotoUrl.match(/\/storage\/v1\/object\/(?:public|private)\/modules\/(.+)$/);
+
+          if (storagePathMatch) {
+            const storagePath = decodeURIComponent(storagePathMatch[1]);
+            const { data: signedData, error: signedError } = await moduleBucket.createSignedUrl(storagePath, 60 * 60);
+            if (!signedError && signedData?.signedUrl) {
+              resolvedPhotoUrl = signedData.signedUrl;
+            }
+          } else if (!resolvedPhotoUrl.startsWith('http')) {
+            const { data: signedData, error: signedError } = await moduleBucket.createSignedUrl(resolvedPhotoUrl, 60 * 60);
+            if (!signedError && signedData?.signedUrl) {
+              resolvedPhotoUrl = signedData.signedUrl;
+            }
           }
         } catch (err) {
-          console.error('[health-appraisal signed photo]', err);
+          console.error('[health-appraisal photo URL]', err);
         }
-        return record;
+
+        return { ...record, photo_url: resolvedPhotoUrl };
       }));
 
       const navNotifs = await loadInstructorNavNotifications();

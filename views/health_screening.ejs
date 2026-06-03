@@ -362,11 +362,18 @@ async function uploadHarPhoto(file) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'Unable to get upload URL');
+    const responseText = await response.text();
+    let errorMessage = responseText;
+    try {
+      const errorJson = JSON.parse(responseText);
+      errorMessage = errorJson?.error || responseText;
+    } catch (parseErr) {
+      // ignore invalid JSON
+    }
+    throw new Error(errorMessage || 'Unable to get upload URL');
   }
 
-  const { signedUrl, path } = await response.json();
+  const { signedUrl, path, publicUrl } = await response.json();
   const uploadResponse = await fetch(signedUrl, {
     method: 'PUT',
     body: file,
@@ -374,9 +381,11 @@ async function uploadHarPhoto(file) {
   });
 
   if (!uploadResponse.ok) {
-    throw new Error('Photo upload failed.');
+    const text = await uploadResponse.text().catch(() => '');
+    throw new Error('Photo upload failed: ' + (text || uploadResponse.statusText || 'Please try again.'));
   }
 
+  // Store the Supabase storage path; instructor view signs this path to show the uploaded photo
   photoUrlInput.value = path;
   photoUploadInProgress = false;
   updatePhotoStatus('Photo uploaded successfully.');
