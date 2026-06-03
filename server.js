@@ -31,40 +31,25 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 // ── Session store ────────────────────────────────────────────
-// Uses PostgreSQL for persistent sessions on Vercel if DATABASE_URL is set,
-// falls back to memory store for local dev
-let sessionStore;
-const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
-if (dbUrl) {
-  try {
-    const pgSession = require('connect-pg-simple')(session);
-    const { Pool } = require('pg');
-    const pgPool = new Pool({ connectionString: dbUrl, ssl: isProd ? { rejectUnauthorized: false } : false });
-    sessionStore = new pgSession({
-      pool:                 pgPool,
-      tableName:            'user_sessions',
-      createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15,
-    });
-    console.log('  ✓  Using PostgreSQL session store');
-  } catch (e) {
-    console.warn('  ⚠  PostgreSQL session store unavailable, using memory store:', e.message);
-    sessionStore = undefined;
-  }
-} else {
-  console.warn('  ⚠  DATABASE_URL not set — using in-memory session store (OK for local dev)');
-}
+// Uses Supabase REST API (service key) for persistent sessions.
+// Works on Vercel without needing a direct DB password.
+const SupabaseSessionStore = require('./utils/supabaseSessionStore');
 
 app.use(session({
-  store:             sessionStore,           // undefined = MemoryStore (local dev)
+  store: new SupabaseSessionStore(supabaseAdmin, {
+    table:           'user_sessions',
+    ttl:             7 * 24 * 60 * 60,  // 7 days
+    cleanupInterval: 15 * 60 * 1000,    // prune expired sessions every 15 min
+  }),
   secret:            process.env.SESSION_SECRET || 'pathfit-secret-2024',
   resave:            false,
   saveUninitialized: false,
+  rolling:           true,              // reset expiry on every request
   cookie: {
     secure:   isProd,
     httpOnly: true,
-    sameSite: 'lax',
-    maxAge:   24 * 60 * 60 * 1000,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }));
 
