@@ -1,11 +1,9 @@
 require('dotenv').config();
 const express      = require('express');
 const session      = require('express-session');
-const pgSession    = require('connect-pg-simple')(session);
 const bodyParser   = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path         = require('path');
-const { Pool }     = require('pg');
 const { createClient } = require('@supabase/supabase-js');
 const { escapeHtml } = require('./utils/sanitize');
 const { probeUsersSchema } = require('./utils/usersSchema');
@@ -33,21 +31,37 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 // ── Session store ────────────────────────────────────────────
-// Uses PostgreSQL (Supabase) for persistent sessions — survives Vercel cold starts
-const pgPool = new Pool({ connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL });
+// Uses PostgreSQL for persistent sessions on Vercel if DATABASE_URL is set,
+// falls back to memory store for local dev
+let sessionStore;
+const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+if (dbUrl) {
+  try {
+    const pgSession = require('connect-pg-simple')(session);
+    const { Pool } = require('pg');
+    const pgPool = new Pool({ connectionString: dbUrl, ssl: isProd ? { rejectUnauthorized: false } : false });
+    sessionStore = new pgSession({
+      pool:                 pgPool,
+      tableName:            'user_sessions',
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+    });
+    console.log('  ✓  Using PostgreSQL session store');
+  } catch (e) {
+    console.warn('  ⚠  PostgreSQL session store unavailable, using memory store:', e.message);
+    sessionStore = undefined;
+  }
+} else {
+  console.warn('  ⚠  DATABASE_URL not set — using in-memory session store (OK for local dev)');
+}
 
 app.use(session({
-  store: new pgSession({
-    pool:               pgPool,
-    tableName:          'user_sessions',
-    createTableIfMissing: true,      // auto-creates the sessions table
-    pruneSessionInterval: 60 * 15,   // prune expired sessions every 15 min
-  }),
+  store:             sessionStore,           // undefined = MemoryStore (local dev)
   secret:            process.env.SESSION_SECRET || 'pathfit-secret-2024',
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    secure:   isProd,           // HTTPS-only on Vercel production
+    secure:   isProd,
     httpOnly: true,
     sameSite: 'lax',
     maxAge:   24 * 60 * 60 * 1000,
