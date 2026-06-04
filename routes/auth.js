@@ -135,7 +135,7 @@ module.exports = function(supabase, supabaseAdmin) {
     try {
       const { data: sections } = await supabaseAdmin
         .from('sections')
-        .select('section_id, code, description')
+        .select('section_id, code')
         .order('code');
       res.render('register', { error: null, success: null, old: {}, sections: sections || [] });
     } catch (_) {
@@ -149,10 +149,13 @@ module.exports = function(supabase, supabaseAdmin) {
             section, course, gender, year_level, pathfit_level, age } = req.body;
     const old = req.body;
 
-    // Fetch sections once for re-rendering the form on error
-    const { data: sectionsData } = await supabaseAdmin
-      .from('sections').select('section_id, code, description').order('code');
-    const sections = sectionsData || [];
+    // Fetch sections for re-rendering the form on error
+    let sections = [];
+    try {
+      const { data: sectionsData } = await supabaseAdmin
+        .from('sections').select('section_id, code').order('code');
+      sections = sectionsData || [];
+    } catch (_) { /* non-fatal — form still works without dropdown */ }
 
     const fail = (msg) => res.render('register', { error: msg, success: null, old, sections });
 

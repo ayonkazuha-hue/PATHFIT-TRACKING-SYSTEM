@@ -12,6 +12,24 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';
 
+const requiredEnv = [
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_KEY',
+];
+const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+if (missingEnv.length) {
+  console.error(`Missing required environment variables: ${missingEnv.join(', ')}`);
+  if (!isProd) {
+    process.exit(1);
+  }
+}
+
+if (isProd && !process.env.SESSION_SECRET) {
+  console.error('Production requires SESSION_SECRET to be set.');
+  process.exit(1);
+}
+
 // ── Supabase clients ─────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,

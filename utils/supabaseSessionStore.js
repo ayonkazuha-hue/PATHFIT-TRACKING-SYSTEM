@@ -41,7 +41,7 @@ class SupabaseSessionStore extends Store {
         .eq('sid', sid)
         .maybeSingle();
 
-      if (error) return callback(null, null);
+      if (error) return callback(error, null);
       if (!data)  return callback(null, null);
 
       // Check expiry
@@ -52,7 +52,7 @@ class SupabaseSessionStore extends Store {
 
       callback(null, data.sess);
     } catch (err) {
-      callback(null, null); // fail silently — don't crash the app
+      callback(err, null);
     }
   }
 
@@ -66,7 +66,7 @@ class SupabaseSessionStore extends Store {
 
       callback(error || null);
     } catch (err) {
-      callback(null); // fail silently
+      callback(err);
     }
   }
 
@@ -76,7 +76,7 @@ class SupabaseSessionStore extends Store {
       await this.supabase.from(this.table).delete().eq('sid', sid);
       callback(null);
     } catch (err) {
-      callback(null);
+      callback(err);
     }
   }
 
@@ -90,30 +90,31 @@ class SupabaseSessionStore extends Store {
         .eq('sid', sid);
       callback(null);
     } catch (err) {
-      callback(null);
+      callback(err);
     }
   }
 
   // LENGTH — count active sessions
   async length(callback) {
     try {
-      const { count } = await this.supabase
+      const { count, error } = await this.supabase
         .from(this.table)
         .select('sid', { count: 'exact', head: true })
         .gt('expire', new Date().toISOString());
+      if (error) return callback(error, 0);
       callback(null, count || 0);
     } catch (err) {
-      callback(null, 0);
+      callback(err, 0);
     }
   }
 
   // CLEAR — delete all sessions
   async clear(callback) {
     try {
-      await this.supabase.from(this.table).delete().neq('sid', '');
-      callback(null);
+      const { error } = await this.supabase.from(this.table).delete().neq('sid', '');
+      callback(error || null);
     } catch (err) {
-      callback(null);
+      callback(err);
     }
   }
 

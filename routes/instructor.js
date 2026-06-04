@@ -423,7 +423,7 @@ module.exports = function (supabaseAdmin) {
       // Fetch instructor-managed sections for the Section Management panel
       const { data: managedSections } = await supabaseAdmin
         .from('sections')
-        .select('section_id, code, description')
+        .select('section_id, code')
         .order('code');
 
       res.render('instructor/dashboard', {
@@ -650,7 +650,7 @@ module.exports = function (supabaseAdmin) {
     try {
       const { data, error } = await supabaseAdmin
         .from('sections')
-        .select('section_id, code, description')
+        .select('section_id, code')
         .order('code');
       if (error) return res.status(500).json({ error: error.message });
       res.json(data || []);
@@ -661,13 +661,13 @@ module.exports = function (supabaseAdmin) {
 
   // POST /instructor/sections — add a new section
   router.post('/sections', async (req, res) => {
-    const { code, description } = req.body;
+    const { code } = req.body;
     const trimmed = (code || '').trim().toUpperCase();
     if (!trimmed) return res.redirect('/instructor/dashboard?approveError=Section code is required.');
     try {
       const { error } = await supabaseAdmin
         .from('sections')
-        .insert({ code: trimmed, description: (description || '').trim() || null });
+        .insert({ code: trimmed });
       if (error) {
         const msg = error.message.includes('unique') || error.message.includes('duplicate')
           ? `Section code "${trimmed}" already exists.`
@@ -682,13 +682,13 @@ module.exports = function (supabaseAdmin) {
 
   // POST /instructor/sections/update — rename a section
   router.post('/sections/update', async (req, res) => {
-    const { section_id, code, description } = req.body;
+    const { section_id, code } = req.body;
     const trimmed = (code || '').trim().toUpperCase();
     if (!section_id || !trimmed) return res.redirect('/instructor/dashboard?approveError=Invalid request.');
     try {
       const { error } = await supabaseAdmin
         .from('sections')
-        .update({ code: trimmed, description: (description || '').trim() || null })
+        .update({ code: trimmed })
         .eq('section_id', section_id);
       if (error) throw error;
       res.redirect('/instructor/dashboard?approveSuccess=Section updated successfully.');

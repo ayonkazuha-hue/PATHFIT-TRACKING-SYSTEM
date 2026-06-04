@@ -58,7 +58,7 @@
             <option value="">— Select Section —</option>
             <% if (typeof sections !== 'undefined' && sections.length > 0) { %>
               <% sections.forEach(function(s) { %>
-                <option value="<%= s.code %>" <%= old.section === s.code ? 'selected' : '' %>><%= s.code %><%= s.description && s.description !== ('Section ' + s.code) ? ' — ' + s.description : '' %></option>
+                <option value="<%= s.code %>" <%= old.section === s.code ? 'selected' : '' %>><%= s.code %></option>
               <% }) %>
             <% } else { %>
               <option value="" disabled>No sections available — contact your instructor</option>
