@@ -93,6 +93,93 @@
     </div>
   </div>
 
+  <!-- Section Management Panel -->
+  <div class="card" style="margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #e8ecf0;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h3 style="margin:0;border:none;padding:0;">Section Code Management</h3>
+        <div style="font-size:.82rem;color:#666;margin-top:3px;">Add, edit, or delete section codes that students see when registering.</div>
+      </div>
+      <button type="button" onclick="document.getElementById('addSectionForm').style.display=document.getElementById('addSectionForm').style.display==='none'?'flex':'none'" class="btn btn-sm">+ Add Section</button>
+    </div>
+
+    <!-- Add Section form (hidden by default) -->
+    <form id="addSectionForm" method="POST" action="/instructor/sections" style="display:none;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:#f5f8fc;border-radius:8px;margin-bottom:14px;">
+      <div style="flex:0 0 auto;">
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section Code *</label>
+        <input type="text" name="code" placeholder="e.g. BSIT-1A" maxlength="20" required
+          style="padding:8px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.9rem;width:140px;text-transform:uppercase;">
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <label style="display:block;font-size:.8rem;font-weight:600;color:#042C53;margin-bottom:4px;">Description (optional)</label>
+        <input type="text" name="description" placeholder="e.g. BS Information Technology 1A"
+          style="width:100%;padding:8px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <button type="submit" class="btn btn-sm">Save</button>
+        <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('addSectionForm').style.display='none'">Cancel</button>
+      </div>
+    </form>
+
+    <!-- Sections list -->
+    <% const mSections = typeof managedSections !== 'undefined' ? managedSections : []; %>
+    <% if (mSections.length > 0) { %>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">
+      <% mSections.forEach(function(sec) { %>
+      <div style="background:#f8f9fb;border:1px solid #e0e8f0;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:.95rem;font-weight:800;color:#042C53;"><%= sec.code %></div>
+            <% if (sec.description) { %><div style="font-size:.78rem;color:#666;margin-top:2px;"><%= sec.description %></div><% } %>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button type="button"
+              class="edit-section-btn"
+              data-section-id="<%= sec.section_id %>"
+              data-code="<%= (sec.code||'') %>"
+              data-description="<%= (sec.description||'') %>"
+              style="padding:4px 10px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:.75rem;font-weight:700;cursor:pointer;">Edit</button>
+            <form method="POST" action="/instructor/sections/delete" onsubmit="return confirm('Delete section <%= sec.code %>? Students already in this section are not affected.')" style="margin:0;">
+              <input type="hidden" name="section_id" value="<%= sec.section_id %>">
+              <button type="submit" style="padding:4px 10px;background:#e53935;color:#fff;border:none;border-radius:5px;font-size:.75rem;font-weight:700;cursor:pointer;">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+      <div class="empty-state" style="padding:20px 0;">No sections yet. Click "+ Add Section" to create the first one.</div>
+    <% } %>
+  </div>
+
+  <!-- Edit Section Modal -->
+  <div id="editSectionModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(4,44,83,.65);backdrop-filter:blur(4px);z-index:99999;overflow-y:auto;padding:24px 16px;">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:440px;margin:0 auto;box-shadow:0 20px 60px rgba(4,44,83,.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px 14px;border-bottom:1px solid #e8ecf0;">
+        <div style="font-size:1rem;font-weight:700;color:#042C53;">✏️ Edit Section</div>
+        <button type="button" onclick="closeEditSection()" style="background:none;border:none;font-size:1.5rem;color:#aaa;cursor:pointer;">&times;</button>
+      </div>
+      <form method="POST" action="/instructor/sections/update" style="padding:20px 22px;">
+        <input type="hidden" name="section_id" id="editSectionId">
+        <div class="form-group">
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Section Code *</label>
+          <input type="text" name="code" id="editSectionCode" maxlength="20" required
+            style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#042C53;margin-bottom:4px;">Description (optional)</label>
+          <input type="text" name="description" id="editSectionDesc"
+            style="width:100%;padding:9px 12px;border:1.5px solid #cdd5e0;border-radius:7px;font-size:.92rem;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="submit" class="btn" style="flex:1;">💾 Save</button>
+          <button type="button" onclick="closeEditSection()" class="btn btn-outline">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Section Rating Distribution (moved from Reports) -->
   <div class="card rating-chart-card">
     <%
@@ -578,9 +665,42 @@ function exportToExcel() {
 
   // Close on Escape
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeEditModal();
+    if (e.key === 'Escape') { closeEditModal(); closeEditSection(); }
   });
 })();
+
+// ── Section Edit Modal ────────────────────────────────────
+function openEditSection(id, code, desc) {
+  document.getElementById('editSectionId').value   = id;
+  document.getElementById('editSectionCode').value = code;
+  document.getElementById('editSectionDesc').value = desc;
+  var m = document.getElementById('editSectionModal');
+  m.scrollTop = 0;
+  m.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeEditSection() {
+  document.getElementById('editSectionModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('editSectionModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditSection();
+});
+
+// Auto-uppercase section code input while typing
+document.addEventListener('DOMContentLoaded', function() {
+  // Wire up edit-section buttons using data-* attributes (no inline onclick)
+  document.querySelectorAll('.edit-section-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      openEditSection(btn.dataset.sectionId, btn.dataset.code, btn.dataset.description);
+    });
+  });
+
+  var addCodeInput = document.querySelector('#addSectionForm input[name="code"]');
+  if (addCodeInput) addCodeInput.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+  var editCodeInput = document.getElementById('editSectionCode');
+  if (editCodeInput) editCodeInput.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+});
 </script>
 
 <%- include('../partials/footer') %>

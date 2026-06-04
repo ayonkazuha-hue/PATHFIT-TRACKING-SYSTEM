@@ -130,9 +130,17 @@ module.exports = function(supabase, supabaseAdmin) {
   });
 
   // GET /register
-  router.get('/register', (req, res) => {
+  router.get('/register', async (req, res) => {
     if (req.session.user) return res.redirect('/');
-    res.render('register', { error: null, success: null, old: {} });
+    try {
+      const { data: sections } = await supabaseAdmin
+        .from('sections')
+        .select('section_id, code, description')
+        .order('code');
+      res.render('register', { error: null, success: null, old: {}, sections: sections || [] });
+    } catch (_) {
+      res.render('register', { error: null, success: null, old: {}, sections: [] });
+    }
   });
 
   // POST /register
@@ -141,65 +149,37 @@ module.exports = function(supabase, supabaseAdmin) {
             section, course, gender, year_level, pathfit_level, age } = req.body;
     const old = req.body;
 
-    if (!name || !email || !password || !student_id) {
-      return res.render('register', { error: 'Please fill in all required fields.', success: null, old });
-    }
-    if (password !== confirm_pass) {
-      return res.render('register', { error: 'Passwords do not match.', success: null, old });
-    }
-    if (password.length < 8) {
-      return res.render('register', { error: 'Password must be at least 8 characters.', success: null, old });
-    }
-    if (!['male','female'].includes(gender)) {
-      return res.render('register', { error: 'Please select a valid gender.', success: null, old });
-    }
-    if (!['1','2'].includes(String(pathfit_level))) {
-      return res.render('register', { error: 'Please select PATHFit level 1 or 2.', success: null, old });
-    }
-    if (!age || isNaN(parseInt(age)) || parseInt(age) < 1 || parseInt(age) > 120) {
-      return res.render('register', { error: 'Please enter a valid age.', success: null, old });
-    }
+    // Fetch sections once for re-rendering the form on error
+    const { data: sectionsData } = await supabaseAdmin
+      .from('sections').select('section_id, code, description').order('code');
+    const sections = sectionsData || [];
+
+    const fail = (msg) => res.render('register', { error: msg, success: null, old, sections });
+
+    if (!name || !email || !password || !student_id) return fail('Please fill in all required fields.');
+    if (password !== confirm_pass)                   return fail('Passwords do not match.');
+    if (password.length < 8)                         return fail('Password must be at least 8 characters.');
+    if (!['male','female'].includes(gender))          return fail('Please select a valid gender.');
+    if (!['1','2'].includes(String(pathfit_level)))   return fail('Please select PATHFit level 1 or 2.');
+    if (!age || isNaN(parseInt(age)) || parseInt(age) < 1 || parseInt(age) > 120)
+                                                      return fail('Please enter a valid age.');
+    if (!section || !section.trim())                  return fail('Please select a section code.');
 
     try {
-      // Check for duplicate student_id before creating auth user
       const { data: existingStudent } = await supabaseAdmin
-        .from('users')
-        .select('student_id')
-        .eq('student_id', student_id)
-        .maybeSingle();
+        .from('users').select('student_id').eq('student_id', student_id).maybeSingle();
+      if (existingStudent) return fail(`Student ID "${student_id}" is already registered. If this is your ID, please contact your instructor.`);
 
-      if (existingStudent) {
-        return res.render('register', {
-          error: `Student ID "${student_id}" is already registered. If this is your ID, please contact your instructor.`,
-          success: null, old,
-        });
-      }
-
-      // Check for duplicate email
       const { data: existingEmail } = await supabaseAdmin
-        .from('users')
-        .select('email')
-        .eq('email', email)
-        .maybeSingle();
+        .from('users').select('email').eq('email', email).maybeSingle();
+      if (existingEmail) return fail('This email address is already registered. Try logging in instead.');
 
-      if (existingEmail) {
-        return res.render('register', {
-          error: 'This email address is already registered. Try logging in instead.',
-          success: null, old,
-        });
-      }
-
-      // Create auth user
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email, password, email_confirm: true
       });
-
-      if (authErr || !authData.user) {
-        return res.render('register', { error: authErr?.message || 'Registration failed. Email may already be in use.', success: null, old });
-      }
+      if (authErr || !authData.user) return fail(authErr?.message || 'Registration failed. Email may already be in use.');
 
       const uid = authData.user.id;
-
       await probeUsersSchema(supabaseAdmin, { refresh: true });
 
       const profileRow = buildUserProfileInsert({
@@ -207,7 +187,7 @@ module.exports = function(supabase, supabaseAdmin) {
         student_id,
         name,
         email,
-        section,
+        section:       section.trim().toUpperCase(),
         course,
         gender,
         age:           parseInt(age, 10),
@@ -218,26 +198,24 @@ module.exports = function(supabase, supabaseAdmin) {
       });
 
       const { error: profileErr } = await supabaseAdmin.from('users').insert(profileRow);
-
       if (profileErr) {
-        // Clean up the auth user if profile insert fails
         await supabaseAdmin.auth.admin.deleteUser(uid);
         const msg = profileErr.message.includes('student_id')
           ? `Student ID "${student_id}" is already registered. If this is your ID, contact your instructor.`
           : profileErr.message.includes('email')
           ? 'This email address is already registered.'
           : 'Could not save your profile. Please try again.';
-        return res.render('register', { error: msg, success: null, old });
+        return fail(msg);
       }
 
       res.render('register', {
         error: null,
         success: 'Registration submitted! Your account is pending approval by the instructor. You will be able to log in once approved.',
-        old: {},
+        old: {}, sections,
       });
     } catch (err) {
       console.error(err);
-      res.render('register', { error: 'Server error. Please try again.', success: null, old });
+      fail('Server error. Please try again.');
     }
   });
 

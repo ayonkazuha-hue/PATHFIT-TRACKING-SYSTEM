@@ -55,23 +55,18 @@
         <div class="form-group">
           <label>Section Code *</label>
           <select name="section" required>
-            <option value="">— Select —</option>
-            <option value="A" <%= old.section==='A'?'selected':'' %>>A</option>
-            <option value="B" <%= old.section==='B'?'selected':'' %>>B</option>
-            <option value="C" <%= old.section==='C'?'selected':'' %>>C</option>
-            <option value="D" <%= old.section==='D'?'selected':'' %>>D</option>
-            <option value="E" <%= old.section==='E'?'selected':'' %>>E</option>
-            <option value="F" <%= old.section==='F'?'selected':'' %>>F</option>
-            <option value="G" <%= old.section==='G'?'selected':'' %>>G</option>
-            <option value="H" <%= old.section==='H'?'selected':'' %>>H</option>
-            <option value="I" <%= old.section==='I'?'selected':'' %>>I</option>
-            <option value="J" <%= old.section==='J'?'selected':'' %>>J</option>
-            <option value="K" <%= old.section==='K'?'selected':'' %>>K</option>
-            <option value="L" <%= old.section==='L'?'selected':'' %>>L</option>
-            <option value="M" <%= old.section==='M'?'selected':'' %>>M</option>
-
-
+            <option value="">— Select Section —</option>
+            <% if (typeof sections !== 'undefined' && sections.length > 0) { %>
+              <% sections.forEach(function(s) { %>
+                <option value="<%= s.code %>" <%= old.section === s.code ? 'selected' : '' %>><%= s.code %><%= s.description && s.description !== ('Section ' + s.code) ? ' — ' + s.description : '' %></option>
+              <% }) %>
+            <% } else { %>
+              <option value="" disabled>No sections available — contact your instructor</option>
+            <% } %>
           </select>
+          <% if (typeof sections !== 'undefined' && sections.length === 0) { %>
+            <small style="color:#e53935;display:block;margin-top:4px;">⚠️ No section codes have been set up yet. Please contact your instructor.</small>
+          <% } %>
         </div>
       </div>
       <div class="form-row">

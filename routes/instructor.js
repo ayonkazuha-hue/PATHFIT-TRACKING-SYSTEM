@@ -420,8 +420,16 @@ module.exports = function (supabaseAdmin) {
       }
       const navNotifs = await loadInstructorNavNotifications();
 
+      // Fetch instructor-managed sections for the Section Management panel
+      const { data: managedSections } = await supabaseAdmin
+        .from('sections')
+        .select('section_id, code, description')
+        .order('code');
+
       res.render('instructor/dashboard', {
-        students, pendingScreenings, showArchived, sectionArchiveStats, ...navNotifs,
+        students, pendingScreenings, showArchived, sectionArchiveStats,
+        managedSections: managedSections || [],
+        ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
         ratingDistribution: {
           selectedSection: selectedRatingSection,
@@ -634,6 +642,76 @@ module.exports = function (supabaseAdmin) {
     }
   });
 
+
+  // ── Section Management ──────────────────────────────────────
+
+  // GET /instructor/sections — returns JSON list of sections
+  router.get('/sections', async (req, res) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('sections')
+        .select('section_id, code, description')
+        .order('code');
+      if (error) return res.status(500).json({ error: error.message });
+      res.json(data || []);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /instructor/sections — add a new section
+  router.post('/sections', async (req, res) => {
+    const { code, description } = req.body;
+    const trimmed = (code || '').trim().toUpperCase();
+    if (!trimmed) return res.redirect('/instructor/dashboard?approveError=Section code is required.');
+    try {
+      const { error } = await supabaseAdmin
+        .from('sections')
+        .insert({ code: trimmed, description: (description || '').trim() || null });
+      if (error) {
+        const msg = error.message.includes('unique') || error.message.includes('duplicate')
+          ? `Section code "${trimmed}" already exists.`
+          : error.message;
+        return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(msg));
+      }
+      res.redirect('/instructor/dashboard?approveSuccess=Section "' + trimmed + '" added successfully.');
+    } catch (err) {
+      res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
+    }
+  });
+
+  // POST /instructor/sections/update — rename a section
+  router.post('/sections/update', async (req, res) => {
+    const { section_id, code, description } = req.body;
+    const trimmed = (code || '').trim().toUpperCase();
+    if (!section_id || !trimmed) return res.redirect('/instructor/dashboard?approveError=Invalid request.');
+    try {
+      const { error } = await supabaseAdmin
+        .from('sections')
+        .update({ code: trimmed, description: (description || '').trim() || null })
+        .eq('section_id', section_id);
+      if (error) throw error;
+      res.redirect('/instructor/dashboard?approveSuccess=Section updated successfully.');
+    } catch (err) {
+      res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
+    }
+  });
+
+  // POST /instructor/sections/delete — delete a section
+  router.post('/sections/delete', async (req, res) => {
+    const { section_id } = req.body;
+    if (!section_id) return res.redirect('/instructor/dashboard?approveError=Invalid request.');
+    try {
+      const { error } = await supabaseAdmin
+        .from('sections')
+        .delete()
+        .eq('section_id', section_id);
+      if (error) throw error;
+      res.redirect('/instructor/dashboard?approveSuccess=Section deleted successfully.');
+    } catch (err) {
+      res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
+    }
+  });
 
   router.post('/edit-student', async (req, res) => {
     const {
