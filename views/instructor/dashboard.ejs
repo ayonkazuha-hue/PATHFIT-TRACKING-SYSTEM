@@ -100,7 +100,7 @@
         <h3 style="margin:0;border:none;padding:0;">Section Code Management</h3>
         <div style="font-size:.82rem;color:#666;margin-top:3px;">Add, edit, or delete section codes that students see when registering.</div>
       </div>
-      <button type="button" onclick="document.getElementById('addSectionForm').style.display=document.getElementById('addSectionForm').style.display==='none'?'flex':'none'" class="btn btn-sm">+ Add Section</button>
+      <button type="button" onclick="document.getElementById('addSectionForm').style.display=document.getElementById('addSectionForm').style.display==='none'?'flex':'none'" class="btn btn-sm" <%= sectionsTableAvailable === false ? 'disabled' : '' %>>+ Add Section</button>
     </div>
 
     <!-- Add Section form (hidden by default) -->
@@ -118,6 +118,13 @@
 
     <!-- Sections list -->
     <% const mSections = typeof managedSections !== 'undefined' ? managedSections : []; %>
+    <% if (typeof sectionsTableAvailable !== 'undefined' && !sectionsTableAvailable) { %>
+      <div class="alert alert-danger mb-4 py-3">
+        <strong>Important:</strong> Section management is unavailable because the <code>sections</code> table does not exist or the schema cache is outdated. <br>
+        If you already ran <code>create_sections_table.sql</code>, Supabase just needs its cache reloaded. <br>
+        Please go to your Supabase SQL Editor and run: <code>NOTIFY pgrst, 'reload schema';</code> and then refresh this page.
+      </div>
+    <% } %>
     <% if (mSections.length > 0) { %>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
       <% mSections.forEach(function(sec) { %>

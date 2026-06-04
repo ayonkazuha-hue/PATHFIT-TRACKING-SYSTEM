@@ -1,0 +1,1 @@
+{"code":"PGRST205","details":null,"hint":"Perhaps you meant the table 'public.user_sessions'","message":"Could not find the table 'public.sections' in the schema cache"}

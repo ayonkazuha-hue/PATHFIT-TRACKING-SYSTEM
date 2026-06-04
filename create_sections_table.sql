@@ -22,5 +22,8 @@ CREATE POLICY "sections_service_all" ON public.sections
 CREATE POLICY "sections_public_read" ON public.sections
   FOR SELECT USING (true);
 
+-- Refresh PostgREST schema cache so Supabase recognizes the new table immediately
+NOTIFY pgrst, 'reload schema';
+
 -- Verify
 SELECT * FROM public.sections ORDER BY code;

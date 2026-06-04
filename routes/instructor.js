@@ -3,6 +3,12 @@ const multer = require('multer');
 const path = require('path');
 const usersSchema = require('../utils/usersSchema');
 const { probeUsersSchema, buildUserProfileUpdate } = usersSchema;
+const {
+  probeSectionsSchema,
+  isMissingSectionsTableError,
+  missingSectionsTableMessage,
+} = require('../utils/sectionsSchema');
+const { getManagedSections, saveManagedSections } = require('../utils/sectionsStorage');
 
 // Use memory storage — Vercel's filesystem is read-only
 // Files are uploaded directly to Supabase Storage instead
@@ -419,16 +425,13 @@ module.exports = function (supabaseAdmin) {
         }
       }
       const navNotifs = await loadInstructorNavNotifications();
-
-      // Fetch instructor-managed sections for the Section Management panel
-      const { data: managedSections } = await supabaseAdmin
-        .from('sections')
-        .select('section_id, code')
-        .order('code');
+      const sectionsTableAvailable = await probeSectionsSchema(supabaseAdmin, { refresh: true });
+      let managedSections = await getManagedSections(supabaseAdmin);
 
       res.render('instructor/dashboard', {
         students, pendingScreenings, showArchived, sectionArchiveStats,
-        managedSections: managedSections || [],
+        managedSections,
+        sectionsTableAvailable,
         ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
         ratingDistribution: {
@@ -648,12 +651,8 @@ module.exports = function (supabaseAdmin) {
   // GET /instructor/sections — returns JSON list of sections
   router.get('/sections', async (req, res) => {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('sections')
-        .select('section_id, code')
-        .order('code');
-      if (error) return res.status(500).json({ error: error.message });
-      res.json(data || []);
+      const sections = await getManagedSections(supabaseAdmin);
+      res.json(sections);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -665,15 +664,15 @@ module.exports = function (supabaseAdmin) {
     const trimmed = (code || '').trim().toUpperCase();
     if (!trimmed) return res.redirect('/instructor/dashboard?approveError=Section code is required.');
     try {
-      const { error } = await supabaseAdmin
-        .from('sections')
-        .insert({ code: trimmed });
-      if (error) {
-        const msg = error.message.includes('unique') || error.message.includes('duplicate')
-          ? `Section code "${trimmed}" already exists.`
-          : error.message;
-        return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(msg));
+      const sections = await getManagedSections(supabaseAdmin);
+      if (sections.some(s => s.code === trimmed)) {
+        return res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(`Section code "${trimmed}" already exists.`));
       }
+      
+      sections.push({ section_id: 'sec-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5), code: trimmed });
+      sections.sort((a, b) => a.code.localeCompare(b.code));
+      
+      await saveManagedSections(supabaseAdmin, sections);
       res.redirect('/instructor/dashboard?approveSuccess=Section "' + trimmed + '" added successfully.');
     } catch (err) {
       res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
@@ -686,11 +685,13 @@ module.exports = function (supabaseAdmin) {
     const trimmed = (code || '').trim().toUpperCase();
     if (!section_id || !trimmed) return res.redirect('/instructor/dashboard?approveError=Invalid request.');
     try {
-      const { error } = await supabaseAdmin
-        .from('sections')
-        .update({ code: trimmed })
-        .eq('section_id', section_id);
-      if (error) throw error;
+      const sections = await getManagedSections(supabaseAdmin);
+      const idx = sections.findIndex(s => s.section_id === section_id);
+      if (idx !== -1) {
+        sections[idx].code = trimmed;
+        sections.sort((a, b) => a.code.localeCompare(b.code));
+        await saveManagedSections(supabaseAdmin, sections);
+      }
       res.redirect('/instructor/dashboard?approveSuccess=Section updated successfully.');
     } catch (err) {
       res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));
@@ -702,11 +703,11 @@ module.exports = function (supabaseAdmin) {
     const { section_id } = req.body;
     if (!section_id) return res.redirect('/instructor/dashboard?approveError=Invalid request.');
     try {
-      const { error } = await supabaseAdmin
-        .from('sections')
-        .delete()
-        .eq('section_id', section_id);
-      if (error) throw error;
+      const sections = await getManagedSections(supabaseAdmin);
+      const newSections = sections.filter(s => s.section_id !== section_id);
+      if (newSections.length !== sections.length) {
+        await saveManagedSections(supabaseAdmin, newSections);
+      }
       res.redirect('/instructor/dashboard?approveSuccess=Section deleted successfully.');
     } catch (err) {
       res.redirect('/instructor/dashboard?approveError=' + encodeURIComponent(err.message));

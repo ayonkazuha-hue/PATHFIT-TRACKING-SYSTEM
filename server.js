@@ -4,12 +4,16 @@ const session      = require('express-session');
 const bodyParser   = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path         = require('path');
+const net          = require('net');
 const { createClient } = require('@supabase/supabase-js');
 const { escapeHtml } = require('./utils/sanitize');
 const { probeUsersSchema } = require('./utils/usersSchema');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const DEFAULT_PORT = Number.isInteger(parseInt(process.env.PORT, 10))
+  ? parseInt(process.env.PORT, 10)
+  : 3001;
+const PORT_SCAN_LIMIT = DEFAULT_PORT + 100;
 const isProd = process.env.NODE_ENV === 'production';
 
 const requiredEnv = [
@@ -126,28 +130,71 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { title: 'Server Error', message: err.message });
 });
 
-// ── Start (local dev only — Vercel uses module.exports below) ─
-if (process.env.NODE_ENV !== 'production') {
-  probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
-  require('./utils/rubrics').init(supabaseAdmin).catch(console.error);
+// ── Server startup helpers ─────────────────────────────────
 
-  const server = app.listen(PORT, () => {
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        resolve(false);
+      }
+    });
+
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+
+    server.listen(port);
+  });
+}
+
+async function findAvailablePort(start = DEFAULT_PORT, end = PORT_SCAN_LIMIT) {
+  for (let port = start; port <= end; port += 1) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  return 0;
+}
+
+async function startServer() {
+  const port = await findAvailablePort();
+  if (!port) {
+    console.error(`\n  ✗  Could not start the app: no available port found between ${DEFAULT_PORT} and ${PORT_SCAN_LIMIT}.`);
+    process.exit(1);
+  }
+
+  const server = app.listen(port, () => {
     console.log('\n╔══════════════════════════════════════════════════════════╗');
     console.log('║   🏃  PATHFIT TRACKING SYSTEM — Node.js + Express  🏃‍♀️   ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
-    console.log(`\n  ✓  http://localhost:${PORT}/login`);
-    console.log(`  ✓  http://localhost:${PORT}/register`);
-    console.log(`  ✓  http://localhost:${PORT}/student/dashboard`);
-    console.log(`  ✓  http://localhost:${PORT}/instructor/dashboard`);
+    console.log(`\n  ✓  http://localhost:${port}/login`);
+    console.log(`  ✓  http://localhost:${port}/register`);
+    console.log(`  ✓  http://localhost:${port}/student/dashboard`);
+    console.log(`  ✓  http://localhost:${port}/instructor/dashboard`);
     console.log('\n  Press Ctrl+C to stop\n');
+    if (port !== DEFAULT_PORT) {
+      console.log(`  ⚠  Default port ${DEFAULT_PORT} was busy. Running on port ${port} instead.`);
+    }
   });
 
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`\n  ✗  Port ${PORT} is already in use.`);
-      console.error(`  →  Run this to fix it: taskkill /F /IM node.exe\n`);
-      process.exit(1);
-    }
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+// ── Start (local dev only — Vercel uses module.exports below) ─
+if (!isProd) {
+  probeUsersSchema(supabaseAdmin, { refresh: true }).catch(() => {});
+  require('./utils/rubrics').init(supabaseAdmin).catch(console.error);
+  startServer().catch((err) => {
+    console.error(err);
+    process.exit(1);
   });
 } else {
   // Production (Vercel) — run schema probe without blocking

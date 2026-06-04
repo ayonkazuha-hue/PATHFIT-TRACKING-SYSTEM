@@ -4,6 +4,7 @@ const {
   probeUsersSchema,
   buildUserProfileInsert,
 } = require('../utils/usersSchema');
+const { getManagedSections } = require('../utils/sectionsStorage');
 
 module.exports = function(supabase, supabaseAdmin) {
   const router = express.Router();
@@ -133,11 +134,8 @@ module.exports = function(supabase, supabaseAdmin) {
   router.get('/register', async (req, res) => {
     if (req.session.user) return res.redirect('/');
     try {
-      const { data: sections } = await supabaseAdmin
-        .from('sections')
-        .select('section_id, code')
-        .order('code');
-      res.render('register', { error: null, success: null, old: {}, sections: sections || [] });
+      const sections = await getManagedSections(supabaseAdmin);
+      res.render('register', { error: null, success: null, old: {}, sections });
     } catch (_) {
       res.render('register', { error: null, success: null, old: {}, sections: [] });
     }
@@ -152,9 +150,7 @@ module.exports = function(supabase, supabaseAdmin) {
     // Fetch sections for re-rendering the form on error
     let sections = [];
     try {
-      const { data: sectionsData } = await supabaseAdmin
-        .from('sections').select('section_id, code').order('code');
-      sections = sectionsData || [];
+      sections = await getManagedSections(supabaseAdmin);
     } catch (_) { /* non-fatal — form still works without dropdown */ }
 
     const fail = (msg) => res.render('register', { error: msg, success: null, old, sections });
