@@ -3,11 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const usersSchema = require('../utils/usersSchema');
 const { probeUsersSchema, buildUserProfileUpdate } = usersSchema;
-const {
-  probeSectionsSchema,
-  isMissingSectionsTableError,
-  missingSectionsTableMessage,
-} = require('../utils/sectionsSchema');
+
 const { getManagedSections, saveManagedSections } = require('../utils/sectionsStorage');
 
 // Use memory storage — Vercel's filesystem is read-only
@@ -425,13 +421,11 @@ module.exports = function (supabaseAdmin) {
         }
       }
       const navNotifs = await loadInstructorNavNotifications();
-      const sectionsTableAvailable = await probeSectionsSchema(supabaseAdmin, { refresh: true });
       let managedSections = await getManagedSections(supabaseAdmin);
 
       res.render('instructor/dashboard', {
         students, pendingScreenings, showArchived, sectionArchiveStats,
         managedSections,
-        sectionsTableAvailable,
         ...navNotifs,
         filters: { section, pathfit_level, gender, course, year_level, search, rating_section: selectedRatingSection },
         ratingDistribution: {
